@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NrgOpt — Enterprise Clean Energy Solutions</title>
+<style>
+  /* ── DARK THEME (default) ── */
+  :root, [data-theme="dark"] {
+    --bg: #0a0e1a; --surface: #111827;
+    --text: #e2e8f0; --text-dim: #94a3b8;
+    --accent: #38bdf8; --accent2: #818cf8; --gold: #f59e0b;
+    --border: #1e293b; --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    --nav-bg: rgba(10,14,26,0.9);
+    --hero-bg1: rgba(56,189,248,0.12); --hero-bg2: rgba(129,140,248,0.08);
+    --hero-grad: linear-gradient(135deg, #0a0e1a 0%, #0f1725 40%, #111827 70%, #0a0e1a 100%);
+    --body-grad1: rgba(56,189,248,0.06); --body-grad2: rgba(129,140,248,0.04);
+    --body-grad3: rgba(56,189,248,0.04); --body-grad4: rgba(245,158,11,0.02);
+    --dot-color: rgba(148,163,184,0.3); --dot-opacity: 0.12;
+    --section-odd: linear-gradient(180deg, #0a0e1a 0%, #0f1725 50%, #0a0e1a 100%);
+    --section-even: linear-gradient(180deg, #111827 0%, #0f1725 40%, #111827 100%);
+    --btn-primary-text: #0a0e1a; --btn-primary-hover-bg: #7dd3fc;
+    --lang-hover-text: #0a0e1a;
+  }
+  /* ── LIGHT THEME ── */
+  [data-theme="light"] {
+    --bg: #f8fafc; --surface: #ffffff;
+    --text: #1e293b; --text-dim: #64748b;
+    --accent: #0284c7; --accent2: #6366f1; --gold: #d97706;
+    --border: #e2e8f0; --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --nav-bg: rgba(255,255,255,0.92);
+    --hero-bg1: rgba(2,132,199,0.1); --hero-bg2: rgba(99,102,241,0.06);
+    --hero-grad: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 40%, #fefce8 70%, #f8fafc 100%);
+    --body-grad1: rgba(2,132,199,0.05); --body-grad2: rgba(99,102,241,0.03);
+    --body-grad3: rgba(2,132,199,0.04); --body-grad4: rgba(217,119,6,0.02);
+    --dot-color: rgba(100,116,139,0.2); --dot-opacity: 0.25;
+    --section-odd: linear-gradient(180deg, #f8fafc 0%, #f0f9ff 50%, #f8fafc 100%);
+    --section-even: linear-gradient(180deg, #ffffff 0%, #f8fafc 40%, #ffffff 100%);
+    --btn-primary-text: #fff; --btn-primary-hover-bg: #0369a1;
+    --lang-hover-text: #fff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'PingFang SC','Microsoft YaHei',-apple-system,sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.75; position:relative;
+  }
+
+  /* ── GLOBAL PATTERN ── */
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(ellipse 900px 600px at 10% 20%, var(--body-grad1) 0%, transparent 60%),
+      radial-gradient(ellipse 800px 500px at 85% 50%, var(--body-grad2) 0%, transparent 55%),
+      radial-gradient(ellipse 700px 500px at 40% 80%, var(--body-grad3) 0%, transparent 55%),
+      radial-gradient(ellipse 600px 400px at 60% 10%, var(--body-grad4) 0%, transparent 50%);
+    background-size:cover;
+  }
+  body::after {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    opacity:var(--dot-opacity);
+    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:var(--nav-bg); backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-inner {
+    max-width:1180px; margin:0 auto; padding:0 24px;
+    display:flex; align-items:center; justify-content:space-between; height:62px;
+  }
+  .nav-logo {
+    font-size:1.2rem; font-weight:800; text-decoration:none; color:var(--text);
+    letter-spacing:-0.02em;
+  }
+  .nav-logo .primary { color:var(--accent); }
+  .nav-logo .sub { font-size:0.7rem; font-weight:400; color:var(--text-dim); margin-left:6px; }
+  .nav-links { display:flex; gap:22px; list-style:none; align-items:center; }
+  .nav-links a { color:var(--text-dim); text-decoration:none; font-size:0.88rem; font-weight:500; transition:color 0.2s; }
+  .nav-links a:hover { color:var(--accent); }
+  .nav-tools { display:flex; gap:8px; align-items:center; }
+  .lang-toggle, .theme-toggle {
+    padding:5px 14px; border-radius:16px; border:1.5px solid var(--accent);
+    background:transparent; color:var(--accent); cursor:pointer; font-size:0.8rem; font-weight:600;
+    transition:all 0.2s;
+  }
+  .lang-toggle:hover, .theme-toggle:hover { background:var(--accent); color:var(--lang-hover-text); }
+
+  /* ── SECTIONS ── */
+  section { padding:90px 0; position:relative; }
+  section:nth-child(odd) { background:var(--section-odd); }
+  section:nth-child(even) { background:var(--section-even); }
+  .container { max-width:1080px; margin:0 auto; padding:0 24px; position:relative; z-index:2; }
+  .section-label { font-size:0.72rem; letter-spacing:0.15em; color:var(--accent); margin-bottom:8px; text-transform:uppercase; font-weight:600; }
+  .section-title { font-size:clamp(1.5rem, 3vw, 2.2rem); font-weight:700; margin-bottom:12px; }
+  .section-desc { color:var(--text-dim); max-width:620px; margin-bottom:36px; font-size:1.02rem; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height:100vh; display:flex; align-items:center;
+    background: var(--hero-grad);
+    padding-top:62px; position:relative; z-index:1;
+  }
+  .hero::before {
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:0; opacity:0.3;
+    background: radial-gradient(circle at 30% 35%, var(--hero-bg1) 0%, transparent 50%), radial-gradient(circle at 65% 55%, var(--hero-bg2) 0%, transparent 50%); filter:blur(80px);
+  }
+  .hero h1 { font-size:clamp(2rem,5vw,3.4rem); font-weight:800; line-height:1.15; margin-bottom:18px; color:var(--text); }
+  .hero h1 .hl { color:var(--accent); }
+  .hero .hero-sub { font-size:1.1rem; color:var(--text-dim); max-width:560px; margin-bottom:36px; }
+  .hero .btn-row { display:flex; gap:14px; flex-wrap:wrap; }
+  .btn { padding:13px 30px; border-radius:28px; font-weight:600; font-size:0.95rem; text-decoration:none; display:inline-block; transition:0.2s; }
+  .btn-primary { background:var(--accent); color:var(--btn-primary-text); }
+  .btn-primary:hover { background:var(--btn-primary-hover-bg); }
+  .btn-outline { border:1.5px solid var(--accent); color:var(--accent); }
+  .btn-outline:hover { background:var(--accent); color:var(--btn-primary-text); }
+
+  /* ── CARDS ── */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:24px; }
+  .card {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:26px 28px; box-shadow:var(--shadow); transition:0.25s;
+  }
+  .card:hover { transform:translateY(-2px); }
+  [data-theme="dark"] .card:hover { box-shadow:0 6px 28px rgba(0,0,0,0.4); border-color:#334155; }
+  [data-theme="light"] .card:hover { box-shadow:0 6px 24px rgba(0,0,0,0.08); border-color:#d1d5db; }
+  .card h3 { font-size:1.05rem; margin-bottom:8px; font-weight:600; }
+  .card p { color:var(--text-dim); font-size:0.9rem; }
+
+  /* ── STATS ── */
+  .stat-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:18px; margin:30px 0; }
+  .stat {
+    text-align:center; padding:22px 18px; border-radius:14px;
+    background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);
+  }
+  .stat .number { font-size:1.9rem; font-weight:800; color:var(--accent); }
+  .stat .label { font-size:0.82rem; color:var(--text-dim); margin-top:4px; }
+
+  /* ── IMG BANNER ── */
+  .img-banner {
+    width:100%; height:240px; border-radius:14px; overflow:hidden;
+    background-size:cover; background-position:center;
+    margin-bottom:32px; box-shadow:var(--shadow);
+  }
+
+  /* ── TWO-COL ── */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center; }
+  @media(max-width:768px){ .two-col{ grid-template-columns:1fr } }
+
+  /* ── LANGUAGE ── */
+  .zh { display:none; }
+  body.lang-zh .zh { display:block; }
+  body.lang-zh .en { display:none; }
+  body.lang-zh .nav-logo .sub.en { display:none; }
+  body.lang-en .nav-logo .sub.zh { display:none; }
+  body.lang-zh .nav-logo .sub.zh { display:inline; }
+
+  footer { text-align:center; padding:48px 24px; color:var(--text-dim); font-size:0.82rem; background:var(--bg); border-top:1px solid var(--border); }
+</style>
+</head>
+<body class="lang-en">
+
+<!-- ═══════════════════════ NAV ═══════════════════════ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      Nrg<span class="primary">Opt</span>
+      <span class="sub en">Enterprise Clean Energy</span>
+      <span class="sub zh">企业清洁能源</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#solar"><span class="en">Solar</span><span class="zh">光伏</span></a></li>
+      <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span></a></li>
+      <li><a href="#storage"><span class="en">Storage</span><span class="zh">储能</span></a></li>
+      <li><a href="#space"><span class="en">Space PV</span><span class="zh">太空光伏</span></a></li>
+      <li><a href="#about"><span class="en">About</span><span class="zh">关于</span></a></li>
+      <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
+    </ul>
+    <div class="nav-tools">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light</button>
+      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">中文</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<section class="hero" id="hero">
+  <div class="container">
+    <h1>
+      <span class="en">Clean Energy<br>For Your Enterprise</span>
+      <span class="zh">企业级<br><span class="hl">清洁能源</span>供电服务</span>
+    </h1>
+    <p class="hero-sub en">Solar · Wind · Storage · Space PV — zero-carbon, stable, low-cost power solutions for industrial and commercial electricity consumers.</p>
+    <p class="hero-sub zh">光伏 · 风电 · 储能 · 太空光伏 —— 为用电企业提供零碳、稳定、低成本的清洁电力解决方案，助力碳中和转型。</p>
+    <div class="btn-row">
+      <a href="#solar" class="btn btn-primary"><span class="en">Explore Solutions</span><span class="zh">了解方案</span></a>
+      <a href="#about" class="btn btn-outline"><span class="en">Contact Us</span><span class="zh">联系我们</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ SOLAR ═══════════════════════ -->
+<section id="solar">
+  <div class="container">
+    <div class="section-label">01 / <span class="en">Solar Photovoltaic</span><span class="zh">太阳能光伏</span></div>
+    <h2 class="section-title"><span class="en">Next-Generation Solar Power</span><span class="zh">新一代太阳能发电</span></h2>
+    <p class="section-desc en">Perovskite tandem technology breaks the 34% efficiency barrier, driving utility-scale solar LCOE below $0.02/kWh — making clean power cheaper than grid electricity by 30–60%.</p>
+    <p class="section-desc zh">钙钛矿叠层技术突破 34% 效率大关，GW 级电站度电成本低于 0.15 元/kWh，比电网购电便宜 30%–60%。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1080&q=80')"></div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="number">34.85%</div><div class="label en">Cell Efficiency (LONGi / NREL)</div><div class="label zh">电池效率（隆基 / NREL）</div></div>
+      <div class="stat"><div class="number">865 W</div><div class="label en">Module Power (Trina / TÜV)</div><div class="label zh">组件功率（天合 / TÜV）</div></div>
+      <div class="stat"><div class="number">&lt;$0.02</div><div class="label en">LCOE per kWh (GW Scale)</div><div class="label zh">度电成本（GW 级）</div></div>
+      <div class="stat"><div class="number">30 yr</div><div class="label en">Module Lifespan Target</div><div class="label zh">组件寿命目标</div></div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3 class="en">Perovskite-Silicon Tandem</h3><h3 class="zh">钙钛矿-硅叠层技术</h3>
+        <p class="en">Stacking perovskite on silicon boosts efficiency from ~22% to 34%+. LONGi holds the 34.85% NREL record. Commercial M6/G12 wafers now achieve 29–32% in production lines — 40%+ more power per panel than standard silicon modules.</p>
+        <p class="zh">钙钛矿叠加在晶硅上，将效率从 ~22% 提升至 34%+。隆基保持 34.85% NREL 世界纪录。量产 M6/G12 硅片已实现 29–32% 产线效率，单板发电量比标准晶硅组件高 40% 以上。</p>
+      </div>
+      <div class="card">
+        <h3 class="en">Ultra-Low Manufacturing Cost</h3><h3 class="zh">超低制造成本</h3>
+        <p class="en">Perovskite raw materials cost ~1/5 of silicon. Solution-processable at low temperature with roll-to-roll compatibility — capex per GW is 50% lower than silicon lines. At scale, module cost drops to $0.12/W, enabling sub-$0.02/kWh LCOE.</p>
+        <p class="zh">钙钛矿原材料成本约为晶硅的 1/5。低温溶液法可与卷对卷工艺兼容，每 GW 投资比晶硅线低 50%。规模化后组件成本降至 0.8 元/W，度电成本低于 0.15 元/kWh。</p>
+      </div>
+      <div class="card">
+        <h3 class="en">Flexible & Lightweight</h3><h3 class="zh">柔性轻质组件</h3>
+        <p class="en">Thin-film perovskite on polymer/metal foil weighs <2 kg/m² (vs. 15+ kg/m² for glass panels). Can be installed on factory roofs, carports, and facades without structural reinforcement — unlocking commercial rooftop potential that rigid panels cannot reach.</p>
+        <p class="zh">聚合物/金属箔衬底钙钛矿薄膜重量 <2 kg/m²（玻璃面板 >15 kg/m²）。无需加固即可安装于厂房屋顶、车棚、幕墙等非承重表面，释放刚性面板无法触及的商业屋顶潜力。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ WIND ═══════════════════════ -->
+<section id="wind">
+  <div class="container">
+    <div class="section-label">02 / <span class="en">Wind Power</span><span class="zh">风力发电</span></div>
+    <h2 class="section-title"><span class="en">Onshore & Offshore Wind</span><span class="zh">陆上与海上风电</span></h2>
+    <p class="section-desc en">China leads the world with 440 GW installed wind capacity. Onshore wind LCOE is now below coal, and 16 MW offshore turbines deliver 60+ GWh annually per unit.</p>
+    <p class="section-desc zh">中国风电累计装机 440 GW，全球第一。陆上风电度电成本已低于煤电，16 MW 海上风机单机年发电超 6,000 万 kWh。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=1080&q=80')"></div>
+    <div class="stat-row">
+      <div class="stat"><div class="number">440 GW</div><div class="label en">China Installed (2025)</div><div class="label zh">中国累计装机</div></div>
+      <div class="stat"><div class="number">$0.028</div><div class="label en">Onshore LCOE / kWh</div><div class="label zh">陆风度电成本</div></div>
+      <div class="stat"><div class="number">16 MW</div><div class="label en">Max Offshore Turbine</div><div class="label zh">海上单机最大</div></div>
+      <div class="stat"><div class="number">4,500 h</div><div class="label en">Offshore Annual Hours</div><div class="label zh">海上年利用小时</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card"><h3 class="en">Onshore Utility Wind</h3><h3 class="zh">陆上集中式风电</h3><p class="en">Premium wind corridors in northern China deliver 2,500–3,500 hours annually. Full-service development from site assessment through grid connection — long-term fixed-price PPA for industrial consumers.</p><p class="zh">三北优质风场年利用 2,500–3,500h。从风场评估到并网的全流程开发服务，长期固定电价 PPA 直供工业用户。</p></div>
+      <div class="card"><h3 class="en">Offshore Wind</h3><h3 class="zh">海上风电</h3><p class="en">Coastal offshore achieves 3,500–4,500 utilization hours with stable, predictable output near major load centers. A single 16 MW turbine powers an entire industrial park — zero transmission congestion.</p><p class="zh">沿海海上风电年利用 3,500–4,500h，发电稳定可预测，靠近负荷中心。单台 16 MW 风机即可满足一个大型工业园区全部用电，零输配电拥堵。</p></div>
+      <div class="card"><h3 class="en">Distributed Wind</h3><h3 class="zh">分散式风电</h3><p class="en">In moderate-wind central/eastern regions, distributed turbines connect directly to local distribution grids for behind-the-meter power — minimal wheeling charges, maximum savings.</p><p class="zh">中东部低风速区分散式风机就近接入配电网，自发自用模式，过网费最低，节电收益最大化。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ STORAGE ═══════════════════════ -->
+<section id="storage">
+  <div class="container">
+    <div class="section-label">03 / <span class="en">Energy Storage</span><span class="zh">储能系统</span></div>
+    <h2 class="section-title"><span class="en">Smart Storage, 24/7 Reliability</span><span class="zh">智能储能 · 全天候供电</span></h2>
+    <p class="section-desc en">Renewable intermittency is solved. Our hybrid lithium + vanadium flow battery architecture guarantees uninterrupted industrial power — day and night, rain or shine.</p>
+    <p class="section-desc zh">风光间歇性已被攻克。锂电 + 全钒液流电池混合架构，无论昼夜晴雨，为工业生产提供不中断的清洁电力保障。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1559825481-12a05cc00344?w=1080&q=80')"></div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Lithium-Ion (LFP)</h3><h3 class="zh">磷酸铁锂储能</h3><p class="en">Sub-$70/kWh system cost. 2–6 hour peak shaving with sub-millisecond response. Paired with solar/wind for smooth, dispatchable industrial output.</p><p class="zh">系统成本低于 0.5 元/Wh。2–6 小时削峰填谷，毫秒级响应。与光伏/风电配对实现平滑可调度的工业电力输出。</p></div>
+        <div class="card"><h3 class="en">Vanadium Flow (VRFB)</h3><h3 class="zh">全钒液流电池</h3><p class="en">4–12 hour long-duration storage. 20,000+ cycles with zero capacity fade. Designed for 24/7 industrial baseload and grid-scale peak shifting — the proven path for deep decarbonization.</p><p class="zh">4–12 小时长时储能。20,000+ 次循环零容量衰减。专为工业 24 小时基荷和电网调峰设计——深度脱碳的成熟技术路线。</p></div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Smart Microgrid</h3><h3 class="zh">智能微电网</h3><p class="en">Solar + Wind + Storage + AI-driven EMS = autonomous microgrid. Self-consumption with surplus export. Automatic islanding during grid faults ensures zero production downtime.</p><p class="zh">光伏 + 风电 + 储能 + AI 智能调度 = 自主微电网。自发自用余电上网，电网故障时自动离网运行，核心生产零停机。</p></div>
+        <div class="card"><h3 class="en">Virtual Power Plant</h3><h3 class="zh">虚拟电厂</h3><p class="en">Aggregate distributed assets for spot and ancillary service market participation. Charge at valley price, discharge at peak — your storage earns revenue while you sleep.</p><p class="zh">聚合分布式资产参与现货和辅助服务市场。谷电充电、峰电放电——储能系统在夜间也能为您赚取额外收益。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ SPACE ═══════════════════════ -->
+<section id="space">
+  <div class="container">
+    <div class="section-label">04 / <span class="en">Space Photovoltaics</span><span class="zh">太空光伏</span></div>
+    <h2 class="section-title"><span class="en">Perovskite Space PV — Tech Spillover</span><span class="zh">钙钛矿太空光伏 · 技术溢出</span></h2>
+    <p class="section-desc en">Perovskite solar cells are redefining space power with ultra-light, flexible, radiation-tolerant architecture. Space-grade technology flows back to premium terrestrial applications.</p>
+    <p class="section-desc zh">钙钛矿太阳能电池正以轻质、柔性、抗辐射的独特优势重新定义空间电源。太空级技术反向赋能地面高端光伏应用。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1080&q=80')"></div>
+    <div class="stat-row">
+      <div class="stat"><div class="number">43%</div><div class="label en">AM0 Theoretical Limit</div><div class="label zh">AM0 理论极限</div></div>
+      <div class="stat"><div class="number">$7/W</div><div class="label en">Mfg Cost (1/20× GaAs)</div><div class="label zh">成本（砷化镓 1/20）</div></div>
+      <div class="stat"><div class="number">50 W/g</div><div class="label en">Specific Power</div><div class="label zh">比功率（硅 130×）</div></div>
+      <div class="stat"><div class="number">100 d</div><div class="label en">LEO Zero-Degradation</div><div class="label zh">在轨零衰减验证</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card"><h3 class="en">Self-Healing Crystals</h3><h3 class="zh">缺陷自修复晶体</h3><p class="en">Ionic perovskite spontaneously repairs radiation-induced lattice vacancies under sunlight and thermal cycling. No heavy cerium cover glass needed — intrinsically radiation-hard.</p><p class="zh">钙钛矿离子晶体在太空光照与温度循环下，自发填补高能粒子撞击产生的晶格空位。不需掺铈盖片，本征抗辐射。</p></div>
+      <div class="card"><h3 class="en">Space → Ground Transfer</h3><h3 class="zh">太空技术地面转化</h3><p class="en">Orbit-proven durability, ultra-high efficiency, and roll-to-roll flexible manufacturing feed back into terrestrial solar — driving the next revolution in commercial & industrial PV.</p><p class="zh">轨道验证的耐久性、超高效率和卷对卷柔性制造正在反哺地面光伏——推动工商业光伏的下一代革命。</p></div>
+      <div class="card"><h3 class="en">Commercial Milestones</h3><h3 class="zh">商业里程碑</h3><p class="en">2023: GCL first perovskite module in orbit. 2026: RIT/Space Force 100-day LEO — zero degradation. JAXA/Ricoh HTV-X1 demo. Industry consensus: perovskite dominates LEO constellation power from 2028.</p><p class="zh">2023 协鑫全球首射。2026 RIT/太空军 100 天零衰减。JAXA/理光在轨演示。行业共识：2028 起钙钛矿主导低轨星座空间电源。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ ABOUT ═══════════════════════ -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">05 / <span class="en">About NrgOpt</span><span class="zh">关于能源优化</span></div>
+    <h2 class="section-title"><span class="en">Zero-Carbon Power, Delivered</span><span class="zh">零碳电力，一站交付</span></h2>
+    <p class="section-desc en">NrgOpt provides end-to-end clean energy solutions for industrial, data center, and manufacturing clients — from design through O&M. We optimize your energy, so you can focus on your business.</p>
+    <p class="section-desc zh">NrgOpt（能源优化）为工业、数据中心和制造业客户提供一站式清洁能源解决方案——从设计到运维，全生命周期服务。我们优化能源，您专注业务。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1080&q=80')"></div>
+    <div class="card-grid">
+      <div class="card"><h3 class="en">Our Mission</h3><h3 class="zh">我们的使命</h3><p class="en">Enable energy-intensive industries to decarbonize profitably — cutting electricity costs 30–60% while achieving net-zero targets through bespoke solar, wind, and storage solutions.</p><p class="zh">帮助高耗能行业在盈利中脱碳——通过定制光伏、风电和储能方案，将用电成本降低 30%–60%，同时达成净零目标。</p></div>
+      <div class="card"><h3 class="en">Technology Edge</h3><h3 class="zh">技术优势</h3><p class="en">Perovskite tandem PV, AI-driven microgrid EMS, and hybrid storage — technologies proven at the frontier of space and scaled for industrial deployment.</p><p class="zh">钙钛矿叠层光伏、AI 驱动微电网调度、混合储能——太空前沿验证的技术，规模化应用于工业场景。</p></div>
+      <div class="card"><h3 class="en">Flexible Models</h3><h3 class="zh">灵活合作</h3><p class="en"><strong>EMC</strong> — zero upfront. <strong>PPA</strong> — fixed long-term price. <strong>EPC</strong> — turnkey delivery. Choose the model that fits your capital strategy.</p><p class="zh"><strong>EMC</strong> 零前期投入。<strong>PPA</strong> 长期固定电价。<strong>EPC</strong> 交钥匙工程。选择最适合您资本策略的合作模式。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ CONTACT ═══════════════════════ -->
+<section id="contact">
+  <div class="container">
+    <div class="section-label">06 / <span class="en">Contact Us</span><span class="zh">联系我们</span></div>
+    <h2 class="section-title"><span class="en">Get in Touch</span><span class="zh">联络我们</span></h2>
+    <p class="section-desc en">Ready to optimize your energy strategy? Reach out to explore how NrgOpt can power your enterprise with clean, reliable, cost-effective electricity.</p>
+    <p class="section-desc zh">准备好优化您的能源战略了吗？联系我们，探讨 NrgOpt 如何为您的企业提供清洁、可靠、经济的电力。</p>
+    <div class="card-grid" style="max-width:720px; margin:0 auto;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem; margin-bottom:8px;">✉️</div>
+        <h3>Email</h3>
+        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">Roger@mnex.cn</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem; margin-bottom:8px;">📞</div>
+        <h3 class="en">Phone</h3><h3 class="zh">电话</h3>
+        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">13916897518</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2rem; margin-bottom:8px;">💬</div>
+        <h3>WeChat</h3>
+        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">13916897518</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p class="en">Data sources: NEA, NREL, Fraunhofer ISE, China Top 10 Sci Advances · © 2026 NrgOpt — Energy Optimized</p>
+    <p class="zh">数据来源：国家能源局、NREL、Fraunhofer ISE、中国科学十大进展 · © 2026 NrgOpt 能源优化</p>
+  </div>
+</footer>
+
+<script>
+function toggleLang() {
+  var b = document.body;
+  var btn = document.getElementById('langBtn');
+  if (b.classList.contains('lang-en')) {
+    b.classList.remove('lang-en'); b.classList.add('lang-zh');
+    btn.textContent = 'English'; document.documentElement.lang = 'zh';
+  } else {
+    b.classList.remove('lang-zh'); b.classList.add('lang-en');
+    btn.textContent = '中文'; document.documentElement.lang = 'en';
+  }
+}
+function toggleTheme() {
+  var html = document.documentElement;
+  var btn = document.getElementById('themeBtn');
+  if (html.getAttribute('data-theme') === 'dark') {
+    html.setAttribute('data-theme', 'light');
+    btn.innerHTML = '🌙 Dark';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    btn.innerHTML = '☀️ Light';
+  }
+}
+</script>
+</body>
+</html>
