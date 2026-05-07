@@ -150,7 +150,41 @@
 
   /* ── TWO-COL ── */
   .two-col { display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center; }
-  @media(max-width:768px){ .two-col{ grid-template-columns:1fr } }
+  /* ── CONTACT ROW ── */
+  .contact-row { display:flex; gap:20px; max-width:780px; margin:0 auto; }
+  .contact-row .card { flex:1; text-align:center; min-width:0; }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:900px){ .two-col{ grid-template-columns:1fr } }
+  @media(max-width:768px){
+    section { padding:60px 0; }
+    .hero h1 { font-size:clamp(1.6rem,7vw,2.4rem); }
+    .section-title { font-size:1.4rem; }
+    .section-desc { font-size:0.95rem; }
+    .nav-inner { height:auto; flex-wrap:wrap; padding:10px 16px; gap:8px; }
+    .nav-links { gap:12px; flex-wrap:wrap; }
+    .nav-links a { font-size:0.8rem; }
+    .nav-tools { gap:6px; }
+    .lang-toggle, .theme-toggle { padding:4px 10px; font-size:0.72rem; }
+    .img-banner { height:160px; }
+    .card-grid { grid-template-columns:1fr; }
+    .stat-row { grid-template-columns:repeat(2,1fr); gap:12px; }
+    .stat { padding:16px 12px; }
+    .stat .number { font-size:1.5rem; }
+    .contact-row { flex-direction:column; }
+    .contact-row .card { padding:18px 20px; }
+    footer { font-size:0.75rem; padding:32px 16px; }
+  }
+  @media(max-width:480px){
+    .nav-links { gap:8px; }
+    .hero { min-height:90vh; }
+    .hero-sub { font-size:0.9rem; }
+    .btn { padding:10px 20px; font-size:0.85rem; }
+    .stat-row { grid-template-columns:1fr 1fr; gap:8px; }
+    .stat .number { font-size:1.3rem; }
+    .img-banner { height:140px; border-radius:10px; }
+    .container { padding:0 16px; }
+  }
 
   /* ── LANGUAGE ── */
   .zh { display:none; }
@@ -175,8 +209,8 @@
     </a>
     <ul class="nav-links">
       <li><a href="#solar"><span class="en">Solar</span><span class="zh">光伏</span></a></li>
-      <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span></a></li>
       <li><a href="#storage"><span class="en">Storage</span><span class="zh">储能</span></a></li>
+      <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span></a></li>
       <li><a href="#space"><span class="en">Space PV</span><span class="zh">太空光伏</span></a></li>
       <li><a href="#about"><span class="en">About</span><span class="zh">关于</span></a></li>
       <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
@@ -240,10 +274,31 @@
   </div>
 </section>
 
+<!-- ═══════════════════════ STORAGE ═══════════════════════ -->
+<section id="storage">
+  <div class="container">
+    <div class="section-label">02 / <span class="en">Energy Storage</span><span class="zh">储能系统</span></div>
+    <h2 class="section-title"><span class="en">Smart Storage, 24/7 Reliability</span><span class="zh">智能储能 · 全天候供电</span></h2>
+    <p class="section-desc en">Renewable intermittency is solved. Our hybrid lithium + vanadium flow battery architecture guarantees uninterrupted industrial power — day and night, rain or shine.</p>
+    <p class="section-desc zh">风光间歇性已被攻克。锂电 + 全钒液流电池混合架构，无论昼夜晴雨，为工业生产提供不中断的清洁电力保障。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1559825481-12a05cc00344?w=1080&q=80')"></div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Lithium-Ion (LFP)</h3><h3 class="zh">磷酸铁锂储能</h3><p class="en">Sub-$70/kWh system cost. 2–6 hour peak shaving with sub-millisecond response. Paired with solar/wind for smooth, dispatchable industrial output.</p><p class="zh">系统成本低于 0.5 元/Wh。2–6 小时削峰填谷，毫秒级响应。与光伏/风电配对实现平滑可调度的工业电力输出。</p></div>
+        <div class="card"><h3 class="en">Vanadium Flow (VRFB)</h3><h3 class="zh">全钒液流电池</h3><p class="en">4–12 hour long-duration storage. 20,000+ cycles with zero capacity fade. Designed for 24/7 industrial baseload and grid-scale peak shifting — the proven path for deep decarbonization.</p><p class="zh">4–12 小时长时储能。20,000+ 次循环零容量衰减。专为工业 24 小时基荷和电网调峰设计——深度脱碳的成熟技术路线。</p></div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Smart Microgrid</h3><h3 class="zh">智能微电网</h3><p class="en">Solar + Wind + Storage + AI-driven EMS = autonomous microgrid. Self-consumption with surplus export. Automatic islanding during grid faults ensures zero production downtime.</p><p class="zh">光伏 + 风电 + 储能 + AI 智能调度 = 自主微电网。自发自用余电上网，电网故障时自动离网运行，核心生产零停机。</p></div>
+        <div class="card"><h3 class="en">Virtual Power Plant</h3><h3 class="zh">虚拟电厂</h3><p class="en">Aggregate distributed assets for spot and ancillary service market participation. Charge at valley price, discharge at peak — your storage earns revenue while you sleep.</p><p class="zh">聚合分布式资产参与现货和辅助服务市场。谷电充电、峰电放电——储能系统在夜间也能为您赚取额外收益。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════════════ WIND ═══════════════════════ -->
 <section id="wind">
   <div class="container">
-    <div class="section-label">02 / <span class="en">Wind Power</span><span class="zh">风力发电</span></div>
+    <div class="section-label">03 / <span class="en">Wind Power</span><span class="zh">风力发电</span></div>
     <h2 class="section-title"><span class="en">Onshore & Offshore Wind</span><span class="zh">陆上与海上风电</span></h2>
     <p class="section-desc en">China leads the world with 440 GW installed wind capacity. Onshore wind LCOE is now below coal, and 16 MW offshore turbines deliver 60+ GWh annually per unit.</p>
     <p class="section-desc zh">中国风电累计装机 440 GW，全球第一。陆上风电度电成本已低于煤电，16 MW 海上风机单机年发电超 6,000 万 kWh。</p>
@@ -258,27 +313,6 @@
       <div class="card"><h3 class="en">Onshore Utility Wind</h3><h3 class="zh">陆上集中式风电</h3><p class="en">Premium wind corridors in northern China deliver 2,500–3,500 hours annually. Full-service development from site assessment through grid connection — long-term fixed-price PPA for industrial consumers.</p><p class="zh">三北优质风场年利用 2,500–3,500h。从风场评估到并网的全流程开发服务，长期固定电价 PPA 直供工业用户。</p></div>
       <div class="card"><h3 class="en">Offshore Wind</h3><h3 class="zh">海上风电</h3><p class="en">Coastal offshore achieves 3,500–4,500 utilization hours with stable, predictable output near major load centers. A single 16 MW turbine powers an entire industrial park — zero transmission congestion.</p><p class="zh">沿海海上风电年利用 3,500–4,500h，发电稳定可预测，靠近负荷中心。单台 16 MW 风机即可满足一个大型工业园区全部用电，零输配电拥堵。</p></div>
       <div class="card"><h3 class="en">Distributed Wind</h3><h3 class="zh">分散式风电</h3><p class="en">In moderate-wind central/eastern regions, distributed turbines connect directly to local distribution grids for behind-the-meter power — minimal wheeling charges, maximum savings.</p><p class="zh">中东部低风速区分散式风机就近接入配电网，自发自用模式，过网费最低，节电收益最大化。</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════ STORAGE ═══════════════════════ -->
-<section id="storage">
-  <div class="container">
-    <div class="section-label">03 / <span class="en">Energy Storage</span><span class="zh">储能系统</span></div>
-    <h2 class="section-title"><span class="en">Smart Storage, 24/7 Reliability</span><span class="zh">智能储能 · 全天候供电</span></h2>
-    <p class="section-desc en">Renewable intermittency is solved. Our hybrid lithium + vanadium flow battery architecture guarantees uninterrupted industrial power — day and night, rain or shine.</p>
-    <p class="section-desc zh">风光间歇性已被攻克。锂电 + 全钒液流电池混合架构，无论昼夜晴雨，为工业生产提供不中断的清洁电力保障。</p>
-    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1559825481-12a05cc00344?w=1080&q=80')"></div>
-    <div class="two-col">
-      <div>
-        <div class="card" style="margin-bottom:16px"><h3 class="en">Lithium-Ion (LFP)</h3><h3 class="zh">磷酸铁锂储能</h3><p class="en">Sub-$70/kWh system cost. 2–6 hour peak shaving with sub-millisecond response. Paired with solar/wind for smooth, dispatchable industrial output.</p><p class="zh">系统成本低于 0.5 元/Wh。2–6 小时削峰填谷，毫秒级响应。与光伏/风电配对实现平滑可调度的工业电力输出。</p></div>
-        <div class="card"><h3 class="en">Vanadium Flow (VRFB)</h3><h3 class="zh">全钒液流电池</h3><p class="en">4–12 hour long-duration storage. 20,000+ cycles with zero capacity fade. Designed for 24/7 industrial baseload and grid-scale peak shifting — the proven path for deep decarbonization.</p><p class="zh">4–12 小时长时储能。20,000+ 次循环零容量衰减。专为工业 24 小时基荷和电网调峰设计——深度脱碳的成熟技术路线。</p></div>
-      </div>
-      <div>
-        <div class="card" style="margin-bottom:16px"><h3 class="en">Smart Microgrid</h3><h3 class="zh">智能微电网</h3><p class="en">Solar + Wind + Storage + AI-driven EMS = autonomous microgrid. Self-consumption with surplus export. Automatic islanding during grid faults ensures zero production downtime.</p><p class="zh">光伏 + 风电 + 储能 + AI 智能调度 = 自主微电网。自发自用余电上网，电网故障时自动离网运行，核心生产零停机。</p></div>
-        <div class="card"><h3 class="en">Virtual Power Plant</h3><h3 class="zh">虚拟电厂</h3><p class="en">Aggregate distributed assets for spot and ancillary service market participation. Charge at valley price, discharge at peak — your storage earns revenue while you sleep.</p><p class="zh">聚合分布式资产参与现货和辅助服务市场。谷电充电、峰电放电——储能系统在夜间也能为您赚取额外收益。</p></div>
-      </div>
     </div>
   </div>
 </section>
@@ -328,21 +362,21 @@
     <h2 class="section-title"><span class="en">Get in Touch</span><span class="zh">联络我们</span></h2>
     <p class="section-desc en">Ready to optimize your energy strategy? Reach out to explore how NrgOpt can power your enterprise with clean, reliable, cost-effective electricity.</p>
     <p class="section-desc zh">准备好优化您的能源战略了吗？联系我们，探讨 NrgOpt 如何为您的企业提供清洁、可靠、经济的电力。</p>
-    <div class="card-grid" style="max-width:720px; margin:0 auto;">
-      <div class="card" style="text-align:center;">
-        <div style="font-size:2rem; margin-bottom:8px;">✉️</div>
+    <div class="contact-row">
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:6px;">✉️</div>
         <h3>Email</h3>
-        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">Roger@mnex.cn</p>
+        <p style="font-size:1rem; color:var(--accent); font-weight:600;">Roger@mnex.cn</p>
       </div>
-      <div class="card" style="text-align:center;">
-        <div style="font-size:2rem; margin-bottom:8px;">📞</div>
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:6px;">📞</div>
         <h3 class="en">Phone</h3><h3 class="zh">电话</h3>
-        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">13916897518</p>
+        <p style="font-size:1rem; color:var(--accent); font-weight:600;">13916897518</p>
       </div>
-      <div class="card" style="text-align:center;">
-        <div style="font-size:2rem; margin-bottom:8px;">💬</div>
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:6px;">💬</div>
         <h3>WeChat</h3>
-        <p style="font-size:1.05rem; color:var(--accent); font-weight:600;">13916897518</p>
+        <p style="font-size:1rem; color:var(--accent); font-weight:600;">13916897518</p>
       </div>
     </div>
   </div>
