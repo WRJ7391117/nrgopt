@@ -1,1 +1,7 @@
-{"name":"nrgopt","version":2,"builds":[{"src":"index.html","use":"@vercel/static"}]}
+{
+  "name": "nrgopt",
+  "version": 2,
+  "builds": [
+    {"src": "**/*", "use": "@vercel/static"}
+  ]
+}
