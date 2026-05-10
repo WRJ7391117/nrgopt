@@ -88,12 +88,13 @@
     display:flex; align-items:center; justify-content:center;
     width:34px; height:34px; padding:0; border-radius:50%;
     border:1.5px solid var(--accent); background:transparent;
-    color:var(--accent); cursor:pointer; font-size:1rem;
-    transition:all 0.2s; line-height:1;
+    color:var(--accent); cursor:pointer; transition:all 0.2s; line-height:1;
   }
-  .theme-toggle { font-size:1.1rem; }
+  .theme-toggle svg { width:18px; height:18px; stroke:var(--accent); fill:none; stroke-width:2; }
   .lang-toggle { width:auto; padding:0 14px; border-radius:16px; font-size:0.8rem; font-weight:600; }
-  .lang-toggle:hover, .theme-toggle:hover { background:var(--accent); color:var(--lang-hover-text); }
+  .lang-toggle:hover, .theme-toggle:hover { background:var(--accent); }
+  .theme-toggle:hover svg { stroke:var(--lang-hover-text); }
+  .lang-toggle:hover { color:var(--lang-hover-text); }
 
   /* ── SECTIONS ── */
   section { padding:90px 0; position:relative; }
@@ -227,7 +228,7 @@
       <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
     </ul>
     <div class="nav-tools">
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">☀️</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"><svg id="themeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
       <button class="lang-toggle" onclick="toggleLang()" id="langBtn">中文</button>
     </div>
   </div>
@@ -365,8 +366,8 @@
         <p class="en">Comprehensive PV project site survey checklist — roof conditions, electrical infrastructure, structural measurements, and environmental assessment.</p>
         <p class="zh">光伏项目现场勘察完整清单——屋面状况、电气基础设施、结构测量、环境评估。</p>
         <div class="doc-downloads">
-          <a href="site-survey-en.md" download class="doc-btn en">⬇ Download</a>
-          <a href="site-survey-zh.md" download class="doc-btn zh">⬇ 下载</a>
+          <a href="site-survey-en.md" download="site-survey-en.md" class="doc-btn en" onclick="downloadFile(event,'site-survey-en.md')">⬇ Download</a>
+          <a href="site-survey-zh.md" download="site-survey-zh.md" class="doc-btn zh" onclick="downloadFile(event,'site-survey-zh.md')">⬇ 下载</a>
         </div>
       </div>
       <!-- Technical Specification -->
@@ -440,6 +441,15 @@
 </footer>
 
 <script>
+function downloadFile(e, url) {
+  e.preventDefault();
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = url.split('/').pop();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 function toggleLang() {
   var b = document.body;
   var btn = document.getElementById('langBtn');
@@ -454,13 +464,16 @@ function toggleLang() {
 function toggleTheme() {
   var html = document.documentElement;
   var btn = document.getElementById('themeBtn');
+  var icon = document.getElementById('themeIcon');
+  var moonSVG = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  var sunSVG = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
   if (html.getAttribute('data-theme') === 'dark') {
     html.setAttribute('data-theme', 'light');
-    btn.innerHTML = '🌙';
+    icon.innerHTML = moonSVG;
     btn.title = 'Dark mode';
   } else {
     html.setAttribute('data-theme', 'dark');
-    btn.innerHTML = '☀️';
+    icon.innerHTML = sunSVG;
     btn.title = 'Light mode';
   }
 }
