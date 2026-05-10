@@ -85,10 +85,14 @@
   .nav-links a:hover { color:var(--accent); }
   .nav-tools { display:flex; gap:8px; align-items:center; }
   .lang-toggle, .theme-toggle {
-    padding:5px 14px; border-radius:16px; border:1.5px solid var(--accent);
-    background:transparent; color:var(--accent); cursor:pointer; font-size:0.8rem; font-weight:600;
-    transition:all 0.2s;
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; padding:0; border-radius:50%;
+    border:1.5px solid var(--accent); background:transparent;
+    color:var(--accent); cursor:pointer; font-size:1rem;
+    transition:all 0.2s; line-height:1;
   }
+  .theme-toggle { font-size:1.1rem; }
+  .lang-toggle { width:auto; padding:0 14px; border-radius:16px; font-size:0.8rem; font-weight:600; }
   .lang-toggle:hover, .theme-toggle:hover { background:var(--accent); color:var(--lang-hover-text); }
 
   /* ── SECTIONS ── */
@@ -218,12 +222,12 @@
       <li><a href="#storage"><span class="en">Storage</span><span class="zh">储能</span></a></li>
       <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span></a></li>
       <li><a href="#space"><span class="en">Space PV</span><span class="zh">太空光伏</span></a></li>
-      <li><a href="#about"><span class="en">About</span><span class="zh">关于</span></a></li>
       <li><a href="#resources"><span class="en">Resources</span><span class="zh">资料</span></a></li>
+      <li><a href="#about"><span class="en">About</span><span class="zh">关于</span></a></li>
       <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
     </ul>
     <div class="nav-tools">
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">☀️</button>
       <button class="lang-toggle" onclick="toggleLang()" id="langBtn">中文</button>
     </div>
   </div>
@@ -346,26 +350,10 @@
   </div>
 </section>
 
-<!-- ═══════════════════════ ABOUT ═══════════════════════ -->
-<section id="about">
-  <div class="container">
-    <div class="section-label">05 / <span class="en">About NrgOpt</span><span class="zh">关于能源优化</span></div>
-    <h2 class="section-title"><span class="en">Zero-Carbon Power, Delivered</span><span class="zh">零碳电力，一站交付</span></h2>
-    <p class="section-desc en">NrgOpt provides end-to-end clean energy solutions for industrial, data center, and manufacturing clients — from design through O&M. We optimize your energy, so you can focus on your business.</p>
-    <p class="section-desc zh">NrgOpt（能源优化）为工业、数据中心和制造业客户提供一站式清洁能源解决方案——从设计到运维，全生命周期服务。我们优化能源，您专注业务。</p>
-    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1080&q=80')"></div>
-    <div class="card-grid">
-      <div class="card"><h3 class="en">Our Mission</h3><h3 class="zh">我们的使命</h3><p class="en">Enable energy-intensive industries to decarbonize profitably — cutting electricity costs 30–60% while achieving net-zero targets through bespoke solar, wind, and storage solutions.</p><p class="zh">帮助高耗能行业在盈利中脱碳——通过定制光伏、风电和储能方案，将用电成本降低 30%–60%，同时达成净零目标。</p></div>
-      <div class="card"><h3 class="en">Technology Edge</h3><h3 class="zh">技术优势</h3><p class="en">Perovskite tandem PV, AI-driven microgrid EMS, and hybrid storage — technologies proven at the frontier of space and scaled for industrial deployment.</p><p class="zh">钙钛矿叠层光伏、AI 驱动微电网调度、混合储能——太空前沿验证的技术，规模化应用于工业场景。</p></div>
-      <div class="card"><h3 class="en">Flexible Models</h3><h3 class="zh">灵活合作</h3><p class="en"><strong>EMC</strong> — zero upfront. <strong>PPA</strong> — fixed long-term price. <strong>EPC</strong> — turnkey delivery. Choose the model that fits your capital strategy.</p><p class="zh"><strong>EMC</strong> 零前期投入。<strong>PPA</strong> 长期固定电价。<strong>EPC</strong> 交钥匙工程。选择最适合您资本策略的合作模式。</p></div>
-    </div>
-  </div>
-</section>
-
 <!-- ═══════════════════════ RESOURCES ═══════════════════════ -->
 <section id="resources">
   <div class="container">
-    <div class="section-label">06 / <span class="en">Project Resources</span><span class="zh">项目资料</span></div>
+    <div class="section-label">05 / <span class="en">Project Resources</span><span class="zh">项目资料</span></div>
     <h2 class="section-title"><span class="en">Standard Documents</span><span class="zh">标准文档下载</span></h2>
     <p class="section-desc en">Essential templates and checklists for clean energy project execution — from site survey to grid connection.</p>
     <p class="section-desc zh">清洁能源项目执行中所需的标准模板与检查清单，从现场勘察到并网接入。</p>
@@ -377,10 +365,8 @@
         <p class="en">Comprehensive PV project site survey checklist — roof conditions, electrical infrastructure, structural measurements, and environmental assessment.</p>
         <p class="zh">光伏项目现场勘察完整清单——屋面状况、电气基础设施、结构测量、环境评估。</p>
         <div class="doc-downloads">
-          <a href="site-survey-en.md" download class="doc-btn en">⬇ EN</a>
-          <a href="site-survey-zh.md" download class="doc-btn en">⬇ 中文</a>
-          <a href="site-survey-zh.md" download class="doc-btn zh">⬇ 中文</a>
-          <a href="site-survey-en.md" download class="doc-btn zh">⬇ EN</a>
+          <a href="site-survey-en.md" download class="doc-btn en">⬇ Download</a>
+          <a href="site-survey-zh.md" download class="doc-btn zh">⬇ 下载</a>
         </div>
       </div>
       <!-- Technical Specification -->
@@ -399,6 +385,22 @@
         <p class="zh">并网接入分步申请指南——所需文件、电力公司协调、验收测试流程。</p>
         <span class="doc-soon"><span class="en">Coming Soon</span><span class="zh">即将上线</span></span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ ABOUT ═══════════════════════ -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">06 / <span class="en">About NrgOpt</span><span class="zh">关于能源优化</span></div>
+    <h2 class="section-title"><span class="en">Zero-Carbon Power, Delivered</span><span class="zh">零碳电力，一站交付</span></h2>
+    <p class="section-desc en">NrgOpt provides end-to-end clean energy solutions for industrial, data center, and manufacturing clients — from design through O&M. We optimize your energy, so you can focus on your business.</p>
+    <p class="section-desc zh">NrgOpt（能源优化）为工业、数据中心和制造业客户提供一站式清洁能源解决方案——从设计到运维，全生命周期服务。我们优化能源，您专注业务。</p>
+    <div class="img-banner" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1080&q=80')"></div>
+    <div class="card-grid">
+      <div class="card"><h3 class="en">Our Mission</h3><h3 class="zh">我们的使命</h3><p class="en">Enable energy-intensive industries to decarbonize profitably — cutting electricity costs 30–60% while achieving net-zero targets through bespoke solar, wind, and storage solutions.</p><p class="zh">帮助高耗能行业在盈利中脱碳——通过定制光伏、风电和储能方案，将用电成本降低 30%–60%，同时达成净零目标。</p></div>
+      <div class="card"><h3 class="en">Technology Edge</h3><h3 class="zh">技术优势</h3><p class="en">Perovskite tandem PV, AI-driven microgrid EMS, and hybrid storage — technologies proven at the frontier of space and scaled for industrial deployment.</p><p class="zh">钙钛矿叠层光伏、AI 驱动微电网调度、混合储能——太空前沿验证的技术，规模化应用于工业场景。</p></div>
+      <div class="card"><h3 class="en">Flexible Models</h3><h3 class="zh">灵活合作</h3><p class="en"><strong>EMC</strong> — zero upfront. <strong>PPA</strong> — fixed long-term price. <strong>EPC</strong> — turnkey delivery. Choose the model that fits your capital strategy.</p><p class="zh"><strong>EMC</strong> 零前期投入。<strong>PPA</strong> 长期固定电价。<strong>EPC</strong> 交钥匙工程。选择最适合您资本策略的合作模式。</p></div>
     </div>
   </div>
 </section>
@@ -454,12 +456,12 @@ function toggleTheme() {
   var btn = document.getElementById('themeBtn');
   if (html.getAttribute('data-theme') === 'dark') {
     html.setAttribute('data-theme', 'light');
-    btn.innerHTML = '🌙 Dark';
-    btn.style.borderColor = 'var(--accent)';
-    btn.style.color = 'var(--accent)';
+    btn.innerHTML = '🌙';
+    btn.title = 'Dark mode';
   } else {
     html.setAttribute('data-theme', 'dark');
-    btn.innerHTML = '☀️ Light';
+    btn.innerHTML = '☀️';
+    btn.title = 'Light mode';
   }
 }
 </script>
