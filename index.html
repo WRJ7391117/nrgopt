@@ -441,15 +441,7 @@
 </footer>
 
 <script>
-function downloadFile(e, url) {
-  e.preventDefault();
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = url.split('/').pop();
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+// download helpers removed — native <a download> is sufficient
 function toggleLang() {
   var b = document.body;
   var btn = document.getElementById('langBtn');
