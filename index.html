@@ -84,17 +84,21 @@
   .nav-links a { color:var(--text-dim); text-decoration:none; font-size:0.88rem; font-weight:500; transition:color 0.2s; }
   .nav-links a:hover { color:var(--accent); }
   .nav-tools { display:flex; gap:8px; align-items:center; }
-  .lang-toggle, .theme-toggle {
+  .theme-toggle {
     display:flex; align-items:center; justify-content:center;
     width:34px; height:34px; padding:0; border-radius:50%;
     border:1.5px solid var(--accent); background:transparent;
     color:var(--accent); cursor:pointer; transition:all 0.2s; line-height:1;
   }
   .theme-toggle svg { width:18px; height:18px; stroke:var(--accent); fill:none; stroke-width:2; }
-  .lang-toggle { width:auto; padding:0 14px; border-radius:16px; font-size:0.8rem; font-weight:600; }
-  .lang-toggle:hover, .theme-toggle:hover { background:var(--accent); }
+  .theme-toggle:hover { background:var(--accent); }
   .theme-toggle:hover svg { stroke:var(--lang-hover-text); }
-  .lang-toggle:hover { color:var(--lang-hover-text); }
+  .lang-select {
+    padding:6px 12px; border-radius:8px; border:1.5px solid var(--accent);
+    background:var(--surface); color:var(--text); cursor:pointer;
+    font-size:0.82rem; font-weight:500; outline:none;
+  }
+  .lang-select option { background:var(--surface); color:var(--text); }
 
   /* ── SECTIONS ── */
   section { padding:90px 0; position:relative; }
@@ -219,20 +223,25 @@
       Nrg<span class="primary">Opt</span>
       <span class="sub en">Enterprise Clean Energy</span>
       <span class="sub zh">企业清洁能源</span>
+      <span class="sub ja">企業クリーンエネルギー</span>
     </a>
     <ul class="nav-links">
-      <li><a href="#investment"><span class="en">Investment</span><span class="zh">电站投资</span></a></li>
-      <li><a href="#solar"><span class="en">Solar</span><span class="zh">光伏</span></a></li>
-      <li><a href="#storage"><span class="en">Storage</span><span class="zh">储能</span></a></li>
-      <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span></a></li>
-      <li><a href="#space"><span class="en">Space PV</span><span class="zh">太空光伏</span></a></li>
-      <li><a href="#resources"><span class="en">Resources</span><span class="zh">资料</span></a></li>
-      <li><a href="#about"><span class="en">About</span><span class="zh">关于</span></a></li>
-      <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
+      <li><a href="#investment"><span class="en">Investment</span><span class="zh">电站投资</span><span class="ja">投資</span></a></li>
+      <li><a href="#solar"><span class="en">Solar</span><span class="zh">光伏</span><span class="ja">太陽光</span></a></li>
+      <li><a href="#storage"><span class="en">Storage</span><span class="zh">储能</span><span class="ja">蓄電</span></a></li>
+      <li><a href="#wind"><span class="en">Wind</span><span class="zh">风电</span><span class="ja">風力</span></a></li>
+      <li><a href="#space"><span class="en">Space PV</span><span class="zh">太空光伏</span><span class="ja">宇宙PV</span></a></li>
+      <li><a href="#resources"><span class="en">Resources</span><span class="zh">资料</span><span class="ja">資料</span></a></li>
+      <li><a href="#about"><span class="en">About</span><span class="zh">关于</span><span class="ja">概要</span></a></li>
+      <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span><span class="ja">問合せ</span></a></li>
     </ul>
     <div class="nav-tools">
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"><svg id="themeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
-      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">日本語</button>
+      <select class="lang-select" onchange="switchLang(this.value)" id="langSelect">
+        <option value="en" selected>English</option>
+        <option value="zh">中文</option>
+        <option value="ja">日本語</option>
+      </select>
     </div>
   </div>
 </nav>
@@ -248,7 +257,7 @@
     <p class="hero-sub zh">光伏 · 风电 · 储能 · 太空光伏 —— 为用电企业提供零碳、稳定、低成本的清洁电力解决方案，助力碳中和转型。</p>
     <div class="btn-row">
       <a href="#solar" class="btn btn-primary"><span class="en">Explore Solutions</span><span class="zh">了解方案</span><span class="ja">ソリューション</span></a>
-      <a href="#about" class="btn btn-outline"><span class="en">Contact Us</span><span class="zh">联系我们</span><span class="ja">お問い合わせ</span><span class="ja">お問い合わせ</span></a>
+      <a href="#about" class="btn btn-outline"><span class="en">Contact Us</span><span class="zh">联系我们</span><span class="ja">お問い合わせ</span></a>
     </div>
   </div>
 </section>
@@ -385,8 +394,9 @@
         <p class="en">Comprehensive PV project site survey checklist — roof conditions, electrical infrastructure, structural measurements, and environmental assessment.</p>
         <p class="zh">光伏项目现场勘察完整清单——屋面状况、电气基础设施、结构测量、环境评估。</p>
         <div class="doc-downloads">
-          <a href="site-survey-en.pdf" download class="doc-btn en">⬇ Download</a><span class="ja">⬇ ダウンロード</span>
-          <a href="site-survey-zh.pdf" download class="doc-btn zh">⬇ 下载</a><span class="ja">⬇ ダウンロード</span>
+          <a href="site-survey-en.pdf" download class="doc-btn en">⬇ Download</a>
+          <a href="site-survey-ja.pdf" download class="doc-btn ja">⬇ ダウンロード</a>
+          <a href="site-survey-zh.pdf" download class="doc-btn zh">⬇ 下载</a>
         </div>
       </div>
       <!-- Technical Specification -->
@@ -461,19 +471,11 @@
 
 <script>
 // download helpers removed — native <a download> is sufficient
-function toggleLang() {
+function switchLang(lang) {
   var b = document.body;
-  var btn = document.getElementById('langBtn');
-  if (b.classList.contains('lang-en')) {
-    b.classList.remove('lang-en'); b.classList.add('lang-zh');
-    btn.textContent = '日本語'; document.documentElement.lang = 'zh';
-  } else if (b.classList.contains('lang-zh')) {
-    b.classList.remove('lang-zh'); b.classList.add('lang-ja');
-    btn.textContent = 'English'; document.documentElement.lang = 'ja';
-  } else {
-    b.classList.remove('lang-ja'); b.classList.add('lang-en');
-    btn.textContent = '日本語'; document.documentElement.lang = 'en';
-  }
+  b.classList.remove('lang-en', 'lang-zh', 'lang-ja');
+  b.classList.add('lang-' + lang);
+  document.documentElement.lang = lang;
 }
 function toggleTheme() {
   var html = document.documentElement;
