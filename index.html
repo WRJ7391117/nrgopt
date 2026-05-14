@@ -198,12 +198,14 @@
   }
 
   /* ── LANGUAGE ── */
-  .zh { display:none; }
+  .zh, .ja { display:none; }
   body.lang-zh .zh { display:block; }
-  body.lang-zh .en { display:none; }
-  body.lang-zh .nav-logo .sub.en { display:none; }
-  body.lang-en .nav-logo .sub.zh { display:none; }
-  body.lang-zh .nav-logo .sub.zh { display:inline; }
+  body.lang-zh .en, body.lang-zh .ja { display:none; }
+  body.lang-ja .ja { display:block; }
+  body.lang-ja .en, body.lang-ja .zh { display:none; }
+  body.lang-zh .nav-logo .sub.en, body.lang-ja .nav-logo .sub.en { display:none; }
+  body.lang-en .nav-logo .sub.zh, body.lang-ja .nav-logo .sub.zh, body.lang-en .nav-logo .sub.ja { display:none; }
+  body.lang-zh .nav-logo .sub.zh, body.lang-ja .nav-logo .sub.ja { display:inline; }
 
   footer { text-align:center; padding:48px 24px; color:var(--text-dim); font-size:0.82rem; background:var(--bg); border-top:1px solid var(--border); }
 </style>
@@ -230,7 +232,7 @@
     </ul>
     <div class="nav-tools">
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"><svg id="themeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
-      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">中文</button>
+      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">日本語</button>
     </div>
   </div>
 </nav>
@@ -245,8 +247,8 @@
     <p class="hero-sub en">Solar · Wind · Storage · Space PV — zero-carbon, stable, low-cost power solutions for industrial and commercial electricity consumers.</p>
     <p class="hero-sub zh">光伏 · 风电 · 储能 · 太空光伏 —— 为用电企业提供零碳、稳定、低成本的清洁电力解决方案，助力碳中和转型。</p>
     <div class="btn-row">
-      <a href="#solar" class="btn btn-primary"><span class="en">Explore Solutions</span><span class="zh">了解方案</span></a>
-      <a href="#about" class="btn btn-outline"><span class="en">Contact Us</span><span class="zh">联系我们</span></a>
+      <a href="#solar" class="btn btn-primary"><span class="en">Explore Solutions</span><span class="zh">了解方案</span><span class="ja">ソリューション</span></a>
+      <a href="#about" class="btn btn-outline"><span class="en">Contact Us</span><span class="zh">联系我们</span><span class="ja">お問い合わせ</span><span class="ja">お問い合わせ</span></a>
     </div>
   </div>
 </section>
@@ -255,23 +257,23 @@
 <!-- ═══════════════════════ INVESTMENT ═══════════════════════ -->
 <section id="investment">
   <div class="container">
-    <div class="section-label">01 / <span class="en">Renewable Energy Investment</span><span class="zh">新能源电站投资</span></div>
-    <h2 class="section-title"><span class="en">Power Plant Investment & Operation</span><span class="zh">发电站投资与运营</span></h2>
+    <div class="section-label">01 / <span class="en">Renewable Energy Investment</span><span class="zh">新能源电站投资</span><span class="ja">再エネ発電所投資</span></div>
+    <h2 class="section-title"><span class="en">Power Plant Investment & Operation</span><span class="zh">发电站投资与运营</span><span class="ja">発電所投資と運営</span></h2>
     <p class="section-desc en">NrgOpt invests in, develops, and operates utility-scale solar and wind power plants — providing stable, long-term returns while accelerating the clean energy transition.</p>
     <p class="section-desc zh">NrgOpt 投资、开发并运营大型光伏与风力发电站——在加速清洁能源转型的同时，提供稳定的长期回报。</p>
     <div class="img-banner" style="background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)"></div>
     <div class="card-grid">
-      <div class="card"><h3 class="en">Project Development</h3><h3 class="zh">项目开发</h3><p class="en">Full-cycle development from site selection, permits, grid connection approval to EPC contracting. Our pipeline spans 2+ GW across solar, wind, and hybrid projects.</p><p class="zh">从选址、批复、并网许可到 EPC 总承包的全周期开发。项目储备覆盖 2+ GW 光伏、风电及风光互补项目。</p></div>
-      <div class="card"><h3 class="en">Investment Models</h3><h3 class="zh">投资模式</h3><p class="en">Equity investment, project financing, and tax equity structures tailored to institutional investors, family offices, and corporate partners seeking stable renewable energy yields.</p><p class="zh">股权投资、项目融资、税务权益结构——为机构投资者、家族办公室和企业合作伙伴量身定制，获取稳健的可再生能源收益。</p></div>
-      <div class="card"><h3 class="en">Asset Management</h3><h3 class="zh">资产管理</h3><p class="en">Proprietary O&M platform with real-time monitoring, predictive maintenance, and AI-driven energy trading optimization to maximize asset value and IRR.</p><p class="zh">自有运维平台，实时监控、预测性维护、AI 驱动电力交易优化，最大化资产价值和 IRR。</p></div>
+      <div class="card"><h3 class="en">Project Development</h3><h3 class="zh">项目开发</h3><h3 class="ja">プロジェクト開発</h3><p class="en">Full-cycle development from site selection, permits, grid connection approval to EPC contracting. Our pipeline spans 2+ GW across solar, wind, and hybrid projects.</p><p class="zh">从选址、批复、并网许可到 EPC 总承包的全周期开发。项目储备覆盖 2+ GW 光伏、风电及风光互补项目。</p></div>
+      <div class="card"><h3 class="en">Investment Models</h3><h3 class="zh">投资模式</h3><h3 class="ja">投資モデル</h3><p class="en">Equity investment, project financing, and tax equity structures tailored to institutional investors, family offices, and corporate partners seeking stable renewable energy yields.</p><p class="zh">股权投资、项目融资、税务权益结构——为机构投资者、家族办公室和企业合作伙伴量身定制，获取稳健的可再生能源收益。</p></div>
+      <div class="card"><h3 class="en">Asset Management</h3><h3 class="zh">资产管理</h3><h3 class="ja">資産管理</h3><p class="en">Proprietary O&M platform with real-time monitoring, predictive maintenance, and AI-driven energy trading optimization to maximize asset value and IRR.</p><p class="zh">自有运维平台，实时监控、预测性维护、AI 驱动电力交易优化，最大化资产价值和 IRR。</p></div>
     </div>
   </div>
 </section>
 <!-- ═══════════════════════ SOLAR ═══════════════════════ -->
 <section id="solar">
   <div class="container">
-    <div class="section-label">02 / <span class="en">Solar Photovoltaic</span><span class="zh">太阳能光伏</span></div>
-    <h2 class="section-title"><span class="en">Next-Generation Solar Power</span><span class="zh">新一代太阳能发电</span></h2>
+    <div class="section-label">02 / <span class="en">Solar Photovoltaic</span><span class="zh">太阳能光伏</span><span class="ja">太陽光発電</span></div>
+    <h2 class="section-title"><span class="en">Next-Generation Solar Power</span><span class="zh">新一代太阳能发电</span><span class="ja">次世代太陽光発電</span></h2>
     <p class="section-desc en">Perovskite tandem technology breaks the 34% efficiency barrier, driving utility-scale solar LCOE below $0.02/kWh — making clean power cheaper than grid electricity by 30–60%.</p>
     <p class="section-desc zh">钙钛矿叠层技术突破 34% 效率大关，GW 级电站度电成本低于 0.15 元/kWh，比电网购电便宜 30%–60%。</p>
     <div class="img-banner" style="background-image:url('img-solar.jpg')"></div>
@@ -285,17 +287,17 @@
 
     <div class="card-grid">
       <div class="card">
-        <h3 class="en">Perovskite-Silicon Tandem</h3><h3 class="zh">钙钛矿-硅叠层技术</h3>
+        <h3 class="en">Perovskite-Silicon Tandem</h3><h3 class="zh">钙钛矿-硅叠层技术</h3><h3 class="ja">ペロブスカイト-シリコンタンデム</h3>
         <p class="en">Stacking perovskite on silicon boosts efficiency from ~22% to 34%+. LONGi holds the 34.85% NREL record. Commercial M6/G12 wafers now achieve 29–32% in production lines — 40%+ more power per panel than standard silicon modules.</p>
         <p class="zh">钙钛矿叠加在晶硅上，将效率从 ~22% 提升至 34%+。隆基保持 34.85% NREL 世界纪录。量产 M6/G12 硅片已实现 29–32% 产线效率，单板发电量比标准晶硅组件高 40% 以上。</p>
       </div>
       <div class="card">
-        <h3 class="en">Ultra-Low Manufacturing Cost</h3><h3 class="zh">超低制造成本</h3>
+        <h3 class="en">Ultra-Low Manufacturing Cost</h3><h3 class="zh">超低制造成本</h3><h3 class="ja">超低製造コスト</h3>
         <p class="en">Perovskite raw materials cost ~1/5 of silicon. Solution-processable at low temperature with roll-to-roll compatibility — capex per GW is 50% lower than silicon lines. At scale, module cost drops to $0.12/W, enabling sub-$0.02/kWh LCOE.</p>
         <p class="zh">钙钛矿原材料成本约为晶硅的 1/5。低温溶液法可与卷对卷工艺兼容，每 GW 投资比晶硅线低 50%。规模化后组件成本降至 0.8 元/W，度电成本低于 0.15 元/kWh。</p>
       </div>
       <div class="card">
-        <h3 class="en">Flexible & Lightweight</h3><h3 class="zh">柔性轻质组件</h3>
+        <h3 class="en">Flexible & Lightweight</h3><h3 class="zh">柔性轻质组件</h3><h3 class="ja">フレキシブル軽量</h3>
         <p class="en">Thin-film perovskite on polymer/metal foil weighs <2 kg/m² (vs. 15+ kg/m² for glass panels). Can be installed on factory roofs, carports, and facades without structural reinforcement — unlocking commercial rooftop potential that rigid panels cannot reach.</p>
         <p class="zh">聚合物/金属箔衬底钙钛矿薄膜重量 <2 kg/m²（玻璃面板 >15 kg/m²）。无需加固即可安装于厂房屋顶、车棚、幕墙等非承重表面，释放刚性面板无法触及的商业屋顶潜力。</p>
       </div>
@@ -306,19 +308,19 @@
 <!-- ═══════════════════════ STORAGE ═══════════════════════ -->
 <section id="storage">
   <div class="container">
-    <div class="section-label">03 / <span class="en">Energy Storage</span><span class="zh">储能系统</span></div>
-    <h2 class="section-title"><span class="en">Smart Storage, 24/7 Reliability</span><span class="zh">智能储能 · 全天候供电</span></h2>
+    <div class="section-label">03 / <span class="en">Energy Storage</span><span class="zh">储能系统</span><span class="ja">蓄電システム</span></div>
+    <h2 class="section-title"><span class="en">Smart Storage, 24/7 Reliability</span><span class="zh">智能储能 · 全天候供电</span><span class="ja">スマート蓄電 · 24時間365日</span></h2>
     <p class="section-desc en">Renewable intermittency is solved. Our hybrid lithium + vanadium flow battery architecture guarantees uninterrupted industrial power — day and night, rain or shine.</p>
     <p class="section-desc zh">风光间歇性已被攻克。锂电 + 全钒液流电池混合架构，无论昼夜晴雨，为工业生产提供不中断的清洁电力保障。</p>
     <div class="img-banner" style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%)"></div>
     <div class="two-col">
       <div>
-        <div class="card" style="margin-bottom:16px"><h3 class="en">Lithium-Ion (LFP)</h3><h3 class="zh">磷酸铁锂储能</h3><p class="en">Sub-$70/kWh system cost. 2–6 hour peak shaving with sub-millisecond response. Paired with solar/wind for smooth, dispatchable industrial output.</p><p class="zh">系统成本低于 0.5 元/Wh。2–6 小时削峰填谷，毫秒级响应。与光伏/风电配对实现平滑可调度的工业电力输出。</p></div>
-        <div class="card"><h3 class="en">Vanadium Flow (VRFB)</h3><h3 class="zh">全钒液流电池</h3><p class="en">4–12 hour long-duration storage. 20,000+ cycles with zero capacity fade. Designed for 24/7 industrial baseload and grid-scale peak shifting — the proven path for deep decarbonization.</p><p class="zh">4–12 小时长时储能。20,000+ 次循环零容量衰减。专为工业 24 小时基荷和电网调峰设计——深度脱碳的成熟技术路线。</p></div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Lithium-Ion (LFP)</h3><h3 class="zh">磷酸铁锂储能</h3><h3 class="ja">リチウムイオン(LFP)</h3><p class="en">Sub-$70/kWh system cost. 2–6 hour peak shaving with sub-millisecond response. Paired with solar/wind for smooth, dispatchable industrial output.</p><p class="zh">系统成本低于 0.5 元/Wh。2–6 小时削峰填谷，毫秒级响应。与光伏/风电配对实现平滑可调度的工业电力输出。</p></div>
+        <div class="card"><h3 class="en">Vanadium Flow (VRFB)</h3><h3 class="zh">全钒液流电池</h3><h3 class="ja">バナジウムフロー(VRFB)</h3><p class="en">4–12 hour long-duration storage. 20,000+ cycles with zero capacity fade. Designed for 24/7 industrial baseload and grid-scale peak shifting — the proven path for deep decarbonization.</p><p class="zh">4–12 小时长时储能。20,000+ 次循环零容量衰减。专为工业 24 小时基荷和电网调峰设计——深度脱碳的成熟技术路线。</p></div>
       </div>
       <div>
-        <div class="card" style="margin-bottom:16px"><h3 class="en">Smart Microgrid</h3><h3 class="zh">智能微电网</h3><p class="en">Solar + Wind + Storage + AI-driven EMS = autonomous microgrid. Self-consumption with surplus export. Automatic islanding during grid faults ensures zero production downtime.</p><p class="zh">光伏 + 风电 + 储能 + AI 智能调度 = 自主微电网。自发自用余电上网，电网故障时自动离网运行，核心生产零停机。</p></div>
-        <div class="card"><h3 class="en">Virtual Power Plant</h3><h3 class="zh">虚拟电厂</h3><p class="en">Aggregate distributed assets for spot and ancillary service market participation. Charge at valley price, discharge at peak — your storage earns revenue while you sleep.</p><p class="zh">聚合分布式资产参与现货和辅助服务市场。谷电充电、峰电放电——储能系统在夜间也能为您赚取额外收益。</p></div>
+        <div class="card" style="margin-bottom:16px"><h3 class="en">Smart Microgrid</h3><h3 class="zh">智能微电网</h3><h3 class="ja">スマートマイクログリッド</h3><p class="en">Solar + Wind + Storage + AI-driven EMS = autonomous microgrid. Self-consumption with surplus export. Automatic islanding during grid faults ensures zero production downtime.</p><p class="zh">光伏 + 风电 + 储能 + AI 智能调度 = 自主微电网。自发自用余电上网，电网故障时自动离网运行，核心生产零停机。</p></div>
+        <div class="card"><h3 class="en">Virtual Power Plant</h3><h3 class="zh">虚拟电厂</h3><h3 class="ja">バーチャルパワープラント</h3><p class="en">Aggregate distributed assets for spot and ancillary service market participation. Charge at valley price, discharge at peak — your storage earns revenue while you sleep.</p><p class="zh">聚合分布式资产参与现货和辅助服务市场。谷电充电、峰电放电——储能系统在夜间也能为您赚取额外收益。</p></div>
       </div>
     </div>
   </div>
@@ -327,8 +329,8 @@
 <!-- ═══════════════════════ WIND ═══════════════════════ -->
 <section id="wind">
   <div class="container">
-    <div class="section-label">04 / <span class="en">Wind Power</span><span class="zh">风力发电</span></div>
-    <h2 class="section-title"><span class="en">Onshore & Offshore Wind</span><span class="zh">陆上与海上风电</span></h2>
+    <div class="section-label">04 / <span class="en">Wind Power</span><span class="zh">风力发电</span><span class="ja">風力発電</span></div>
+    <h2 class="section-title"><span class="en">Onshore & Offshore Wind</span><span class="zh">陆上与海上风电</span><span class="ja">陸上・洋上風力</span></h2>
     <p class="section-desc en">China leads the world with 440 GW installed wind capacity. Onshore wind LCOE is now below coal, and 16 MW offshore turbines deliver 60+ GWh annually per unit.</p>
     <p class="section-desc zh">中国风电累计装机 440 GW，全球第一。陆上风电度电成本已低于煤电，16 MW 海上风机单机年发电超 6,000 万 kWh。</p>
     <div class="img-banner" style="background-image:url('img-wind.jpg')"></div>
@@ -339,9 +341,9 @@
       <div class="stat"><div class="number">4,500 h</div><div class="label en">Offshore Annual Hours</div><div class="label zh">海上年利用小时</div></div>
     </div>
     <div class="card-grid">
-      <div class="card"><h3 class="en">Onshore Utility Wind</h3><h3 class="zh">陆上集中式风电</h3><p class="en">Premium wind corridors in northern China deliver 2,500–3,500 hours annually. Full-service development from site assessment through grid connection — long-term fixed-price PPA for industrial consumers.</p><p class="zh">三北优质风场年利用 2,500–3,500h。从风场评估到并网的全流程开发服务，长期固定电价 PPA 直供工业用户。</p></div>
-      <div class="card"><h3 class="en">Offshore Wind</h3><h3 class="zh">海上风电</h3><p class="en">Coastal offshore achieves 3,500–4,500 utilization hours with stable, predictable output near major load centers. A single 16 MW turbine powers an entire industrial park — zero transmission congestion.</p><p class="zh">沿海海上风电年利用 3,500–4,500h，发电稳定可预测，靠近负荷中心。单台 16 MW 风机即可满足一个大型工业园区全部用电，零输配电拥堵。</p></div>
-      <div class="card"><h3 class="en">Distributed Wind</h3><h3 class="zh">分散式风电</h3><p class="en">In moderate-wind central/eastern regions, distributed turbines connect directly to local distribution grids for behind-the-meter power — minimal wheeling charges, maximum savings.</p><p class="zh">中东部低风速区分散式风机就近接入配电网，自发自用模式，过网费最低，节电收益最大化。</p></div>
+      <div class="card"><h3 class="en">Onshore Utility Wind</h3><h3 class="zh">陆上集中式风电</h3><h3 class="ja">陸上風力発電所</h3><p class="en">Premium wind corridors in northern China deliver 2,500–3,500 hours annually. Full-service development from site assessment through grid connection — long-term fixed-price PPA for industrial consumers.</p><p class="zh">三北优质风场年利用 2,500–3,500h。从风场评估到并网的全流程开发服务，长期固定电价 PPA 直供工业用户。</p></div>
+      <div class="card"><h3 class="en">Offshore Wind</h3><h3 class="zh">海上风电</h3><h3 class="ja">洋上風力</h3><p class="en">Coastal offshore achieves 3,500–4,500 utilization hours with stable, predictable output near major load centers. A single 16 MW turbine powers an entire industrial park — zero transmission congestion.</p><p class="zh">沿海海上风电年利用 3,500–4,500h，发电稳定可预测，靠近负荷中心。单台 16 MW 风机即可满足一个大型工业园区全部用电，零输配电拥堵。</p></div>
+      <div class="card"><h3 class="en">Distributed Wind</h3><h3 class="zh">分散式风电</h3><h3 class="ja">分散型風力</h3><p class="en">In moderate-wind central/eastern regions, distributed turbines connect directly to local distribution grids for behind-the-meter power — minimal wheeling charges, maximum savings.</p><p class="zh">中东部低风速区分散式风机就近接入配电网，自发自用模式，过网费最低，节电收益最大化。</p></div>
     </div>
   </div>
 </section>
@@ -349,8 +351,8 @@
 <!-- ═══════════════════════ SPACE ═══════════════════════ -->
 <section id="space">
   <div class="container">
-    <div class="section-label">05 / <span class="en">Space Photovoltaics</span><span class="zh">太空光伏</span></div>
-    <h2 class="section-title"><span class="en">Perovskite Space PV — Tech Spillover</span><span class="zh">钙钛矿太空光伏 · 技术溢出</span></h2>
+    <div class="section-label">05 / <span class="en">Space Photovoltaics</span><span class="zh">太空光伏</span><span class="ja">宇宙太陽光発電</span></div>
+    <h2 class="section-title"><span class="en">Perovskite Space PV — Tech Spillover</span><span class="zh">钙钛矿太空光伏 · 技术溢出</span><span class="ja">ペロブスカイト宇宙PV · 技術波及</span></h2>
     <p class="section-desc en">Perovskite solar cells are redefining space power with ultra-light, flexible, radiation-tolerant architecture. Space-grade technology flows back to premium terrestrial applications.</p>
     <p class="section-desc zh">钙钛矿太阳能电池正以轻质、柔性、抗辐射的独特优势重新定义空间电源。太空级技术反向赋能地面高端光伏应用。</p>
     <div class="img-banner" style="background-image:url('img-space.jpg')"></div>
@@ -361,9 +363,9 @@
       <div class="stat"><div class="number">100 d</div><div class="label en">LEO Zero-Degradation</div><div class="label zh">在轨零衰减验证</div></div>
     </div>
     <div class="card-grid">
-      <div class="card"><h3 class="en">Self-Healing Crystals</h3><h3 class="zh">缺陷自修复晶体</h3><p class="en">Ionic perovskite spontaneously repairs radiation-induced lattice vacancies under sunlight and thermal cycling. No heavy cerium cover glass needed — intrinsically radiation-hard.</p><p class="zh">钙钛矿离子晶体在太空光照与温度循环下，自发填补高能粒子撞击产生的晶格空位。不需掺铈盖片，本征抗辐射。</p></div>
-      <div class="card"><h3 class="en">Space → Ground Transfer</h3><h3 class="zh">太空技术地面转化</h3><p class="en">Orbit-proven durability, ultra-high efficiency, and roll-to-roll flexible manufacturing feed back into terrestrial solar — driving the next revolution in commercial & industrial PV.</p><p class="zh">轨道验证的耐久性、超高效率和卷对卷柔性制造正在反哺地面光伏——推动工商业光伏的下一代革命。</p></div>
-      <div class="card"><h3 class="en">Commercial Milestones</h3><h3 class="zh">商业里程碑</h3><p class="en">2023: GCL first perovskite module in orbit. 2026: RIT/Space Force 100-day LEO — zero degradation. JAXA/Ricoh HTV-X1 demo. Industry consensus: perovskite dominates LEO constellation power from 2028.</p><p class="zh">2023 协鑫全球首射。2026 RIT/太空军 100 天零衰减。JAXA/理光在轨演示。行业共识：2028 起钙钛矿主导低轨星座空间电源。</p></div>
+      <div class="card"><h3 class="en">Self-Healing Crystals</h3><h3 class="zh">缺陷自修复晶体</h3><h3 class="ja">自己修復結晶</h3><p class="en">Ionic perovskite spontaneously repairs radiation-induced lattice vacancies under sunlight and thermal cycling. No heavy cerium cover glass needed — intrinsically radiation-hard.</p><p class="zh">钙钛矿离子晶体在太空光照与温度循环下，自发填补高能粒子撞击产生的晶格空位。不需掺铈盖片，本征抗辐射。</p></div>
+      <div class="card"><h3 class="en">Space → Ground Transfer</h3><h3 class="zh">太空技术地面转化</h3><h3 class="ja">宇宙→地上技術移転</h3><p class="en">Orbit-proven durability, ultra-high efficiency, and roll-to-roll flexible manufacturing feed back into terrestrial solar — driving the next revolution in commercial & industrial PV.</p><p class="zh">轨道验证的耐久性、超高效率和卷对卷柔性制造正在反哺地面光伏——推动工商业光伏的下一代革命。</p></div>
+      <div class="card"><h3 class="en">Commercial Milestones</h3><h3 class="zh">商业里程碑</h3><h3 class="ja">商業マイルストーン</h3><p class="en">2023: GCL first perovskite module in orbit. 2026: RIT/Space Force 100-day LEO — zero degradation. JAXA/Ricoh HTV-X1 demo. Industry consensus: perovskite dominates LEO constellation power from 2028.</p><p class="zh">2023 协鑫全球首射。2026 RIT/太空军 100 天零衰减。JAXA/理光在轨演示。行业共识：2028 起钙钛矿主导低轨星座空间电源。</p></div>
     </div>
   </div>
 </section>
@@ -371,34 +373,34 @@
 <!-- ═══════════════════════ RESOURCES ═══════════════════════ -->
 <section id="resources">
   <div class="container">
-    <div class="section-label">06 / <span class="en">Project Resources</span><span class="zh">项目资料</span></div>
-    <h2 class="section-title"><span class="en">Standard Documents</span><span class="zh">标准文档下载</span></h2>
+    <div class="section-label">06 / <span class="en">Project Resources</span><span class="zh">项目资料</span><span class="ja">プロジェクト資料</span></div>
+    <h2 class="section-title"><span class="en">Standard Documents</span><span class="zh">标准文档下载</span><span class="ja">標準ドキュメント</span></h2>
     <p class="section-desc en">Essential templates and checklists for clean energy project execution — from site survey to grid connection.</p>
     <p class="section-desc zh">清洁能源项目执行中所需的标准模板与检查清单，从现场勘察到并网接入。</p>
     <div class="card-grid">
       <!-- Site Survey Form -->
       <div class="card doc-card">
         <div class="doc-icon">📋</div>
-        <h3 class="en">Site Survey Form</h3><h3 class="zh">现场勘察表</h3>
+        <h3 class="en">Site Survey Form</h3><h3 class="zh">现场勘察表</h3><h3 class="ja">現地調査票</h3>
         <p class="en">Comprehensive PV project site survey checklist — roof conditions, electrical infrastructure, structural measurements, and environmental assessment.</p>
         <p class="zh">光伏项目现场勘察完整清单——屋面状况、电气基础设施、结构测量、环境评估。</p>
         <div class="doc-downloads">
-          <a href="site-survey-en.pdf" download class="doc-btn en">⬇ Download</a>
-          <a href="site-survey-zh.pdf" download class="doc-btn zh">⬇ 下载</a>
+          <a href="site-survey-en.pdf" download class="doc-btn en">⬇ Download</a><span class="ja">⬇ ダウンロード</span>
+          <a href="site-survey-zh.pdf" download class="doc-btn zh">⬇ 下载</a><span class="ja">⬇ ダウンロード</span>
         </div>
       </div>
       <!-- Technical Specification -->
       <div class="card doc-card" style="opacity:0.5;">
         <div class="doc-icon">📐</div>
-        <h3 class="en">Technical Specification Template</h3><h3 class="zh">技术方案模板</h3>
+        <h3 class="en">Technical Specification Template</h3><h3 class="zh">技术方案模板</h3><h3 class="ja">技術仕様テンプレート</h3>
         <p class="en">Standard technical proposal template — system design, energy yield simulation, and investment analysis for C&I PV projects.</p>
         <p class="zh">工商业光伏项目标准技术方案模板——系统设计、发电量模拟、投资分析。</p>
-        <span class="doc-soon"><span class="en">Coming Soon</span><span class="zh">即将上线</span></span>
+        <span class="doc-soon"><span class="en">Coming Soon</span><span class="zh">即将上线</span><span class="ja">近日公開</span></span>
       </div>
       <!-- Grid Connection -->
       <div class="card doc-card" style="opacity:0.5;">
         <div class="doc-icon">⚡</div>
-        <h3 class="en">Grid Connection Checklist</h3><h3 class="zh">并网接入清单</h3>
+        <h3 class="en">Grid Connection Checklist</h3><h3 class="zh">并网接入清单</h3><h3 class="ja">系統連系チェックリスト</h3>
         <p class="en">Step-by-step grid connection application guide — required documents, utility coordination, and acceptance testing procedures.</p>
         <p class="zh">并网接入分步申请指南——所需文件、电力公司协调、验收测试流程。</p>
         <span class="doc-soon"><span class="en">Coming Soon</span><span class="zh">即将上线</span></span>
@@ -410,15 +412,15 @@
 <!-- ═══════════════════════ ABOUT ═══════════════════════ -->
 <section id="about">
   <div class="container">
-    <div class="section-label">07 / <span class="en">About NrgOpt</span><span class="zh">关于能源优化</span></div>
-    <h2 class="section-title"><span class="en">Zero-Carbon Power, Delivered</span><span class="zh">零碳电力，一站交付</span></h2>
+    <div class="section-label">07 / <span class="en">About NrgOpt</span><span class="zh">关于能源优化</span><span class="ja">NrgOptについて</span></div>
+    <h2 class="section-title"><span class="en">Zero-Carbon Power, Delivered</span><span class="zh">零碳电力，一站交付</span><span class="ja">ゼロカーボン電力、ワンストップ</span></h2>
     <p class="section-desc en">NrgOpt provides end-to-end clean energy solutions for industrial, data center, and manufacturing clients — from design through O&M. We optimize your energy, so you can focus on your business.</p>
     <p class="section-desc zh">NrgOpt（能源优化）为工业、数据中心和制造业客户提供一站式清洁能源解决方案——从设计到运维，全生命周期服务。我们优化能源，您专注业务。</p>
     <div class="img-banner" style="background-image:url('img-about.jpg')"></div>
     <div class="card-grid">
-      <div class="card"><h3 class="en">Our Mission</h3><h3 class="zh">我们的使命</h3><p class="en">Enable energy-intensive industries to decarbonize profitably — cutting electricity costs 30–60% while achieving net-zero targets through bespoke solar, wind, and storage solutions.</p><p class="zh">帮助高耗能行业在盈利中脱碳——通过定制光伏、风电和储能方案，将用电成本降低 30%–60%，同时达成净零目标。</p></div>
-      <div class="card"><h3 class="en">Technology Edge</h3><h3 class="zh">技术优势</h3><p class="en">Perovskite tandem PV, AI-driven microgrid EMS, and hybrid storage — technologies proven at the frontier of space and scaled for industrial deployment.</p><p class="zh">钙钛矿叠层光伏、AI 驱动微电网调度、混合储能——太空前沿验证的技术，规模化应用于工业场景。</p></div>
-      <div class="card"><h3 class="en">Flexible Models</h3><h3 class="zh">灵活合作</h3><p class="en"><strong>EMC</strong> — zero upfront. <strong>PPA</strong> — fixed long-term price. <strong>EPC</strong> — turnkey delivery. Choose the model that fits your capital strategy.</p><p class="zh"><strong>EMC</strong> 零前期投入。<strong>PPA</strong> 长期固定电价。<strong>EPC</strong> 交钥匙工程。选择最适合您资本策略的合作模式。</p></div>
+      <div class="card"><h3 class="en">Our Mission</h3><h3 class="zh">我们的使命</h3><h3 class="ja">ミッション</h3><p class="en">Enable energy-intensive industries to decarbonize profitably — cutting electricity costs 30–60% while achieving net-zero targets through bespoke solar, wind, and storage solutions.</p><p class="zh">帮助高耗能行业在盈利中脱碳——通过定制光伏、风电和储能方案，将用电成本降低 30%–60%，同时达成净零目标。</p></div>
+      <div class="card"><h3 class="en">Technology Edge</h3><h3 class="zh">技术优势</h3><h3 class="ja">技術優位性</h3><p class="en">Perovskite tandem PV, AI-driven microgrid EMS, and hybrid storage — technologies proven at the frontier of space and scaled for industrial deployment.</p><p class="zh">钙钛矿叠层光伏、AI 驱动微电网调度、混合储能——太空前沿验证的技术，规模化应用于工业场景。</p></div>
+      <div class="card"><h3 class="en">Flexible Models</h3><h3 class="zh">灵活合作</h3><h3 class="ja">柔軟なモデル</h3><p class="en"><strong>EMC</strong> — zero upfront. <strong>PPA</strong> — fixed long-term price. <strong>EPC</strong> — turnkey delivery. Choose the model that fits your capital strategy.</p><p class="zh"><strong>EMC</strong> 零前期投入。<strong>PPA</strong> 长期固定电价。<strong>EPC</strong> 交钥匙工程。选择最适合您资本策略的合作模式。</p></div>
     </div>
   </div>
 </section>
@@ -426,8 +428,8 @@
 <!-- ═══════════════════════ CONTACT ═══════════════════════ -->
 <section id="contact">
   <div class="container">
-    <div class="section-label">08 / <span class="en">Contact Us</span><span class="zh">联系我们</span></div>
-    <h2 class="section-title"><span class="en">Get in Touch</span><span class="zh">联络我们</span></h2>
+    <div class="section-label">08 / <span class="en">Contact Us</span><span class="zh">联系我们</span><span class="ja">お問い合わせ</span></div>
+    <h2 class="section-title"><span class="en">Get in Touch</span><span class="zh">联络我们</span><span class="ja">お問い合わせ</span></h2>
     <p class="section-desc en">Ready to optimize your energy strategy? Reach out to explore how NrgOpt can power your enterprise with clean, reliable, cost-effective electricity.</p>
     <p class="section-desc zh">准备好优化您的能源战略了吗？联系我们，探讨 NrgOpt 如何为您的企业提供清洁、可靠、经济的电力。</p>
     <div class="contact-row">
@@ -438,7 +440,7 @@
       </div>
       <div class="card">
         <div style="font-size:1.8rem; margin-bottom:6px;">📞</div>
-        <h3 class="en">Phone</h3><h3 class="zh">电话</h3>
+        <h3 class="en">Phone</h3><h3 class="zh">电话</h3><h3 class="ja">電話</h3>
         <p style="font-size:1rem; color:var(--accent); font-weight:600;">13916897518</p>
       </div>
       <div class="card">
@@ -464,10 +466,13 @@ function toggleLang() {
   var btn = document.getElementById('langBtn');
   if (b.classList.contains('lang-en')) {
     b.classList.remove('lang-en'); b.classList.add('lang-zh');
-    btn.textContent = 'English'; document.documentElement.lang = 'zh';
+    btn.textContent = '日本語'; document.documentElement.lang = 'zh';
+  } else if (b.classList.contains('lang-zh')) {
+    b.classList.remove('lang-zh'); b.classList.add('lang-ja');
+    btn.textContent = 'English'; document.documentElement.lang = 'ja';
   } else {
-    b.classList.remove('lang-zh'); b.classList.add('lang-en');
-    btn.textContent = '中文'; document.documentElement.lang = 'en';
+    b.classList.remove('lang-ja'); b.classList.add('lang-en');
+    btn.textContent = '日本語'; document.documentElement.lang = 'en';
   }
 }
 function toggleTheme() {
