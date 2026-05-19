@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://nrgopt.com/sitemap.xml
-
-# Disallow any admin/internal paths if you add them later
-# Disallow: /admin/

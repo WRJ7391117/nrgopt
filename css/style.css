@@ -601,7 +601,7 @@ body.lang-zh .ja { display: none; }
 body.lang-ja .ja { display: block; }
 body.lang-ja .en,
 body.lang-ja .zh { display: none; }
-body.lang-en .en { display: inline; }
+/* en elements keep their natural display (block for p/h2, inline for span) */
 /* nav logo sub handling */
 body.lang-zh .nav-logo .sub.en,
 body.lang-ja .nav-logo .sub.en { display: none; }

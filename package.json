@@ -1,7 +1,0 @@
-{
-  "name": "nrgopt",
-  "private": true,
-  "dependencies": {
-    "nodemailer": "^6.9.0"
-  }
-}
