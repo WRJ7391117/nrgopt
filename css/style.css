@@ -242,7 +242,6 @@ body::after {
 .lang-select:focus-visible,
 .theme-toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus-ring);
 }
 
 /* ── SECTIONS ── */
