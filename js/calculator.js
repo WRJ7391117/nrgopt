@@ -17,12 +17,16 @@ function calc(p){
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy,invRep=cap*irpw*100;
   var idealGen=cap*gkw*100,genY1=idealGen*(1-d1);
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
+  var vatCredit=vatDed; // 建设期进项税额，抵扣用
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var rev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
-    var vat=Math.max(0,rev*vr*0.5),sur=vat*0.1;
+    var outputVat=rev*vr;
+    var inputVat=0;
+    if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
+    var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
     var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1);
-    var ins=TI*insR/100*Math.pow(1.03,y-1);
+    var ins=TI*insR/100*Math.pow(1.02,y-1);
     var remLoan=Math.max(0,loan-prin*Math.min(y,ly));
     var interest=remLoan*li;
     var depr=y<=dy?deprA:0;
@@ -39,10 +43,10 @@ function calc(p){
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:gen.toFixed(1),rev:rev.toFixed(1),totCost:totCost.toFixed(1),tax:tax.toFixed(1),pat:pat.toFixed(1),cf:cf.toFixed(1),cumCash:cum.toFixed(1)});
+    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum});
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalRev=0,totalCost=0;for(var i=0;i<rows.length;i++){totalRev+=parseFloat(rows[i].rev);totalCost+=parseFloat(rows[i].totCost)+parseFloat(rows[i].tax);}
+  var totalRev=0,totalCost=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost+rows[i].tax;}
   var totalProfit=totalRev-totalCost;
   return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
@@ -108,7 +112,7 @@ function update(){
   tb.innerHTML='';
   for(var i=0;i<R.rows.length;i++){
     var r=R.rows[i];
-    tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.gen+'</td><td>'+r.rev+'</td><td>'+r.totCost+'</td><td>'+r.tax+'</td><td>'+r.pat+'</td><td>'+r.cf+'</td><td>'+r.cumCash+'</td></tr>';
+    tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.gen.toFixed(1)+'</td><td>'+r.rev.toFixed(1)+'</td><td>'+r.totCost.toFixed(1)+'</td><td>'+r.tax.toFixed(1)+'</td><td>'+r.pat.toFixed(1)+'</td><td>'+r.cf.toFixed(1)+'</td><td>'+r.cumCash.toFixed(1)+'</td></tr>';
   }
   drawChart(R.rows);
 }
@@ -138,7 +142,7 @@ function drawChart(rows){
   ctx.clearRect(0,0,W,H);
   if(rows.length<2)return;
   var lo=Infinity,hi=-Infinity;
-  for(var i=0;i<rows.length;i++){var v=parseFloat(rows[i].cf);if(v<lo)lo=v;if(v>hi)hi=v;}
+  for(var i=0;i<rows.length;i++){var v=rows[i].cf;if(v<lo)lo=v;if(v>hi)hi=v;}
   lo=Math.min(0,lo);hi=Math.max(1,hi);var range=hi-lo||1;
   var n=rows.length,w=W-L-R,h=H-T-B,zy=H-B-(0-lo)/range*h;
   // Grid
@@ -150,7 +154,7 @@ function drawChart(rows){
   var barW=Math.max(3,w/n*0.55),gap=(w-n*barW)/(n+1);
   var bars=[];
   for(var i=0;i<n;i++){
-    var cf=parseFloat(rows[i].cf),x=L+gap+i*(barW+gap),bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
+    var cf=rows[i].cf,x=L+gap+i*(barW+gap),bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
     var grad=ctx.createLinearGradient(x,y,x,y+bh);
     if(cf>=0){grad.addColorStop(0,'#34d399');grad.addColorStop(1,'#059669');}
     else{grad.addColorStop(0,'#f87171');grad.addColorStop(1,'#dc2626');}
