@@ -52,12 +52,15 @@
     const deprBase = TI - vatDed;
     const deprA = deprBase * (1 - res) / dy;
     const invRep = cap * irpw * 100;
-    const genY1 = cap * gkw * 100;
+    const degradY1 = params.degradY1 || 0.01;
+    const degradAnnual = params.degrad || 0.0055;
+    const idealGen = cap * gkw * 100;
     const cfsF = [-TI], cfsE = [-(TI - loan)], rows = [];
     let cum = -TI;
 
+    const genActualY1 = idealGen * (1 - degradY1);
     for (let y = 1; y <= ry; y++) {
-      const gen = genY1 * Math.pow(1 - deg, y - 1);
+      const gen = y === 1 ? genActualY1 : genActualY1 * Math.pow(1 - degradAnnual, y - 1);
       const rev = gen * su * dp / (1 + vr) + gen * (1 - su) * gp / (1 + vr);
       const vat = Math.max(0, rev * vr * 0.5);
       const sur = vat * 0.1;
@@ -89,7 +92,7 @@
 
     return {
       totalInv: TI, loan: loan, equity: TI - loan,
-      genY1: genY1, irrFull: irr(cfsF), irrEq: irr(cfsE),
+      genY1: genActualY1, irrFull: irr(cfsF), irrEq: irr(cfsE),
       npvFull: npv(disc, cfsF), payback: payback(cfsF), rows
     };
   }
@@ -170,7 +173,8 @@
       loanRate: (parseFloat(document.getElementById('inpLoanRate').value) || 3.9) / 100,
       loanYears: parseInt(document.getElementById('inpLoanYears').value) || 15,
       genPerW: computeGen(),
-      degrad: (parseFloat(document.getElementById('inpDegrad').value) || 0.7) / 100,
+      degradY1: (parseFloat(document.getElementById('inpDegradY1').value) || 1.0) / 100,
+      degrad: (parseFloat(document.getElementById('inpDegrad').value) || 0.55) / 100,
       selfUse: (parseFloat(document.getElementById('inpSelfUse').value) || 90) / 100,
       dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
       gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3545,
@@ -294,7 +298,8 @@
     bindDual('inpSelfUse', 'numSelfUse', 'dispSelfUse', uPct, update);
     bindDual('inpDayPrice', 'numDayPrice', 'dispDayPrice', uPrc, update);
     bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', uPrc, update);
-    bindDual('inpDegrad', 'numDegrad', 'dispDegrad', uPct1, update);
+    bindDual('inpDegradY1', 'numDegradY1', 'dispDegradY1', uPct1, update);
+    bindDual('inpDegrad', 'numDegrad', 'dispDegrad', function(v) { return v.toFixed(2) + '%'; }, update);
     bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', uYr, update);
     bindDual('inpDiscount', 'numDiscount', 'dispDiscount', uPct, update);
     bindDual('inpInvReplace', 'numInvReplace', 'dispInvReplace', function(v) { return v.toFixed(2) + ' 元/W'; }, update);
