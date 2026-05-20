@@ -42,7 +42,8 @@ function calc(p){
     rows.push({yr:y,gen:gen.toFixed(1),rev:rev.toFixed(1),totCost:totCost.toFixed(1),tax:tax.toFixed(1),pat:pat.toFixed(1),cf:cf.toFixed(1),cumCash:cum.toFixed(1)});
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalRev=0;for(var i=0;i<rows.length;i++)totalRev+=parseFloat(rows[i].rev);
+  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalRev:totalRev,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function el(id){return document.getElementById(id);}
@@ -93,6 +94,7 @@ function update(){
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
+  setText('resTotalRev',fm(R.totalRev));
   setText('resGenY1',fm(R.genY1));
   setText('dispGenY1Total',fm(R.genY1)+' 万度电');
 
@@ -189,7 +191,7 @@ function init(){
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(1)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpResidual','numResidual','dispResidual',function(v){return Math.round(v)+'%';});
