@@ -139,12 +139,17 @@
 
     slider.addEventListener('input', function () { sync(slider.value); if (onChange) onChange(); });
     numInput.addEventListener('input', function () {
-      const v = parseFloat(numInput.value);
+      const raw = numInput.value;
+      if (raw.endsWith('.') || raw === '' || raw === '-') return;
+      const v = parseFloat(raw);
       if (!isNaN(v)) { sync(v); if (onChange) onChange(); }
     });
     numInput.addEventListener('change', function () {
-      const v = parseFloat(numInput.value);
-      if (isNaN(v)) { sync(parseFloat(slider.value)); if (onChange) onChange(); }
+      const raw = numInput.value;
+      const v = parseFloat(raw);
+      if (isNaN(v)) { sync(parseFloat(slider.value)); }
+      else { sync(v); }
+      if (onChange) onChange();
     });
 
     // Init
