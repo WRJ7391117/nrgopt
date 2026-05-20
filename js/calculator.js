@@ -118,7 +118,7 @@ function bindDual(sliderId,numId,dispId,fmt){
   _bindings.push({slider:s,disp:d,fmt:fmt});
   function sync(v){var vv=parseFloat(v);s.value=vv;n.value=vv;if(d)d.textContent=typeof fmt==='function'?fmt(vv):vv.toFixed(2);}
   s.addEventListener('input',function(){sync(s.value);update();});
-  n.addEventListener('input',function(){var raw=n.value;if(raw.endsWith('.')||raw===''||raw==='-')return;var vv=parseFloat(raw);if(!isNaN(vv)){sync(vv);update();}});
+  n.addEventListener('input',function(){var raw=n.value;if(raw===''||raw==='-')return;var vv=parseFloat(raw);if(!isNaN(vv)&&(String(vv)===raw||raw==='.'+vv)){sync(vv);update();}});
   n.addEventListener('change',function(){var raw=n.value,vv=parseFloat(raw);if(isNaN(vv))sync(parseFloat(s.value));else sync(vv);update();});
   sync(parseFloat(s.value));
 }
