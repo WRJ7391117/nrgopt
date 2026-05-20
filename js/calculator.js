@@ -184,9 +184,13 @@
   let R = null;
 
   function update() {
-    // Update derived gen display
+    // Update derived displays
     var gw = computeGen();
     document.getElementById('dispGenPerW').textContent = gw.toFixed(3) + ' kWh/W';
+    var irrad = parseFloat(document.getElementById('inpIrradiance').value) || 1350;
+    var tilt = parseFloat(document.getElementById('inpTilt').value) || 1.05;
+    var eff = (parseFloat(document.getElementById('inpSysEff').value) || 83.5) / 100;
+    document.getElementById('dispSunHours').textContent = Math.round(irrad * tilt * eff);
     R = calc(getP());
     var fm = function(v) { return v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v).toString(); };
     document.getElementById('resTotalInv').textContent = fm(R.totalInv);
