@@ -74,7 +74,8 @@ var R=null;
 
 function update(){
   var gw=computeGen();
-  var e=el('dispGenPerW'); if(e)e.textContent=gw.toFixed(3)+' kWh/W';
+  var l=document.documentElement.lang||'en';
+  var e=el('dispGenPerW'); if(e)e.textContent=gw.toFixed(3)+(l==='en'?' kWh/W':(l==='ja'?' kWh/W':' 千瓦时/瓦'));
   var irrad=val('inpIrradiance')||1350, tilt=val('inpTilt')||1.05, eff=(val('inpSysEff')||83.5)/100;
   e=el('dispSunHours'); if(e)e.textContent=Math.round(irrad*tilt*eff);
 
@@ -170,7 +171,8 @@ window.setRegionPreset=function(val){
   if(val==='custom')return;
   var irr=regionMap[val];if(!irr)return;
   var s=el('inpIrradiance'),n=el('numIrradiance'),d=el('dispIrradiance');
-  if(s)s.value=irr;if(n)n.value=irr;if(d)d.textContent=irr+' kWh/m²';
+  if(s)s.value=irr;if(n)n.value=irr;
+  if(d){var l=document.documentElement.lang||'en';d.textContent=irr+(l==='en'?' kWh/m²':(l==='ja'?' kWh/m²':' 千瓦时/平方米'));}
   update();
 };
 
@@ -185,14 +187,20 @@ function initBTT(){
 
 // ── Init ──
 function init(){
-  function uYr(v){var l=document.documentElement.lang||'zh';return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));}
+  function L(){return document.documentElement.lang||'en';}
+  function uYr(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));}
   function uPct(v){return Math.round(v)+'%';}
   function uPct1(v){return v.toFixed(1)+'%';}
-  function uPrc(v){var l=document.documentElement.lang||'zh';return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' CNY/kWh':' 元/kWh');}
+  function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
+  function uMW(v){var l=L();return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));}
+  function uCnY(v){var l=L();return v.toFixed(1)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));}
+  function uIrr(v){var l=L();return Math.round(v)+(l==='en'?' kWh/m²':(l==='ja'?' kWh/m²':' 千瓦时/平方米'));}
+  function uInv(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));}
+  function uInvYr(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));}
 
-  bindDual('inpCapacity','numCapacity','dispCapacity',function(v){return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+' MW';});
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=document.documentElement.lang||'zh';return v.toFixed(1)+(l==='en'?' CNY/W':' 元/W');});
-  bindDual('inpIrradiance','numIrradiance','dispIrradiance',function(v){return Math.round(v)+' kWh/m²';});
+  bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',uCnY);
+  bindDual('inpIrradiance','numIrradiance','dispIrradiance',uIrr);
   bindDual('inpTilt','numTilt','dispTilt',function(v){return v.toFixed(2);});
   bindDual('inpSysEff','numSysEff','dispSysEff',function(v){return v.toFixed(1)+'%';});
   bindDual('inpDegradY1','numDegradY1','dispDegradY1',uPct1);
@@ -206,8 +214,8 @@ function init(){
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
-  bindDual('inpInvReplace','numInvReplace','dispInvReplace',function(v){return v.toFixed(2)+' 元/W';});
-  bindDual('inpInvYear','numInvYear','dispInvYear',function(v){var l=document.documentElement.lang||'en';return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
+  bindDual('inpInvReplace','numInvReplace','dispInvReplace',uInv);
+  bindDual('inpInvYear','numInvYear','dispInvYear',uInvYr);
 
   initBTT();
   update();
