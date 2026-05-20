@@ -46,8 +46,7 @@ function calc(p){
     rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum});
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalRev=0,totalCost=0,totalTax=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalTax+=rows[i].tax;}
-  var totalProfit=totalRev-totalCost-totalTax;
+  var totalRev=0,totalCost=0,totalProfit=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;}
   return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
