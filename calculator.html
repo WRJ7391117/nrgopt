@@ -44,6 +44,9 @@
   <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq" style="color:var(--accent)">—</div><div class="band-sub" data-en="after-tax" data-zh="税后" data-ja="税後">税后</div></div>
   <div class="band-card"><div class="band-label">NPV</div><div class="band-value small" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
   <div class="band-card"><div class="band-label" data-en="Payback" data-zh="回收期" data-ja="回収期間">回收期</div><div class="band-value small" id="resPayback">—</div><div class="band-sub" data-en="years" data-zh="年" data-ja="年">年</div></div>
+  <div class="band-card"><div class="band-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="band-value small" id="resTotalInv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
+  <div class="band-card"><div class="band-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="band-value small" id="resLoan">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
+  <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div><div class="band-value small" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万kWh" data-ja="万kWh">万kWh</div></div>
 </div>
 
 <!-- Chart -->
@@ -111,11 +114,6 @@
 
   <!-- Results: sub-metrics + table -->
   <div class="results-panel">
-    <div class="metric-row">
-      <div class="metric-card"><div class="metric-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="metric-value" style="font-size:1.1rem" id="resTotalInv">—</div><div class="metric-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-      <div class="metric-card"><div class="metric-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="metric-value" style="font-size:1.1rem" id="resLoan">—</div><div class="metric-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-      <div class="metric-card"><div class="metric-label" data-en="Gen Year 1" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div><div class="metric-value" style="font-size:1.1rem" id="resGenY1">—</div><div class="metric-sub" data-en="10k kWh" data-zh="万kWh" data-ja="万kWh">万kWh</div></div>
-    </div>
     <div class="table-card">
       <h3 data-en="📋 Cash Flow (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 キャッシュフロー（万元）">📋 现金流明细（万元）</h3>
       <table><thead><tr><th data-en="Year" data-zh="年" data-ja="年">年</th><th data-en="Gen" data-zh="发电量" data-ja="発電量">发电量</th><th data-en="Revenue" data-zh="收入" data-ja="収入">收入</th><th data-en="Cost" data-zh="成本" data-ja="コスト">成本</th><th data-en="Tax" data-zh="所得税" data-ja="税金">所得税</th><th data-en="Profit" data-zh="净利" data-ja="純利益">净利</th><th>CF</th><th data-en="Cum" data-zh="累计" data-ja="累計">累计</th></tr></thead><tbody id="cfTableBody"></tbody></table>
