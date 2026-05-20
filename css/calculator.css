@@ -96,38 +96,62 @@
     --bg:#fff; --surface:#fff; --text:#111; --text-dim:#555; --accent:#0369a1; --accent2:#4338ca; --gold:#b45309; --border:#ddd; --shadow:none;
   }
   .nav, .calc-hero, .calc-disclaimer, .back-to-top, .skip-link, .btn-pdf { display:none !important; }
-  body { background:#fff; color:#000; font-size:10pt; }
+  body { background:#fff; color:#111; font-size:10pt; font-family:'PingFang SC','Microsoft YaHei',sans-serif; }
   body::before, body::after { display:none !important; }
-  .metric-band { padding:6px 0; gap:4px; }
-  .band-card { border:1px solid #ccc; box-shadow:none; background:#fff; padding:8px 10px; }
-  .band-label { color:#666; font-size:7pt; }
-  .band-value { color:#000; font-size:14pt; }
+
+  /* ── Title ── */
+  .chart-band::before { content:"NrgOpt 分布式光伏 IRR 测算报告"; display:block; font-size:16pt; font-weight:800; color:#0369a1; text-align:center; padding:0 0 4pt; margin-bottom:12pt; border-bottom:3px solid #0369a1; }
+  .chart-band { padding:0; break-before:page; }
+
+  /* Section headers */
+  .metric-band::before, .params-wrap::before, .chart-card h3, .table-card h3 { }
+  .metric-band:first-of-type { break-before:avoid; }
+
+  /* ── Part 1: Cards ── */
+  .metric-band::before { content:"一、核心指标"; display:block; font-size:13pt; font-weight:700; color:#111; padding:10pt 0 4pt; margin-bottom:6pt; border-bottom:2px solid #eee; }
+  .metric-band { padding:4px 0 8px; gap:6px; }
+  .metric-band:nth-of-type(2)::before { content:"二、投资与产出"; }
+  .metric-band:nth-of-type(3)::before { content:"三、收入成本利润"; }
+  .band-card { border:1px solid #ddd; box-shadow:none; background:#fff; padding:8px 10px; }
+  .band-label { color:#555; font-size:7pt; }
+  .band-value { color:#111; font-size:14pt; }
   .band-sub { color:#888; font-size:6pt; }
-  .params-wrap { padding:8px 0; }
+
+  /* ── Part 2: Parameters ── */
+  .params-wrap { padding:0; break-before:page; }
+  .params-wrap::before { content:"四、测算参数"; display:block; font-size:13pt; font-weight:700; color:#111; padding:10pt 0 4pt; margin-bottom:8pt; border-bottom:2px solid #eee; }
   .params-grid { grid-template-columns:repeat(3,1fr) !important; gap:8px; }
   .param-group { border:1px solid #ddd; box-shadow:none; background:#fff; margin-bottom:8px; break-inside:avoid; }
-  .param-group-header { background:#f5f5f5; font-size:8pt; cursor:default; }
+  .param-group-header { background:#f5f5f5; font-size:8pt; cursor:default; color:#111; padding:5px 10px; }
   .param-group-header .arrow { display:none; }
   .param-group-body { display:block !important; padding:4px 10px 6px; }
-  .pr { margin-bottom:4px; }
-  .pr-label { font-size:7pt; }
-  .pr-val { font-size:7pt; }
-  .pr-note, .pr-sub { font-size:6pt; }
+  .pr { margin-bottom:3px; }
+  .pr-label { font-size:7pt; color:#111; }
+  .pr-val { font-size:7pt; color:#0369a1; }
+  .pr-note, .pr-sub { font-size:6pt; color:#888; }
   .pr input[type="range"] { display:none; }
   .num-field { display:none; }
   .dual-input { display:none; }
   .region-select-full { display:none; }
-  .pr.derived { background:#f9f9f9; }
-  .chart-card, .table-card { border:1px solid #ccc; box-shadow:none; background:#fff; }
-  .chart-card h3, .table-card h3 { color:#333; font-size:9pt; }
-  .table-card table { font-size:7pt; }
-  .table-card th { background:#fff; color:#333; }
-  .table-card th, .table-card td { border-color:#ddd; padding:2px 4px; }
-  .chart-band { padding:4px 0; }
-  .table-band { padding:0; }
-  .table-card { max-height:none; overflow:visible; }
-  .back-to-top { display:none; }
-  @page { margin:12mm; }
+  .pr.derived { background:#f9f9f9; border-left:3px solid #b45309; padding:4px 8px; }
+  .pr.derived .pr-label { font-weight:600; }
+  .pr.derived .pr-val { color:#b45309; }
+
+  /* ── Part 3: Chart ── */
+  .chart-band { padding:0; break-before:page; }
+  .chart-card { border:1px solid #ddd; box-shadow:none; background:#fff; padding:10px 12px; }
+  .chart-card h3 { color:#111; font-size:13pt; font-weight:700; padding-bottom:4pt; border-bottom:2px solid #eee; margin-bottom:8pt; }
+
+  /* ── Part 4: Table ── */
+  .table-band { padding:0; break-before:page; }
+  .table-card { border:1px solid #ddd; box-shadow:none; background:#fff; max-height:none; overflow:visible; padding:10px 12px; }
+  .table-card h3 { color:#111; font-size:13pt; font-weight:700; padding-bottom:4pt; border-bottom:2px solid #eee; margin-bottom:8pt; }
+  .table-card table { font-size:7pt; width:100%; }
+  .table-card thead th { background:#f5f5f5; color:#111; font-weight:600; }
+  .table-card th, .table-card td { border-color:#ddd; padding:3px 5px; }
+  .table-card tr:nth-child(even) td { background:#fafafa; }
+
+  @page { margin:14mm; size:A4; }
 }
 @media (pointer:coarse) {
   .pr input[type="range"] { height:8px; }
