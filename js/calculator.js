@@ -93,8 +93,9 @@ function update(){
   R=calc(getP());
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
-  el('resIrrFull').style.color=R.irrFull>=0.1?'#34d399':R.irrFull>=0.06?'#f59e0b':'#f87171';
+  el('resIrrFull').style.color='#f59e0b';
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
+  el('resIrrEq').style.color='#38bdf8';
   var npvTxt=R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString();
   setText('resNpv',npvTxt);
   el('resNpv').style.color=R.npvFull>=0?'':'#f87171';
