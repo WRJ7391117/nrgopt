@@ -84,6 +84,13 @@
         <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
       </div>
     </div>
+    <div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚙️ Other" data-zh="⚙️ 其他" data-ja="⚙️ その他">⚙️ 其他</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Inv. Replace Cost" data-zh="逆变器更换成本" data-ja="交換費用"></span><span class="pr-val" id="dispInvReplace"></span></div><div class="dual-input"><input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numInvReplace" step="0.01" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Inv. Replace Year" data-zh="逆变器更换年份" data-ja="交換年"></span><span class="pr-val" id="dispInvYear"></span></div><div class="dual-input"><input type="range" id="inpInvYear" min="8" max="20" step="1" value="12"><input type="text" inputmode="decimal" id="numInvYear" step="1" class="num-field"></div><div class="pr-note" data-en="0 cost = disabled" data-zh="成本设0可不更换" data-ja="費用0=交換なし">成本设0可不更换</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- Col 2 -->
@@ -136,13 +143,6 @@
       </div>
     </div>
 
-    <div class="param-group open">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚙️ Other" data-zh="⚙️ 其他" data-ja="⚙️ その他">⚙️ 其他</span><span class="arrow">▶</span></div>
-      <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Inv. Replace Cost" data-zh="逆变器更换成本" data-ja="交換費用"></span><span class="pr-val" id="dispInvReplace"></span></div><div class="dual-input"><input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numInvReplace" step="0.01" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Inv. Replace Year" data-zh="逆变器更换年份" data-ja="交換年"></span><span class="pr-val" id="dispInvYear"></span></div><div class="dual-input"><input type="range" id="inpInvYear" min="8" max="20" step="1" value="12"><input type="text" inputmode="decimal" id="numInvYear" step="1" class="num-field"></div><div class="pr-note" data-en="0 cost = disabled" data-zh="成本设0可不更换" data-ja="費用0=交換なし">成本设0可不更换</div></div>
-      </div>
-    </div>
   </div>
 
 </div></div>
