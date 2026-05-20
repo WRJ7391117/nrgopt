@@ -259,4 +259,23 @@
   .metric-row { grid-template-columns: 1fr 1fr; gap: 6px; }
   .metric-value { font-size: 1rem; }
   .dual-input { grid-template-columns: 1fr 52px; gap: 4px; }
+  .input-panel { padding: 10px 8px; }
+  .input-panel h3 { font-size: 0.72rem; }
+  .param-row label { font-size: 0.7rem; }
+  .param-row label .val { font-size: 0.7rem; }
+  .num-field { font-size: 0.7rem; padding: 3px 2px; }
+  .calc-hero h1 { font-size: 1.15rem; }
+  .calc-hero .hero-sub { font-size: 0.72rem; }
+  .chart-card canvas { height: 120px; }
+  .table-card table { font-size: 0.62rem; }
+  .table-card th, .table-card td { padding: 3px 3px; }
+}
+
+/* Touch-friendly: larger tap targets */
+@media (pointer: coarse) {
+  .param-row input[type="range"] { height: 12px; }
+  .param-row input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+  .num-field { padding: 8px 6px; font-size: 16px; } /* 16px prevents iOS zoom */
+  .lang-select { padding: 8px 12px; font-size: 16px; }
+  .theme-toggle { width: 40px; height: 40px; }
 }
