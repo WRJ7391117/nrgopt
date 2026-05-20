@@ -92,8 +92,12 @@
 }
 /* ── Print / PDF ── */
 @media print {
+  :root, [data-theme="dark"], [data-theme="light"] {
+    --bg:#fff; --surface:#fff; --text:#111; --text-dim:#555; --accent:#0369a1; --accent2:#4338ca; --gold:#b45309; --border:#ddd; --shadow:none;
+  }
   .nav, .calc-hero, .calc-disclaimer, .back-to-top, .skip-link, .btn-pdf { display:none !important; }
   body { background:#fff; color:#000; font-size:10pt; }
+  body::before, body::after { display:none !important; }
   .metric-band { padding:6px 0; gap:4px; }
   .band-card { border:1px solid #ccc; box-shadow:none; background:#fff; padding:8px 10px; }
   .band-label { color:#666; font-size:7pt; }
