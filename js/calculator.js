@@ -73,6 +73,7 @@ function computeGen(){
 var R=null;
 
 function update(){
+  refreshDisplays();
   var gw=computeGen();
   var l=document.documentElement.lang||'en';
   var e=el('dispGenPerW'); if(e)e.textContent=gw.toFixed(3)+(l==='en'?' kWh/W':(l==='ja'?' kWh/W':' 千瓦时/瓦'));
