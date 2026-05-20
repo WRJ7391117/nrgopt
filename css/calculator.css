@@ -52,7 +52,10 @@
 .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 14px 6px; box-shadow:var(--shadow); }
 .chart-card h3 { font-size:0.78rem; color:var(--text-dim); margin-bottom:4px; }
 .chart-card canvas { display:block; }
-.print-title, .print-sec { display:none; }
+
+.print-title { display:none; }
+.print-sec { display:block; max-width:1180px; margin:0 auto; padding:18px 24px 4px; font-size:0.9rem; font-weight:700; color:var(--text); letter-spacing:0.03em; }
+.print-sec:first-of-type { padding-top:10px; }
 
 /* ── PART 4: TABLE ── */
 .table-band { max-width:1180px; margin:0 auto; padding:0 24px 48px; }
