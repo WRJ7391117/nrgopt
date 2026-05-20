@@ -137,8 +137,9 @@
 
   /* ── Part 5: Chart ── */
   .chart-band { padding:0; }
-  .chart-card { border:1px solid #ddd; box-shadow:none; background:#fff; padding:10px 12px; }
+  .chart-card { border:1px solid #ddd; box-shadow:none; background:#fff; padding:10px 12px; overflow:visible; }
   .chart-card h3 { color:#111; font-size:11pt; font-weight:700; padding-bottom:4pt; border-bottom:1.5px solid #eee; margin-bottom:8pt; }
+  .chart-card canvas { max-width:100% !important; }
 
   /* ── Part 6: Table ── */
   .table-band { padding:0; }

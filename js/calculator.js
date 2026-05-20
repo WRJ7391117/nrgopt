@@ -135,8 +135,8 @@ function refreshDisplays(){
 function drawChart(rows){
   var c=el('cfChart');if(!c)return;
   var ctx=c.getContext('2d');
-  var L=48,R=20,T=16,B=32;
-  var pw=c.parentElement.clientWidth-32;
+  var L=48,R=28,T=16,B=32;
+  var pw=Math.min(c.parentElement.clientWidth-32,1100);
   var W=c.width=pw;c.style.width=pw+'px';
   var H=c.height=240;c.style.height=H+'px';
   ctx.clearRect(0,0,W,H);
