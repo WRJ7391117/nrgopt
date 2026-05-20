@@ -92,14 +92,10 @@ function update(){
   e=el('resIrrFull'); if(e)e.className='metric-value '+(R.irrFull>=0.1?'good':R.irrFull>=0.06?'ok':'bad');
 
   var tbody=el('cfTableBody'); if(!tbody)return;
-  var ry=R.rows.length;
-  var showKeys=[1,2,3,4,5,6,10,12,15,20,25].filter(function(y){return y<=ry;});
-  if(ry<25&&showKeys.indexOf(ry)===-1)showKeys.push(ry);
-  var show={};for(var i=0;i<showKeys.length;i++)show[showKeys[i]]=true;
   tbody.innerHTML='';
   for(var i=0;i<R.rows.length;i++){
     var r=R.rows[i];
-    if(show[r.yr]) tbody.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.gen+'</td><td>'+r.rev+'</td><td>'+r.totCost+'</td><td>'+r.tax+'</td><td>'+r.pat+'</td><td>'+r.cf+'</td><td>'+r.cumCash+'</td></tr>';
+    tbody.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.gen+'</td><td>'+r.rev+'</td><td>'+r.totCost+'</td><td>'+r.tax+'</td><td>'+r.pat+'</td><td>'+r.cf+'</td><td>'+r.cumCash+'</td></tr>';
   }
   drawChart(R.rows);
 }

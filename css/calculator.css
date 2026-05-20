@@ -227,7 +227,8 @@
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--shadow);
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 520px;
 }
 .table-card h3 {
   font-size: 0.82rem;
@@ -243,6 +244,12 @@
   padding: 6px 10px;
   text-align: right;
   border-bottom: 1px solid var(--border);
+}
+.table-card thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
 }
 .table-card th {
   color: var(--text-dim);
