@@ -95,9 +95,30 @@
   }
 
   // ── Language ──
-  const L = {
-    en: {}, zh: {}
-  };
+  function switchLang(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-en],[data-zh],[data-ja]').forEach(function (el) {
+      if (lang === 'en' && el.hasAttribute('data-en')) el.textContent = el.getAttribute('data-en');
+      else if (lang === 'zh' && el.hasAttribute('data-zh')) el.textContent = el.getAttribute('data-zh');
+      else if (lang === 'ja' && el.hasAttribute('data-ja')) el.textContent = el.getAttribute('data-ja');
+    });
+    // Special: HTML content in h1
+    var h1 = document.querySelector('.calc-hero h1');
+    if (h1) {
+      if (lang === 'en') h1.innerHTML = h1.getAttribute('data-en') || h1.innerHTML;
+      else if (lang === 'zh') h1.innerHTML = h1.getAttribute('data-zh') || h1.innerHTML;
+      else if (lang === 'ja') h1.innerHTML = h1.getAttribute('data-ja') || h1.innerHTML;
+    }
+    var sel = document.getElementById('langSelect');
+    if (sel) sel.value = lang;
+    localStorage.setItem('nrgopt-lang', lang);
+    // Table headers need innerHTML for data attributes
+    document.querySelectorAll('th[data-en]').forEach(function(el) {
+      var txt = lang === 'en' ? el.getAttribute('data-en') : (lang === 'zh' ? el.getAttribute('data-zh') : el.getAttribute('data-ja'));
+      if (txt) el.textContent = txt;
+    });
+    update();
+  }
 
   // ── Slider+Number binding ──
   function bindDual(sliderId, numId, dispId, fmt, onChange) {
@@ -236,18 +257,26 @@
 
   // ── Init ──
   function init() {
-    bindDual('inpCapacity', 'numCapacity', 'dispCapacity', function (v) { return v.toFixed(3) + ' MW'; }, update);
-    bindDual('inpUnitCost', 'numUnitCost', 'dispUnitCost', function (v) { return v.toFixed(1) + ' 元/W'; }, update);
-    bindDual('inpLoanRatio', 'numLoanRatio', 'dispLoanRatio', function (v) { return Math.round(v) + '%'; }, update);
-    bindDual('inpLoanRate', 'numLoanRate', 'dispLoanRate', function (v) { return v.toFixed(1) + '%'; }, update);
-    bindDual('inpLoanYears', 'numLoanYears', 'dispLoanYears', function (v) { return Math.round(v) + ' 年'; }, update);
-    bindDual('inpGenPerW', 'numGenPerW', 'dispGenPerW', function (v) { return v.toFixed(2) + ' kWh/W'; }, update);
-    bindDual('inpSelfUse', 'numSelfUse', 'dispSelfUse', function (v) { return Math.round(v) + '%'; }, update);
-    bindDual('inpDayPrice', 'numDayPrice', 'dispDayPrice', function (v) { return v.toFixed(3) + ' 元/kWh'; }, update);
-    bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', function (v) { return v.toFixed(3) + ' 元/kWh'; }, update);
-    bindDual('inpDegrad', 'numDegrad', 'dispDegrad', function (v) { return v.toFixed(1) + '%'; }, update);
-    bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', function (v) { return Math.round(v) + ' 年'; }, update);
-    bindDual('inpDiscount', 'numDiscount', 'dispDiscount', function (v) { return Math.round(v) + '%'; }, update);
+    function uYr(v) { var l = document.documentElement.lang || 'zh'; return Math.round(v) + (l==='en'?' yr':(l==='ja'?' 年':' 年')); }
+    function uMW(v) { return v.toFixed(3) + ' MW'; }
+    function uCnY(v) { var l = document.documentElement.lang || 'zh'; return v.toFixed(1) + (l==='en'?' CNY/W':' 元/W'); }
+    function uKwh(v) { return v.toFixed(2) + ' kWh/W'; }
+    function uPct(v) { return Math.round(v) + '%'; }
+    function uPct1(v) { return v.toFixed(1) + '%'; }
+    function uPrc(v) { var l = document.documentElement.lang || 'zh'; return v.toFixed(3) + (l==='en'?' CNY/kWh':' 元/kWh'); }
+
+    bindDual('inpCapacity', 'numCapacity', 'dispCapacity', uMW, update);
+    bindDual('inpUnitCost', 'numUnitCost', 'dispUnitCost', uCnY, update);
+    bindDual('inpLoanRatio', 'numLoanRatio', 'dispLoanRatio', uPct, update);
+    bindDual('inpLoanRate', 'numLoanRate', 'dispLoanRate', uPct1, update);
+    bindDual('inpLoanYears', 'numLoanYears', 'dispLoanYears', uYr, update);
+    bindDual('inpGenPerW', 'numGenPerW', 'dispGenPerW', uKwh, update);
+    bindDual('inpSelfUse', 'numSelfUse', 'dispSelfUse', uPct, update);
+    bindDual('inpDayPrice', 'numDayPrice', 'dispDayPrice', uPrc, update);
+    bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', uPrc, update);
+    bindDual('inpDegrad', 'numDegrad', 'dispDegrad', uPct1, update);
+    bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', uYr, update);
+    bindDual('inpDiscount', 'numDiscount', 'dispDiscount', uPct, update);
 
     initBTT();
     update();
