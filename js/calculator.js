@@ -191,7 +191,7 @@ function init(){
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();var s=v.toString();var d=s.indexOf('.');return(d>=0&&s.length-d>2?s.substring(0,d+3):s)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpResidual','numResidual','dispResidual',function(v){return Math.round(v)+'%';});
