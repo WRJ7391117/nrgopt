@@ -6,7 +6,8 @@
 
 /* ── PART 1: CARDS ── */
 .metric-band { max-width:1180px; margin:0 auto; padding:8px 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.metric-band.row2 { grid-template-columns:repeat(4,1fr); max-width:none; }
+.metric-band.row2 { grid-template-columns:repeat(3,1fr); max-width:900px; }
+.metric-band.row3 { grid-template-columns:repeat(3,1fr); max-width:900px; }
 .band-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; box-shadow:var(--shadow); }
 .band-label { font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px; font-weight:500; }
 .band-value { font-size:1.7rem; font-weight:700; color:var(--text); line-height:1.2; }
