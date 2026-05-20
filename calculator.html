@@ -140,11 +140,12 @@
     </div>
 
     <div class="param-row">
-      <label><span data-en="Benchmark Price" data-zh="脱硫标杆电价" data-ja="基準電力価格"></span> <span class="val" id="dispGridPrice"></span></label>
+      <label><span data-en="Grid Settlement Price" data-zh="上网结算电价" data-ja="系統連系価格"></span> <span class="val" id="dispGridPrice"></span></label>
       <div class="dual-input">
-        <input type="range" id="inpGridPrice" min="0.2" max="0.6" step="0.001" value="0.3545">
-        <input type="text" inputmode="decimal" id="numGridPrice" step="0.001" min="0.2" max="0.6" class="num-field">
+        <input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3">
+        <input type="text" inputmode="decimal" id="numGridPrice" step="0.001" min="0.1" max="0.5" class="num-field">
       </div>
+      <div class="param-note" data-en="Market-based price + CfD settlement (post-2025 reform). Differs by province, typically 0.22-0.42 ¥/kWh." data-zh="市场化交易价+差价结算(2025年136号文改革)。各省差异大，分布式光伏约0.22-0.42元/kWh。" data-ja="市場価格+差額決済(2025年改革)。省により異なり、0.22-0.42元/kWh。">市场化交易价+差价结算(2025年136号文改革)。各省差异大，约0.22-0.42元/kWh。</div>
     </div>
 
     <h3 data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資条件">🏦 融资条件</h3>

@@ -177,7 +177,7 @@
       degrad: (parseFloat(document.getElementById('inpDegrad').value) || 0.55) / 100,
       selfUse: (parseFloat(document.getElementById('inpSelfUse').value) || 90) / 100,
       dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
-      gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3545,
+      gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3,
       deprYears: parseInt(document.getElementById('inpDeprYears').value) || 10,
       invReplace: parseFloat(document.getElementById('inpInvReplace').value) || 0.2,
       invYear: parseInt(document.getElementById('inpInvYear').value) || 12,
