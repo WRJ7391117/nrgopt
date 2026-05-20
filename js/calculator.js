@@ -88,9 +88,9 @@
     cfsE[cfsE.length - 1] += deprBase * res;
 
     return {
-      totalInv: TI.toFixed(1), loan: loan.toFixed(1), equity: (TI - loan).toFixed(1),
-      genY1: genY1.toFixed(1), irrFull: irr(cfsF), irrEq: irr(cfsE),
-      npvFull: npv(disc, cfsF).toFixed(1), payback: payback(cfsF), rows
+      totalInv: TI, loan: loan, equity: TI - loan,
+      genY1: genY1, irrFull: irr(cfsF), irrEq: irr(cfsE),
+      npvFull: npv(disc, cfsF), payback: payback(cfsF), rows
     };
   }
 
@@ -179,13 +179,14 @@
 
   function update() {
     R = calc(getP());
-    document.getElementById('resTotalInv').textContent = R.totalInv;
+    var fm = function(v) { return v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v).toString(); };
+    document.getElementById('resTotalInv').textContent = fm(R.totalInv);
     document.getElementById('resIrrFull').textContent = (R.irrFull * 100).toFixed(2) + '%';
     document.getElementById('resIrrEq').textContent = (R.irrEq * 100).toFixed(2) + '%';
-    document.getElementById('resNpv').textContent = R.npvFull;
+    document.getElementById('resNpv').textContent = (R.npvFull < 10 ? R.npvFull.toFixed(1) : Math.round(R.npvFull).toString());
     document.getElementById('resPayback').textContent = R.payback ? R.payback.toFixed(1) : '—';
-    document.getElementById('resGenY1').textContent = R.genY1;
-    document.getElementById('resLoan').textContent = R.loan;
+    document.getElementById('resGenY1').textContent = fm(R.genY1);
+    document.getElementById('resLoan').textContent = fm(R.loan);
     const irrEl = document.getElementById('resIrrFull');
     irrEl.className = 'metric-value ' + (R.irrFull >= 0.1 ? 'good' : R.irrFull >= 0.06 ? 'ok' : 'bad');
 
@@ -250,12 +251,12 @@
   // ── Init ──
   function init() {
     function uYr(v) { var l = document.documentElement.lang || 'zh'; return Math.round(v) + (l==='en'?' yr':(l==='ja'?' 年':' 年')); }
-    function uMW(v) { return v.toFixed(3) + ' MW'; }
+    function uMW(v) { return (v < 1 ? v.toFixed(3) : v < 10 ? v.toFixed(2) : v.toFixed(1)) + ' MW'; }
     function uCnY(v) { var l = document.documentElement.lang || 'zh'; return v.toFixed(1) + (l==='en'?' CNY/W':' 元/W'); }
     function uKwh(v) { return v.toFixed(2) + ' kWh/W'; }
     function uPct(v) { return Math.round(v) + '%'; }
     function uPct1(v) { return v.toFixed(1) + '%'; }
-    function uPrc(v) { var l = document.documentElement.lang || 'zh'; return v.toFixed(3) + (l==='en'?' CNY/kWh':' 元/kWh'); }
+    function uPrc(v) { var l = document.documentElement.lang || 'zh'; return (v < 1 ? v.toFixed(3) : v.toFixed(2)) + (l==='en'?' CNY/kWh':' 元/kWh'); }
 
     bindDual('inpCapacity', 'numCapacity', 'dispCapacity', uMW, update);
     bindDual('inpUnitCost', 'numUnitCost', 'dispUnitCost', uCnY, update);
