@@ -237,4 +237,10 @@ function init(){
   switchLang(saved);
 }
 
+window.downloadPDF=function(){
+  var name=el('projectName').value.trim()||'NrgOpt分布式光伏IRR测算';
+  document.title=name;
+  window.print();
+};
+
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
