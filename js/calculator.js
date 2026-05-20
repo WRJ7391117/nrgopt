@@ -13,7 +13,8 @@ function calc(params){
   var cap=params.capacity, uc=params.unitCost, lr=params.loanRatio, li=params.loanRate, ly=params.loanYears;
   var gkw=params.genPerW, ry=params.runYears, su=params.selfUse, dp=params.dayPrice, gp=params.gridPrice;
   var degradY1=params.degradY1||0.01, degradA=params.degrad||0.0055;
-  var vr=0.13, mpw=0.01, me=0.03, mtw=0.04, mte=0.01;
+  var vr=params.vatRate||0.13, omCost=params.omCost||0.05, omEscal=params.omEscal||0.02;
+  var taxModel=params.taxModel||'holiday', taxFlat=params.taxFlat||0.25;
   var dy=params.deprYears, res=0.05, irpw=params.invReplace, iry=params.invYear, disc=params.discount;
   var TI=cap*uc*100, loan=TI*lr, prin=ly>0?loan/ly:0;
   var vatDed=TI*vr/(1+vr), deprBase=TI-vatDed, deprA=deprBase*(1-res)/dy, invRep=cap*irpw*100;
@@ -23,15 +24,16 @@ function calc(params){
     var gen=y===1?genY1:genY1*Math.pow(1-degradA,y-1);
     var rev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
     var vat=Math.max(0,rev*vr*0.5), sur=vat*0.1;
-    var mgmt=cap*mpw*100*Math.pow(1+me,y-1);
-    var maint=cap*mtw*100*Math.pow(1+mte,y-1);
+    var opex=cap*omCost*100*Math.pow(1+omEscal,y-1);
     var ins=TI*0.001*Math.pow(1.03,y-1);
     var remLoan=Math.max(0,loan-prin*Math.min(y,ly));
     var interest=remLoan*li;
     var depr=y<=dy?deprA:0;
-    var totCost=depr+interest+mgmt+maint+ins;
+    var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
-    var tax; if(y<=3)tax=0;else if(y<=6)tax=Math.max(0,pbt*0.125);else tax=Math.max(0,pbt*0.25);
+    var tax;
+    if(taxModel==='flat'){tax=Math.max(0,pbt*taxFlat);}
+    else{if(y<=3)tax=0;else if(y<=6)tax=Math.max(0,pbt*0.125);else tax=Math.max(0,pbt*0.25);}
     var pat=pbt-tax;
     var cf=pat+depr; if(y===iry)cf-=invRep;
     cfsF.push(cf);
@@ -60,7 +62,11 @@ function getP(){
     selfUse:(val('inpSelfUse')||90)/100, dayPrice:val('inpDayPrice')||0.664,
     gridPrice:val('inpGridPrice')||0.3, deprYears:ival('inpDeprYears')||10,
     invReplace:val('inpInvReplace')||0.2, invYear:ival('inpInvYear')||12,
-    discount:(val('inpDiscount')||10)/100
+    discount:(val('inpDiscount')||10)/100,
+    omCost:val('inpOmCost')||0.05, omEscal:(val('inpOmEscal')||2)/100,
+    vatRate:(ival('inpVatRate')||13)/100,
+    taxModel:el('inpTaxModel')?el('inpTaxModel').value:'holiday',
+    taxFlat:(val('inpTaxFlat')||25)/100
   };
 }
 
@@ -119,7 +125,7 @@ function drawChart(rows){
   lo=Math.min(0,lo);hi=Math.max(1,hi);var range=hi-lo||1;
   var w=W-L-R,h=H-T-B,zy=H-B-(0-lo)/range*h;
   // Grid lines
-  ctx.strokeStyle='rgba(148,163,184,0.15)';ctx.lineWidth=0.5;
+  ctx.strokeStyle='rgba(148,163,184,0.12)';ctx.lineWidth=0.5;
   var steps=5,step=range/steps;
   ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='right';
   for(var s=0;s<=steps;s++){
@@ -129,14 +135,17 @@ function drawChart(rows){
     ctx.fillText(Math.round(val),L-4,gy+3);
   }
   // Zero line
-  ctx.strokeStyle='rgba(148,163,184,0.35)';ctx.beginPath();ctx.moveTo(L,zy);ctx.lineTo(W-R,zy);ctx.stroke();
-  // Bars
-  var bw=Math.max(2,(w)/rows.length-2);
+  ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.beginPath();ctx.moveTo(L,zy);ctx.lineTo(W-R,zy);ctx.stroke();
+  // Bars — thin with gaps
+  var n=rows.length, barW=Math.max(4,w/n*0.58), gap=w/n*0.42;
   var bars=[];
-  for(var i=0;i<rows.length;i++){
-    var cf=parseFloat(rows[i].cf),x=L+i/rows.length*w,bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
-    ctx.fillStyle=cf>=0?'rgba(52,211,153,0.85)':'rgba(248,113,113,0.85)';ctx.fillRect(x,y,bw,Math.max(1,bh));
-    bars.push({x:x,y:y,w:bw,h:Math.max(1,bh),cf:cf,yr:rows[i].yr});
+  for(var i=0;i<n;i++){
+    var cf=parseFloat(rows[i].cf),x=L+i/n*w+gap/2,bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
+    var grad=ctx.createLinearGradient(x,y,x,y+bh);
+    if(cf>=0){grad.addColorStop(0,'rgba(52,211,153,0.9)');grad.addColorStop(1,'rgba(16,185,129,0.6)');}
+    else{grad.addColorStop(0,'rgba(248,113,113,0.6)');grad.addColorStop(1,'rgba(239,68,68,0.9)');}
+    ctx.fillStyle=grad;ctx.fillRect(x,y,barW,Math.max(1,bh));
+    bars.push({x:x,y:y,w:barW,h:Math.max(1,bh),cf:cf,yr:rows[i].yr});
   }
   // X labels
   ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
@@ -264,8 +273,14 @@ function init(){
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
-  bindDual('inpInvReplace','numInvReplace','dispInvReplace',uInv);
+  bindDual('inpInvReplace','numInvReplace','dispInvReplace',function(v){return v.toFixed(3)+' 元/W';});
   bindDual('inpInvYear','numInvYear','dispInvYear',uInvYr);
+  bindDual('inpOmCost','numOmCost','dispOmCost',function(v){return v.toFixed(3)+' 元/W';});
+  bindDual('inpOmEscal','numOmEscal','dispOmEscal',function(v){return v.toFixed(1)+'%';});
+  bindDual('inpVatRate','numVatRate','dispVatRate',function(v){return Math.round(v)+'%';});
+  bindDual('inpTaxFlat','numTaxFlat','dispTaxFlat',function(v){return Math.round(v)+'%';});
+
+  var ts=el('inpTaxModel'); if(ts){ts.addEventListener('change',function(){el('rowTaxFlat').style.display=ts.value==='holiday'?'none':'block';setText('dispTaxModel',ts.value==='holiday'?'三免三减半':'固定税率');update();});el('rowTaxFlat').style.display=ts.value==='holiday'?'none':'block';setText('dispTaxModel','三免三减半');}
 
   initBTT();
   update();
