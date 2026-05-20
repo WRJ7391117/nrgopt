@@ -52,7 +52,7 @@ function ival(id){ var e=el(id); return e?parseInt(e.value)||0:0; }
 
 function getP(){
   return {
-    capacity:val('inpCapacity')||0.4725, unitCost:val('inpUnitCost')||3.7,
+    capacity:val('inpCapacity')||1, unitCost:val('inpUnitCost')||3.7,
     loanRatio:(val('inpLoanRatio')||70)/100, loanRate:(val('inpLoanRate')||3.9)/100,
     loanYears:ival('inpLoanYears')||15, genPerW:computeGen(),
     runYears:ival('inpRunYears')||25,
