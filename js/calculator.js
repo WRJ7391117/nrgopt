@@ -157,8 +157,8 @@ function drawChart(rows){
   for(var i=0;i<n;i++){
     var cf=rows[i].cf,x=L+gap+i*(barW+gap),bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
     var grad=ctx.createLinearGradient(x,y,x,y+bh);
-    if(cf>=0){grad.addColorStop(0,'#38bdf8');grad.addColorStop(1,'#0284c7');}
-    else{grad.addColorStop(0,'#f87171');grad.addColorStop(1,'#dc2626');}
+    if(cf>=0){grad.addColorStop(0,'#7dd3fc');grad.addColorStop(1,'#0369a1');}
+    else{grad.addColorStop(0,'#fca5a5');grad.addColorStop(1,'#b91c1c');}
     ctx.fillStyle=grad;ctx.fillRect(x,y,barW,Math.max(1,bh));
     bars.push({x:x,w:barW,y:y,h:Math.max(1,bh),cf:cf,yr:rows[i].yr});
   }
