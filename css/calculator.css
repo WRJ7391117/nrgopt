@@ -31,6 +31,7 @@
 .pr { margin-bottom:10px; }
 .pr:last-child { margin-bottom:0; }
 .pr-label { display:flex; justify-content:space-between; align-items:baseline; font-size:0.78rem; color:var(--text); margin-bottom:2px; font-weight:500; }
+.pr, .dual-input { text-align:left; }
 .pr-val { color:var(--accent); font-weight:700; font-size:0.8rem; }
 .pr-val.gold { color:var(--gold); }
 .pr.derived { background:var(--bg); border-radius:6px; padding:8px 10px; margin-bottom:10px; }
