@@ -10,8 +10,9 @@
 .metric-band { max-width:1180px; margin:0 auto; padding:16px 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 .band-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; text-align:center; box-shadow:var(--shadow); }
 .band-label { font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
-.band-value { font-size:2rem; font-weight:800; color:var(--text); }
+.band-value { font-size:1.8rem; font-weight:800; color:var(--text); }
 .band-value.good { color:#34d399; } .band-value.ok { color:#f59e0b; } .band-value.bad { color:#f87171; }
+.band-value.small { font-size:1.3rem; }
 .band-sub { font-size:0.7rem; color:var(--text-dim); margin-top:2px; }
 
 /* ── Chart — full width ── */

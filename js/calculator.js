@@ -106,6 +106,7 @@ function setText(id,txt){var e=el(id);if(e)e.textContent=txt;}
 function drawChart(rows){
   var c=el('cfChart'); if(!c)return;
   var ctx=c.getContext('2d');
+  var L=48,R=20,T=16,B=26;
   var W=c.width=c.parentElement.clientWidth-32;
   var H=c.height=240;
   ctx.clearRect(0,0,W,H);
@@ -113,15 +114,31 @@ function drawChart(rows){
   var lo=Infinity,hi=-Infinity;
   for(var i=0;i<rows.length;i++){var v=parseFloat(rows[i].cf);if(v<lo)lo=v;if(v>hi)hi=v;}
   lo=Math.min(0,lo);hi=Math.max(1,hi);var range=hi-lo||1;
-  var px=24,py=14,w=W-px*2,h=H-py*2,zy=H-py-(0-lo)/range*h;
-  ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.beginPath();ctx.moveTo(px,zy);ctx.lineTo(W-px,zy);ctx.stroke();
-  var bw=Math.max(2,w/rows.length-2);
-  for(var i=0;i<rows.length;i++){
-    var cf=parseFloat(rows[i].cf),x=px+i/rows.length*w,bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
-    ctx.fillStyle=cf>=0?'#34d399':'#f87171';ctx.fillRect(x,y,bw,Math.max(1,bh));
+  var w=W-L-R,h=H-T-B,zy=H-B-(0-lo)/range*h;
+  // Grid lines
+  ctx.strokeStyle='rgba(148,163,184,0.15)';ctx.lineWidth=0.5;
+  var steps=5,step=range/steps;
+  ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='right';
+  for(var s=0;s<=steps;s++){
+    var val=lo+step*s;
+    var gy=H-B-(val-lo)/range*h;
+    ctx.beginPath();ctx.moveTo(L,gy);ctx.lineTo(W-R,gy);ctx.stroke();
+    ctx.fillText(Math.round(val),L-4,gy+3);
   }
-  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';
-  for(var y=0;y<rows.length;y+=5)ctx.fillText('Y'+(y+1),px+y/rows.length*w-4,H-2);
+  // Zero line
+  ctx.strokeStyle='rgba(148,163,184,0.35)';ctx.beginPath();ctx.moveTo(L,zy);ctx.lineTo(W-R,zy);ctx.stroke();
+  // Bars
+  var bw=Math.max(2,(w)/rows.length-2);
+  for(var i=0;i<rows.length;i++){
+    var cf=parseFloat(rows[i].cf),x=L+i/rows.length*w,bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
+    ctx.fillStyle=cf>=0?'rgba(52,211,153,0.85)':'rgba(248,113,113,0.85)';ctx.fillRect(x,y,bw,Math.max(1,bh));
+  }
+  // X labels
+  ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+  for(var y=0;y<rows.length;y+=5)ctx.fillText((y+1),L+y/rows.length*w,H-B+13);
+  // Y title
+  ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+  ctx.save();ctx.translate(10,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('万',0,0);ctx.restore();
 }
 
 // ── Slider + Number sync ──
