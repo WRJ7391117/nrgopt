@@ -105,10 +105,11 @@
       else if (lang === 'zh' && el.hasAttribute('data-zh')) el.textContent = el.getAttribute('data-zh');
       else if (lang === 'ja' && el.hasAttribute('data-ja')) el.textContent = el.getAttribute('data-ja');
     });
-    // Special: h1 slogan — keep <span class="hl"> intact
+    // Special: h1 slogan
     var h1 = document.querySelector('.calc-hero h1');
+    if (!h1) return;
     var hl = h1.querySelector('.hl');
-    if (h1 && hl) {
+    if (hl) {
       var texts = { en: ['Distributed PV ', 'IRR Calculator'], zh: ['分布式光伏 ', 'IRR 测算'], ja: ['分散型太陽光 ', 'IRR試算'] };
       var t = texts[lang] || texts.zh;
       h1.childNodes[0] && (h1.childNodes[0].textContent = t[0]);
@@ -315,6 +316,14 @@
     switchLang(saved);
   }
 
-  // defer ensures DOM is ready
-  init();
+  try {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  } catch (e) {
+    // If init fails, retry on load
+    window.addEventListener('load', init);
+  }
 })();
