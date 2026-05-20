@@ -92,7 +92,9 @@ function update(){
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
   el('resIrrFull').style.color=R.irrFull>=0.1?'#34d399':R.irrFull>=0.06?'#f59e0b':'#f87171';
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
-  setText('resNpv',R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString());
+  var npvTxt=R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString();
+  setText('resNpv',npvTxt);
+  el('resNpv').style.color=R.npvFull>=0?'':'#f87171';
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
