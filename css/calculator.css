@@ -18,8 +18,8 @@
 .params-wrap { max-width:1180px; margin:0 auto; padding:16px 24px 12px; }
 .params-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
 
-.param-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
-.param-group:last-child { margin-bottom:0; }
+.param-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.params-grid > div { display:flex; flex-direction:column; gap:14px; }
 .param-group-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; cursor:pointer; user-select:none; font-size:0.82rem; font-weight:600; color:var(--text); transition:background 0.15s; }
 .param-group-header:hover { background:var(--border); }
 .param-group-header .arrow { font-size:0.6rem; color:var(--text-dim); transition:transform 0.2s; }
