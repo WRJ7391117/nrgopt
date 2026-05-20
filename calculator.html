@@ -12,7 +12,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
 <body>
-<a href="#calcMain" class="skip-link" data-en="Skip" data-zh="跳转到计算器" data-ja="スキップ">跳转到计算器</a>
+<a href="#calcMain" class="skip-link">跳转到计算器</a>
 
 <nav class="nav" role="navigation">
   <div class="nav-inner">
@@ -22,7 +22,7 @@
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">
         <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
-      <select class="lang-select" onchange="switchLang(this.value)" id="langSelect" aria-label="Select language">
+      <select class="lang-select" onchange="switchLang(this.value)" id="langSelect">
         <option value="en">English</option>
         <option value="zh">中文</option>
         <option value="ja">日本語</option>
@@ -31,14 +31,9 @@
   </div>
 </nav>
 
-<section class="calc-hero" id="calcMain">
-  <div class="container">
-    <h1>分布式光伏 <span class="hl">IRR 测算</span></h1>
-    <p class="hero-sub" data-en="Adjust parameters — real-time IRR, NPV, and cash flow analysis" data-zh="调节参数，实时查看全投资/资本金收益率与现金流分析" data-ja="パラメータを調整 — IRR・NPV・キャッシュフローをリアルタイム計算">调节参数，实时查看全投资/资本金收益率与现金流分析</p>
-  </div>
-</section>
+<section class="calc-hero" id="calcMain"><div class="container"><h1>分布式光伏 <span class="hl">IRR 测算</span></h1><p class="hero-sub" data-en="Adjust parameters — real-time IRR, NPV, and cash flow" data-zh="调节参数，实时查看全投资/资本金收益率与现金流分析" data-ja="パラメータを調整 — IRR・NPV・キャッシュフローをリアルタイム計算">调节参数，实时查看全投资/资本金收益率与现金流分析</p></div></section>
 
-<!-- ═══ PART 1: METRIC CARDS ═══ -->
+<!-- PART 1 -->
 <div class="metric-band">
   <div class="band-card"><div class="band-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div><div class="band-value" id="resIrrFull">—</div><div class="band-sub" data-en="pre-tax" data-zh="税前" data-ja="税前">税前</div></div>
   <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq">—</div><div class="band-sub" data-en="after-tax" data-zh="税后" data-ja="税後">税后</div></div>
@@ -51,94 +46,114 @@
   <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div><div class="band-value" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
 </div>
 
-<!-- ═══ PART 2: PARAMETERS ═══ -->
-<div class="params-wrap">
-<div class="params-grid">
+<!-- PART 2: PARAMETERS — 3-column grid -->
+<div class="params-wrap"><div class="params-grid">
 
-  <div class="param-group open">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="📐 Project Scale" data-zh="📐 项目规模" data-ja="📐 プロジェクト規模">📐 项目规模</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <div class="param-row"><label><span data-en="Capacity" data-zh="装机容量" data-ja="設備容量"></span> <span class="val" id="dispCapacity"></span></label><div class="dual-input"><input type="range" id="inpCapacity" min="0.1" max="10" step="0.01" value="1"><input type="text" inputmode="decimal" id="numCapacity" step="0.01" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Unit Investment" data-zh="单位投资" data-ja="単位投資"></span> <span class="val" id="dispUnitCost"></span></label><div class="dual-input"><input type="range" id="inpUnitCost" min="2.5" max="5.5" step="0.1" value="3.7"><input type="text" inputmode="decimal" id="numUnitCost" step="0.1" class="num-field"></div></div>
-      <div class="param-row param-derived"><label><span data-en="→ Gen Year 1 Total" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span> <span class="val derived" id="dispGenY1Total"></span></label></div>
+  <!-- Col 1 -->
+  <div>
+    <div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="📐 Scale" data-zh="📐 项目规模" data-ja="📐 規模">📐 项目规模</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Capacity" data-zh="装机容量" data-ja="設備容量"></span><span class="pr-val" id="dispCapacity"></span></div><div class="dual-input"><input type="range" id="inpCapacity" min="0.1" max="10" step="0.01" value="1"><input type="text" inputmode="decimal" id="numCapacity" step="0.01" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Unit Investment" data-zh="单位投资" data-ja="単位投資"></span><span class="pr-val" id="dispUnitCost"></span></div><div class="dual-input"><input type="range" id="inpUnitCost" min="2.5" max="5.5" step="0.1" value="3.7"><input type="text" inputmode="decimal" id="numUnitCost" step="0.1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Project Life" data-zh="运营年限" data-ja="運転年数"></span><span class="pr-val" id="dispRunYears"></span></div><div class="dual-input"><input type="range" id="inpRunYears" min="15" max="30" step="1" value="25"><input type="text" inputmode="decimal" id="numRunYears" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Depreciation Years" data-zh="折旧年限" data-ja="償却年数"></span><span class="pr-val" id="dispDeprYears"></span></div><div class="dual-input"><input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10"><input type="text" inputmode="decimal" id="numDeprYears" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Residual Rate" data-zh="残值率" data-ja="残存率"></span><span class="pr-val" id="dispResidual"></span></div><div class="dual-input"><input type="range" id="inpResidual" min="0" max="10" step="1" value="5"><input type="text" inputmode="decimal" id="numResidual" step="1" class="num-field"></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Gen Year 1" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span><span class="pr-val gold" id="dispGenY1Total"></span></div></div>
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
+      </div>
     </div>
   </div>
 
-  <div class="param-group">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ Generation" data-zh="☀ 发电量参数" data-ja="☀ 発電量">☀ 发电量参数</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <select id="regionPreset" class="region-select-full" onchange="setRegionPreset(this.value)"><option value="custom" data-en="Custom" data-zh="自定义地区" data-ja="カスタム" selected>自定义地区</option><option value="tibet">西藏/青海 (1900)</option><option value="nw">西北 (1600)</option><option value="nc">华北 (1400)</option><option value="ec">华东 (1350)</option><option value="sc">华南 (1100)</option><option value="sw">西南 (1000)</option></select>
-      <div class="param-row"><label><span data-en="Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span> <span class="val" id="dispIrradiance"></span></label><div class="param-sub"><span data-en="Equivalent hours: " data-zh="等效年利用小时数：" data-ja="等価時間："></span><span id="dispSunHours"></span> h</div><div class="dual-input"><input type="range" id="inpIrradiance" min="800" max="2200" step="10" value="1350"><input type="text" inputmode="decimal" id="numIrradiance" step="10" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Tilt Factor" data-zh="倾斜修正系数" data-ja="傾斜補正係数"></span> <span class="val" id="dispTilt"></span></label><div class="dual-input"><input type="range" id="inpTilt" min="0.9" max="1.25" step="0.01" value="1.05"><input type="text" inputmode="decimal" id="numTilt" step="0.01" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="System Efficiency" data-zh="系统综合效率" data-ja="システム効率"></span> <span class="val" id="dispSysEff"></span></label><div class="dual-input"><input type="range" id="inpSysEff" min="70" max="92" step="0.5" value="83.5"><input type="text" inputmode="decimal" id="numSysEff" step="0.5" class="num-field"></div></div>
-      <div class="param-row param-derived"><label><span data-en="→ Gen/kW Year 1" data-zh="→ 首年每瓦发电量" data-ja="→ 初年度発電量/W"></span> <span class="val derived" id="dispGenPerW"></span></label></div>
-      <div class="param-row"><label><span data-en="Degrad. Year 1" data-zh="首年衰减率" data-ja="初年度劣化率"></span> <span class="val" id="dispDegradY1"></span></label><div class="dual-input"><input type="range" id="inpDegradY1" min="0" max="3" step="0.1" value="1.0"><input type="text" inputmode="decimal" id="numDegradY1" step="0.1" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Degrad. Annual" data-zh="经年衰减率" data-ja="経年劣化率"></span> <span class="val" id="dispDegrad"></span></label><div class="dual-input"><input type="range" id="inpDegrad" min="0.2" max="1" step="0.05" value="0.55"><input type="text" inputmode="decimal" id="numDegrad" step="0.05" class="num-field"></div></div>
+  <!-- Col 2 -->
+  <div>
+    <div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ Generation" data-zh="☀ 发电量" data-ja="☀ 発電量">☀ 发电量</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <select id="regionPreset" class="region-select-full" onchange="setRegionPreset(this.value)"><option value="custom" selected>自定义地区</option><option value="tibet">西藏/青海 (1900)</option><option value="nw">西北 (1600)</option><option value="nc">华北 (1400)</option><option value="ec">华东 (1350)</option><option value="sc">华南 (1100)</option><option value="sw">西南 (1000)</option></select>
+        <div class="pr"><div class="pr-label"><span data-en="Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span><span class="pr-val" id="dispIrradiance"></span></div><div class="pr-sub"><span data-en="Equivalent hours:" data-zh="等效利用小时数:" data-ja="等価時間:"></span> <span id="dispSunHours"></span> h</div><div class="dual-input"><input type="range" id="inpIrradiance" min="800" max="2200" step="10" value="1350"><input type="text" inputmode="decimal" id="numIrradiance" step="10" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Tilt Factor" data-zh="倾斜修正系数" data-ja="傾斜補正係数"></span><span class="pr-val" id="dispTilt"></span></div><div class="dual-input"><input type="range" id="inpTilt" min="0.9" max="1.25" step="0.01" value="1.05"><input type="text" inputmode="decimal" id="numTilt" step="0.01" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="System Efficiency" data-zh="系统综合效率" data-ja="システム効率"></span><span class="pr-val" id="dispSysEff"></span></div><div class="dual-input"><input type="range" id="inpSysEff" min="70" max="92" step="0.5" value="83.5"><input type="text" inputmode="decimal" id="numSysEff" step="0.5" class="num-field"></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Gen/kW Year 1" data-zh="→ 首年每瓦发电量" data-ja="→ 初年度発電量/W"></span><span class="pr-val gold" id="dispGenPerW"></span></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Degrad. Year 1" data-zh="首年衰减率" data-ja="初年度劣化率"></span><span class="pr-val" id="dispDegradY1"></span></div><div class="dual-input"><input type="range" id="inpDegradY1" min="0" max="3" step="0.1" value="1.0"><input type="text" inputmode="decimal" id="numDegradY1" step="0.1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Degrad. Annual" data-zh="经年衰减率" data-ja="経年劣化率"></span><span class="pr-val" id="dispDegrad"></span></div><div class="dual-input"><input type="range" id="inpDegrad" min="0.2" max="1" step="0.05" value="0.55"><input type="text" inputmode="decimal" id="numDegrad" step="0.05" class="num-field"></div></div>
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💰 Price" data-zh="💰 用电与电价" data-ja="💰 電力価格">💰 用电与电价</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span><span class="pr-val" id="dispSelfUse"></span></div><div class="dual-input"><input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90"><input type="text" inputmode="decimal" id="numSelfUse" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span><span class="pr-val" id="dispDayPrice"></span></div><div class="dual-input"><input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664"><input type="text" inputmode="decimal" id="numDayPrice" step="0.001" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Grid Price" data-zh="上网结算电价" data-ja="系統連系価格"></span><span class="pr-val" id="dispGridPrice"></span></div><div class="dual-input"><input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3"><input type="text" inputmode="decimal" id="numGridPrice" step="0.001" class="num-field"></div><div class="pr-note" data-en="CfD + market price (2025 reform)" data-zh="市场化交易价+差价结算(136号文)" data-ja="市場価格+差額決済(2025年改革)">市场化交易价+差价结算(136号文)</div></div>
+      </div>
     </div>
   </div>
 
-  <div class="param-group">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💰 Power & Price" data-zh="💰 用电与电价" data-ja="💰 電力・価格">💰 用电与电价</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <div class="param-row"><label><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span> <span class="val" id="dispSelfUse"></span></label><div class="dual-input"><input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90"><input type="text" inputmode="decimal" id="numSelfUse" step="5" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span> <span class="val" id="dispDayPrice"></span></label><div class="dual-input"><input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664"><input type="text" inputmode="decimal" id="numDayPrice" step="0.001" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Grid Settlement Price" data-zh="上网结算电价" data-ja="系統連系価格"></span> <span class="val" id="dispGridPrice"></span></label><div class="dual-input"><input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3"><input type="text" inputmode="decimal" id="numGridPrice" step="0.001" class="num-field"></div><div class="param-note" data-en="CfD + market price (2025 reform)" data-zh="市场化交易价+差价结算(136号文)" data-ja="市場価格+差額決済(2025年改革)">市场化交易价+差价结算(136号文)</div></div>
+  <!-- Col 3 -->
+  <div>
+    <div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M" data-zh="🔧 运维成本" data-ja="🔧 運用費">🔧 运维成本</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Mgmt Fee" data-zh="管理费率" data-ja="管理費率"></span><span class="pr-val" id="dispMgmtFee"></span></div><div class="dual-input"><input type="range" id="inpMgmtFee" min="0" max="0.03" step="0.001" value="0.01"><input type="text" inputmode="decimal" id="numMgmtFee" step="0.001" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Mgmt Escalation" data-zh="管理费年递增" data-ja="管理費上昇率"></span><span class="pr-val" id="dispMgmtEscal"></span></div><div class="dual-input"><input type="range" id="inpMgmtEscal" min="0" max="5" step="0.5" value="3"><input type="text" inputmode="decimal" id="numMgmtEscal" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Maint. Fee" data-zh="维护费率" data-ja="保守費率"></span><span class="pr-val" id="dispMaintFee"></span></div><div class="dual-input"><input type="range" id="inpMaintFee" min="0.01" max="0.08" step="0.005" value="0.04"><input type="text" inputmode="decimal" id="numMaintFee" step="0.005" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Maint. Escalation" data-zh="维护费年递增" data-ja="保守費上昇率"></span><span class="pr-val" id="dispMaintEscal"></span></div><div class="dual-input"><input type="range" id="inpMaintEscal" min="0" max="5" step="0.5" value="1"><input type="text" inputmode="decimal" id="numMaintEscal" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Insurance Rate" data-zh="保险费率" data-ja="保険率"></span><span class="pr-val" id="dispInsRate"></span></div><div class="dual-input"><input type="range" id="inpInsRate" min="0" max="0.3" step="0.01" value="0.1"><input type="text" inputmode="decimal" id="numInsRate" step="0.01" class="num-field"></div><div class="pr-note" data-en="% of total investment" data-zh="总投资百分比" data-ja="総投資額に対する%">总投资百分比</div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Annual O&M (Year 1)" data-zh="→ 首年运维合计" data-ja="→ 初年度運用費"></span><span class="pr-val gold" id="dispOmTotal"></span></div></div>
+      </div>
+    </div>
+
+    <div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🧾 Tax" data-zh="🧾 税务设置" data-ja="🧾 税務">🧾 税务设置</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="VAT Rate" data-zh="增值税率" data-ja="消費税率"></span><span class="pr-val" id="dispVatRate"></span></div><div class="dual-input"><input type="range" id="inpVatRate" min="9" max="17" step="1" value="13"><input type="text" inputmode="decimal" id="numVatRate" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Tax-Free Years" data-zh="免税年数" data-ja="免税年数"></span><span class="pr-val" id="dispTaxFreeYr"></span></div><div class="dual-input"><input type="range" id="inpTaxFreeYr" min="0" max="6" step="1" value="3"><input type="text" inputmode="decimal" id="numTaxFreeYr" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Tax-Half Years" data-zh="减半年数" data-ja="半減年数"></span><span class="pr-val" id="dispTaxHalfYr"></span></div><div class="dual-input"><input type="range" id="inpTaxHalfYr" min="0" max="6" step="1" value="3"><input type="text" inputmode="decimal" id="numTaxHalfYr" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Income Tax Rate" data-zh="所得税率" data-ja="所得税率"></span><span class="pr-val" id="dispTaxRate"></span></div><div class="dual-input"><input type="range" id="inpTaxRate" min="15" max="25" step="1" value="25"><input type="text" inputmode="decimal" id="numTaxRate" step="1" class="num-field"></div></div>
+        <div class="pr-note" data-en="Y1-3: 0% / Y4-6: 12.5% / Y7+: 25% (default)" data-zh="默认: 前3年0% / 中3年12.5% / 之后25%" data-ja="初期3年0%·中期3年12.5%·以降25%">默认: 前3年0% / 中3年12.5% / 之后25%</div>
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚙️ Other" data-zh="⚙️ 其他" data-ja="⚙️ その他">⚙️ 其他</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Inv. Replace Cost" data-zh="逆变器更换成本" data-ja="交換費用"></span><span class="pr-val" id="dispInvReplace"></span></div><div class="dual-input"><input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numInvReplace" step="0.01" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Replace Year" data-zh="更换年份" data-ja="交換年"></span><span class="pr-val" id="dispInvYear"></span></div><div class="dual-input"><input type="range" id="inpInvYear" min="8" max="20" step="1" value="12"><input type="text" inputmode="decimal" id="numInvYear" step="1" class="num-field"></div><div class="pr-note" data-en="0 cost = disabled" data-zh="成本设0可不更换" data-ja="費用0=交換なし">成本设0可不更换</div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span><span class="pr-val" id="dispDiscount"></span></div><div class="dual-input"><input type="range" id="inpDiscount" min="5" max="15" step="1" value="10"><input type="text" inputmode="decimal" id="numDiscount" step="1" class="num-field"></div></div>
+      </div>
     </div>
   </div>
 
-  <div class="param-group">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資条件">🏦 融资条件</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <div class="param-row"><label><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span> <span class="val" id="dispLoanRatio"></span></label><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span> <span class="val" id="dispLoanRate"></span></label><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span> <span class="val" id="dispLoanYears"></span></label><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
-    </div>
-  </div>
+</div></div>
 
-  <div class="param-group">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M + Tax" data-zh="🔧 运维与税务" data-ja="🔧 運用・税務">🔧 运维与税务</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <div class="param-row"><label><span data-en="O&M Cost" data-zh="年运维成本" data-ja="年間運用費"></span> <span class="val" id="dispOmCost"></span></label><div class="dual-input"><input type="range" id="inpOmCost" min="0.02" max="0.10" step="0.005" value="0.05"><input type="text" inputmode="decimal" id="numOmCost" step="0.005" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="O&M Escalation" data-zh="运维年递增率" data-ja="運用費上昇率"></span> <span class="val" id="dispOmEscal"></span></label><div class="dual-input"><input type="range" id="inpOmEscal" min="0" max="5" step="0.5" value="2"><input type="text" inputmode="decimal" id="numOmEscal" step="0.5" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="VAT Rate" data-zh="增值税率" data-ja="消費税率"></span> <span class="val" id="dispVatRate"></span></label><div class="dual-input"><input type="range" id="inpVatRate" min="9" max="17" step="1" value="13"><input type="text" inputmode="decimal" id="numVatRate" step="1" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Income Tax Model" data-zh="所得税模式" data-ja="所得税モデル"></span> <span class="val" id="dispTaxModel"></span></label><select id="inpTaxModel" class="tax-select" onchange="update()"><option value="holiday" data-en="3yr free + 3yr half" data-zh="三免三减半" data-ja="3年免除+3年半減">三免三减半</option><option value="flat" data-en="Flat Rate" data-zh="固定税率" data-ja="固定税率">固定税率</option></select></div>
-      <div class="param-row" id="rowTaxFlat"><label><span data-en="Income Tax Rate" data-zh="所得税率" data-ja="所得税率"></span> <span class="val" id="dispTaxFlat"></span></label><div class="dual-input"><input type="range" id="inpTaxFlat" min="15" max="25" step="1" value="25"><input type="text" inputmode="decimal" id="numTaxFlat" step="1" class="num-field"></div></div>
-    </div>
-  </div>
-
-  <div class="param-group">
-    <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚙️ Other" data-zh="⚙️ 其他参数" data-ja="⚙️ その他">⚙️ 其他参数</span><span class="arrow">▶</span></div>
-    <div class="param-group-body">
-      <div class="param-row"><label><span data-en="Project Life" data-zh="运营年限" data-ja="運転年数"></span> <span class="val" id="dispRunYears"></span></label><div class="dual-input"><input type="range" id="inpRunYears" min="15" max="30" step="1" value="25"><input type="text" inputmode="decimal" id="numRunYears" step="1" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Depr. Years" data-zh="折旧年限" data-ja="償却年数"></span> <span class="val" id="dispDeprYears"></span></label><div class="dual-input"><input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10"><input type="text" inputmode="decimal" id="numDeprYears" step="1" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Inverter Replace Cost" data-zh="逆变器更换成本" data-ja="交換費用"></span> <span class="val" id="dispInvReplace"></span></label><div class="dual-input"><input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numInvReplace" step="0.01" class="num-field"></div></div>
-      <div class="param-row"><label><span data-en="Replacement Year" data-zh="更换年份" data-ja="交換年"></span> <span class="val" id="dispInvYear"></span></label><div class="dual-input"><input type="range" id="inpInvYear" min="8" max="20" step="1" value="12"><input type="text" inputmode="decimal" id="numInvYear" step="1" class="num-field"></div><div class="param-note" data-en="0 cost = disabled" data-zh="成本设0可不更换" data-ja="費用0=交換なし">成本设0可不更换</div></div>
-      <div class="param-row"><label><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span> <span class="val" id="dispDiscount"></span></label><div class="dual-input"><input type="range" id="inpDiscount" min="5" max="15" step="1" value="10"><input type="text" inputmode="decimal" id="numDiscount" step="1" class="num-field"></div></div>
-    </div>
-  </div>
-
-</div>
-</div>
-
-<!-- ═══ PART 3: CHART ═══ -->
+<!-- PART 3: CHART -->
 <div class="chart-band">
   <div class="chart-card">
-    <h3 data-en="📊 Annual Cash Flow (10k CNY)" data-zh="📊 逐年现金流（万元）" data-ja="📊 年間キャッシュフロー（万元）">📊 逐年现金流（万元）</h3>
+    <h3 data-en="📊 Annual Cash Flow (10k CNY)" data-zh="📊 逐年现金流（万元）" data-ja="📊 年間CF（万元）">📊 逐年现金流（万元）</h3>
     <div style="position:relative"><canvas id="cfChart"></canvas><div id="chartTooltip" style="display:none;position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;font-size:0.75rem;color:var(--text);white-space:nowrap;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)"></div></div>
   </div>
 </div>
 
-<!-- ═══ PART 4: TABLE ═══ -->
+<!-- PART 4: TABLE -->
 <div class="table-band">
   <div class="table-card">
-    <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 キャッシュフロー明細（万元）">📋 现金流明细（万元）</h3>
+    <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 CF明細（万元）">📋 现金流明细（万元）</h3>
     <table><thead><tr><th data-en="Yr" data-zh="年" data-ja="年">年</th><th data-en="Gen" data-zh="发电量" data-ja="発電量">发电量</th><th data-en="Rev" data-zh="收入" data-ja="収入">收入</th><th data-en="Cost" data-zh="成本" data-ja="コスト">成本</th><th data-en="Tax" data-zh="所得税" data-ja="税金">所得税</th><th data-en="Profit" data-zh="净利" data-ja="純利益">净利</th><th>CF</th><th data-en="Cum" data-zh="累计" data-ja="累計">累计</th></tr></thead><tbody id="cfTableBody"></tbody></table>
   </div>
 </div>
 
-<p class="calc-disclaimer" data-en="⚠️ Standard model (tax holiday + 50% VAT refund + inverter replacement). Estimates only — actual projects require detailed assessment." data-zh="⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考，实际项目需结合具体条件评估。" data-ja="⚠️ 標準モデル（免税·VAT還付·交換含む）。参考値です。">⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考，实际项目需结合具体条件评估。</p>
+<p class="calc-disclaimer" data-en="⚠️ Standard model (tax holiday + 50% VAT refund + inverter replacement). Estimates only." data-zh="⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。" data-ja="⚠️ 標準モデル。参考値です。">⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。</p>
 
 <script src="js/theme.js?v=2"></script>
-<script src="js/calculator.js?v=8"></script>
+<script src="js/calculator.js?v=9"></script>
 </body>
 </html>
