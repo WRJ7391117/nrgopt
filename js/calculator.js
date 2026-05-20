@@ -315,11 +315,6 @@
     switchLang(saved);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-  // Safety: also run on load in case script executes during 'interactive'
-  window.addEventListener('load', function () { if (!R) init(); });
+  // defer ensures DOM is ready
+  init();
 })();
