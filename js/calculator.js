@@ -112,10 +112,13 @@ function update(){
 
   var tb=el('cfTableBody');if(!tb)return;
   tb.innerHTML='';
+  var tGen=0,tRev=0,tCost=0,tTax=0,tPat=0,tCf=0;
   for(var i=0;i<R.rows.length;i++){
     var r=R.rows[i];
+    tGen+=r.gen;tRev+=r.rev;tCost+=r.totCost;tTax+=r.tax;tPat+=r.pat;tCf+=r.cf;
     tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.gen.toFixed(1)+'</td><td>'+r.rev.toFixed(1)+'</td><td>'+r.totCost.toFixed(1)+'</td><td>'+r.tax.toFixed(1)+'</td><td>'+r.pat.toFixed(1)+'</td><td>'+r.cf.toFixed(1)+'</td><td>'+r.cumCash.toFixed(1)+'</td></tr>';
   }
+  tb.innerHTML+='<tr style="font-weight:700;border-top:2px solid var(--accent)"><td>合计</td><td>'+tGen.toFixed(1)+'</td><td>'+tRev.toFixed(1)+'</td><td>'+tCost.toFixed(1)+'</td><td>'+tTax.toFixed(1)+'</td><td>'+tPat.toFixed(1)+'</td><td>'+tCf.toFixed(1)+'</td><td></td></tr>';
   drawChart(R.rows);
 }
 
