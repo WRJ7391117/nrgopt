@@ -80,8 +80,7 @@ function update(){
   refreshDisplays();
   var gw=computeGen(),l=document.documentElement.lang||'en';
   setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
-  var irr=val('inpIrradiance')||1350,tilt=val('inpTilt')||1.05,eff=(val('inpSysEff')||83.5)/100;
-  setText('dispSunHours',Math.round(irr*tilt*eff));
+  setText('dispSunHours',Math.round(gw*1000));
   var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.04);
   setText('dispOmTotal',omT.toFixed(3)+' 元/W');
 
