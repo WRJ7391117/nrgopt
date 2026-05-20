@@ -126,9 +126,9 @@ function drawChart(rows){
   var c=el('cfChart');if(!c)return;
   var ctx=c.getContext('2d');
   var L=48,R=20,T=16,B=32;
-  var W=c.width=c.parentElement.clientWidth-32;
-  var H=c.height=240;
-  c.width=W;c.height=H;
+  var pw=c.parentElement.clientWidth-32;
+  var W=c.width=pw;c.style.width=pw+'px';
+  var H=c.height=240;c.style.height=H+'px';
   ctx.clearRect(0,0,W,H);
   if(rows.length<2)return;
   var lo=Infinity,hi=-Infinity;
@@ -160,7 +160,7 @@ function drawChart(rows){
   ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.save();ctx.translate(10,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('万元',0,0);ctx.restore();
   // Tooltip
   var tip=el('chartTooltip');
-  c.onmousemove=function(e){var rect=c.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top,found=null;for(var i=0;i<bars.length;i++){var b=bars[i];if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h){found=b;break;}}if(found){tip.style.display='block';tip.style.left=found.x+found.w/2+'px';tip.style.top=found.y-26+'px';tip.style.transform='translate(-50%,0)';tip.textContent='第'+found.yr+'年: '+found.cf.toFixed(1)+' 万';}else{tip.style.display='none';}};
+  c.onmousemove=function(e){var rect=c.getBoundingClientRect(),sx=c.width/rect.width,sy=c.height/rect.height,mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy,found=null;for(var i=0;i<bars.length;i++){var b=bars[i];if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h){found=b;break;}}if(found){tip.style.display='block';tip.style.left=rect.left+found.x/sx+found.w/sx/2+'px';tip.style.top=rect.top+found.y/sy-26+'px';tip.style.position='fixed';tip.style.transform='translate(-50%,0)';tip.textContent='第'+found.yr+'年: '+found.cf.toFixed(1)+' 万';}else{tip.style.display='none';}};
   c.onmouseleave=function(){tip.style.display='none';};
 }
 
@@ -191,7 +191,7 @@ function init(){
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();var s=v.toString();var d=s.indexOf('.');return(d>=0&&s.length-d>2?s.substring(0,d+3):s)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpResidual','numResidual','dispResidual',function(v){return Math.round(v)+'%';});
