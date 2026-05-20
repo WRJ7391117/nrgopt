@@ -50,7 +50,7 @@
       <label><span data-en="Capacity" data-zh="装机容量" data-ja="設備容量"></span> <span class="val" id="dispCapacity"></span></label>
       <div class="dual-input">
         <input type="range" id="inpCapacity" min="0.1" max="10" step="0.01" value="0.4725">
-        <input type="number" id="numCapacity" step="0.01" min="0.1" max="10" class="num-field">
+        <input type="text" inputmode="decimal" id="numCapacity" step="0.01" min="0.1" max="10" class="num-field">
       </div>
     </div>
 
@@ -58,7 +58,7 @@
       <label><span data-en="Unit Investment" data-zh="单位投资" data-ja="単位投資"></span> <span class="val" id="dispUnitCost"></span></label>
       <div class="dual-input">
         <input type="range" id="inpUnitCost" min="2.5" max="5.5" step="0.1" value="3.7">
-        <input type="number" id="numUnitCost" step="0.1" min="2.5" max="5.5" class="num-field">
+        <input type="text" inputmode="decimal" id="numUnitCost" step="0.1" min="2.5" max="5.5" class="num-field">
       </div>
     </div>
 
@@ -66,7 +66,7 @@
       <label><span data-en="Gen Year 1" data-zh="首年发电量" data-ja="初年度発電量"></span> <span class="val" id="dispGenPerW"></span></label>
       <div class="dual-input">
         <input type="range" id="inpGenPerW" min="0.6" max="1.6" step="0.01" value="1.182">
-        <input type="number" id="numGenPerW" step="0.01" min="0.6" max="1.6" class="num-field">
+        <input type="text" inputmode="decimal" id="numGenPerW" step="0.01" min="0.6" max="1.6" class="num-field">
       </div>
     </div>
 
@@ -74,7 +74,7 @@
       <label><span data-en="Degradation" data-zh="年衰减率" data-ja="年間劣化率"></span> <span class="val" id="dispDegrad"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDegrad" min="0.3" max="1.5" step="0.1" value="0.7">
-        <input type="number" id="numDegrad" step="0.1" min="0.3" max="1.5" class="num-field">
+        <input type="text" inputmode="decimal" id="numDegrad" step="0.1" min="0.3" max="1.5" class="num-field">
       </div>
     </div>
 
@@ -84,7 +84,7 @@
       <label><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span> <span class="val" id="dispSelfUse"></span></label>
       <div class="dual-input">
         <input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90">
-        <input type="number" id="numSelfUse" step="5" min="30" max="100" class="num-field">
+        <input type="text" inputmode="decimal" id="numSelfUse" step="5" min="30" max="100" class="num-field">
       </div>
     </div>
 
@@ -92,7 +92,7 @@
       <label><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span> <span class="val" id="dispDayPrice"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664">
-        <input type="number" id="numDayPrice" step="0.001" min="0.3" max="1.2" class="num-field">
+        <input type="text" inputmode="decimal" id="numDayPrice" step="0.001" min="0.3" max="1.2" class="num-field">
       </div>
     </div>
 
@@ -100,7 +100,7 @@
       <label><span data-en="Benchmark Price" data-zh="脱硫标杆电价" data-ja="基準電力価格"></span> <span class="val" id="dispGridPrice"></span></label>
       <div class="dual-input">
         <input type="range" id="inpGridPrice" min="0.2" max="0.6" step="0.001" value="0.3545">
-        <input type="number" id="numGridPrice" step="0.001" min="0.2" max="0.6" class="num-field">
+        <input type="text" inputmode="decimal" id="numGridPrice" step="0.001" min="0.2" max="0.6" class="num-field">
       </div>
     </div>
 
@@ -110,7 +110,7 @@
       <label><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span> <span class="val" id="dispLoanRatio"></span></label>
       <div class="dual-input">
         <input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70">
-        <input type="number" id="numLoanRatio" step="5" min="0" max="90" class="num-field">
+        <input type="text" inputmode="decimal" id="numLoanRatio" step="5" min="0" max="90" class="num-field">
       </div>
     </div>
 
@@ -118,7 +118,7 @@
       <label><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span> <span class="val" id="dispLoanRate"></span></label>
       <div class="dual-input">
         <input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9">
-        <input type="number" id="numLoanRate" step="0.1" min="2" max="8" class="num-field">
+        <input type="text" inputmode="decimal" id="numLoanRate" step="0.1" min="2" max="8" class="num-field">
       </div>
     </div>
 
@@ -126,7 +126,7 @@
       <label><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span> <span class="val" id="dispLoanYears"></span></label>
       <div class="dual-input">
         <input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15">
-        <input type="number" id="numLoanYears" step="1" min="5" max="20" class="num-field">
+        <input type="text" inputmode="decimal" id="numLoanYears" step="1" min="5" max="20" class="num-field">
       </div>
     </div>
 
@@ -136,7 +136,7 @@
       <label><span data-en="Depr. Years" data-zh="折旧年限" data-ja="償却年数"></span> <span class="val" id="dispDeprYears"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10">
-        <input type="number" id="numDeprYears" step="1" min="5" max="20" class="num-field">
+        <input type="text" inputmode="decimal" id="numDeprYears" step="1" min="5" max="20" class="num-field">
       </div>
     </div>
 
@@ -144,7 +144,7 @@
       <label><span data-en="Inverter Replace Cost" data-zh="逆变器更换成本" data-ja="インバーター交換費用"></span> <span class="val" id="dispInvReplace"></span></label>
       <div class="dual-input">
         <input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2">
-        <input type="number" id="numInvReplace" step="0.01" min="0" max="0.5" class="num-field">
+        <input type="text" inputmode="decimal" id="numInvReplace" step="0.01" min="0" max="0.5" class="num-field">
       </div>
     </div>
 
@@ -152,7 +152,7 @@
       <label><span data-en="Replacement Year" data-zh="更换年份" data-ja="交換年"></span> <span class="val" id="dispInvYear"></span></label>
       <div class="dual-input">
         <input type="range" id="inpInvYear" min="8" max="20" step="1" value="12">
-        <input type="number" id="numInvYear" step="1" min="8" max="20" class="num-field">
+        <input type="text" inputmode="decimal" id="numInvYear" step="1" min="8" max="20" class="num-field">
       </div>
       <div class="param-note" data-en="Typical string inverter lifespan 10-15 years. Set to 0 cost to disable." data-zh="组串式逆变器寿命通常 10-15 年。成本设为 0 可禁用更换。" data-ja="ストリングインバーターの寿命は通常10～15年。費用を0にすると交換なし。">组串式逆变器寿命通常 10-15 年。成本设为 0 可禁用更换。</div>
     </div>
@@ -161,7 +161,7 @@
       <label><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span> <span class="val" id="dispDiscount"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDiscount" min="5" max="15" step="1" value="10">
-        <input type="number" id="numDiscount" step="1" min="5" max="15" class="num-field">
+        <input type="text" inputmode="decimal" id="numDiscount" step="1" min="5" max="15" class="num-field">
       </div>
     </div>
   </div>
