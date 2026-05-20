@@ -17,7 +17,7 @@
 <nav class="nav" role="navigation">
   <div class="nav-inner">
     <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub" data-en="IRR Calculator" data-zh="IRR测算" data-ja="IRR試算">IRR测算</span></a>
-    <ul class="nav-links"><li><a href="/" data-en="← Home" data-zh="← 返回首页" data-ja="← ホーム">← 返回首页</a></li><li><input type="text" id="projectName" placeholder="项目名称" class="nav-input" data-en-placeholder="Project name" data-zh-placeholder="项目名称" data-ja-placeholder="プロジェクト名" oninput="var n=this.value.trim();var el=document.querySelector('.print-title');el.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'"></li><li><a href="#" onclick="downloadPDF();return false" class="btn-pdf" data-en="📄 PDF" data-zh="📄 下载PDF" data-ja="📄 PDF保存">📄 下载PDF</a></li></ul>
+    <ul class="nav-links"><li><a href="/" data-en="← Home" data-zh="← 返回首页" data-ja="← ホーム">← 返回首页</a></li><li><input type="text" id="projectName" placeholder="项目名称" class="nav-input" data-en-placeholder="Project name" data-zh-placeholder="项目名称" data-ja-placeholder="プロジェクト名" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'"></li><li><a href="#" onclick="downloadPDF();return false" class="btn-pdf" data-en="📄 PDF" data-zh="📄 下载PDF" data-ja="📄 PDF保存">📄 下载PDF</a></li></ul>
     <div class="nav-tools">
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">
         <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>

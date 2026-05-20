@@ -239,8 +239,8 @@ function init(){
 
 window.downloadPDF=function(){
   var name=el('projectName').value.trim();
-  var el=document.querySelector('.print-title');
-  el.innerHTML=(name?name+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';
+  var titleEl=document.querySelector('.print-title');
+  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';
   document.title=(name||'NrgOpt')+'-IRR测算';
   window.print();
 };
