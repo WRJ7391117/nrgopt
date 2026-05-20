@@ -43,11 +43,11 @@ function calc(p){
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum});
+    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur});
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalRev=0,totalCost=0,totalProfit=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;}
-  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalRev=0,totalCost=0,totalProfit=0,totalVat=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
+  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function el(id){return document.getElementById(id);}
@@ -104,6 +104,7 @@ function update(){
   setText('resTotalRev',fm(R.totalRev));
   setText('resTotalCost',fm(R.totalCost));
   setText('resTotalProfit',fm(R.totalProfit));
+  setText('resTotalVat',fm(R.totalVat));
   setText('resGenY1',fm(R.genY1));
   setText('dispGenY1Total',fm(R.genY1)+' 万度电');
 
