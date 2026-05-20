@@ -88,7 +88,6 @@ function update(){
   setText('resNpv',R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString());
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
   setText('resGenY1',fm(R.genY1));
-  setText('dispGenY1Total',fm(R.genY1)+(l==='en'?' 10k kWh':(l==='ja'?' 万kWh':' 万kWh')));
   setText('resLoan',fm(R.loan));
   e=el('resIrrFull'); if(e)e.className='metric-value '+(R.irrFull>=0.1?'good':R.irrFull>=0.06?'ok':'bad');
 
@@ -107,7 +106,7 @@ function drawChart(rows){
   var c=el('cfChart'); if(!c)return;
   var ctx=c.getContext('2d');
   var W=c.width=c.parentElement.clientWidth-32;
-  var H=c.height=240;
+  var H=c.height=150;
   ctx.clearRect(0,0,W,H);
   if(rows.length<2)return;
   var lo=Infinity,hi=-Infinity;

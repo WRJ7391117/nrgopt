@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRR Calculator — NrgOpt</title>
+<meta name="description" content="Online distributed PV IRR calculator — real-time full-investment/equity IRR, NPV, payback period">
+<meta property="og:title" content="NrgOpt PV IRR Calculator">
+<link rel="canonical" href="https://nrgopt.com/calculator">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/calculator.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
+</head>
+<body>
+
+<a href="#calcMain" class="skip-link" data-en="Skip to calculator" data-zh="跳转到计算器" data-ja="計算機へスキップ">跳转到计算器</a>
+
+<nav class="nav" role="navigation">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub" data-en="IRR Calculator" data-zh="IRR测算" data-ja="IRR試算">IRR测算</span></a>
+    <ul class="nav-links">
+      <li><a href="/" data-en="← Home" data-zh="← 返回首页" data-ja="← ホーム">← 返回首页</a></li>
+    </ul>
+    <div class="nav-tools">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <select class="lang-select" onchange="switchLang(this.value)" id="langSelect" aria-label="Select language">
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+  </div>
+</nav>
+
+<section class="calc-hero" id="calcMain">
+  <div class="container">
+    <h1>分布式光伏 <span class="hl">IRR 测算</span></h1>
+    <p class="hero-sub" data-en="Drag sliders or type values — real-time IRR, NPV, and cash flow analysis" data-zh="拖动滑块或直接填写数字，实时查看全投资/资本金收益率与现金流分析" data-ja="スライダーを動かすか数値を入力 — IRR・NPV・キャッシュフローをリアルタイム計算">拖动滑块或直接填写数字，实时查看全投资/资本金收益率与现金流分析</p>
+  </div>
+</section>
+
+<div class="calc-grid">
+  <div class="input-panel">
+
+    <h3 data-en="📐 Project Scale" data-zh="📐 项目规模" data-ja="📐 プロジェクト規模">📐 项目规模</h3>
+
+    <div class="param-row">
+      <label><span data-en="Capacity" data-zh="装机容量" data-ja="設備容量"></span> <span class="val" id="dispCapacity"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpCapacity" min="0.1" max="10" step="0.01" value="1">
+        <input type="text" inputmode="decimal" id="numCapacity" step="0.01" min="0.1" max="10" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Unit Investment" data-zh="单位投资" data-ja="単位投資"></span> <span class="val" id="dispUnitCost"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpUnitCost" min="2.5" max="5.5" step="0.1" value="3.7">
+        <input type="text" inputmode="decimal" id="numUnitCost" step="0.1" min="2.5" max="5.5" class="num-field">
+      </div>
+    </div>
+
+    <!-- Gen breakdown -->
+    <div class="param-section-header"><span data-en="☀ Generation" data-zh="☀ 发电量参数" data-ja="☀ 発電量パラメータ">☀ 发电量参数</span>
+      <select id="regionPreset" class="region-select" aria-label="Region preset" onchange="window.setRegionPreset(this.value)">
+        <option value="custom" data-en="Custom" data-zh="自定义" data-ja="カスタム" selected>自定义</option>
+        <option value="tibet" data-en="Tibet/Qinghai (1900)" data-zh="西藏/青海 (1900)" data-ja="チベット/青海 (1900)">西藏/青海 (1900)</option>
+        <option value="nw" data-en="NW China (1600)" data-zh="西北 (1600)" data-ja="西北 (1600)">西北 (1600)</option>
+        <option value="nc" data-en="N China (1400)" data-zh="华北 (1400)" data-ja="華北 (1400)">华北 (1400)</option>
+        <option value="ec" data-en="E China (1350)" data-zh="华东 (1350)" data-ja="華東 (1350)">华东 (1350)</option>
+        <option value="sc" data-en="S China (1100)" data-zh="华南 (1100)" data-ja="華南 (1100)</option>
+        <option value="sw" data-en="SW China (1000)" data-zh="西南 (1000)" data-ja="西南 (1000)">西南 (1000)</option>
+      </select>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Annual Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span> <span class="val" id="dispIrradiance"></span></label>
+      <div class="param-sub" data-en="Equivalent peak-sun hours: " data-zh="等效年利用小时数：" data-ja="等価日照時間："><span id="dispSunHours">1182</span> h</div>
+      <div class="dual-input">
+        <input type="range" id="inpIrradiance" min="800" max="2200" step="10" value="1350">
+        <input type="text" inputmode="decimal" id="numIrradiance" step="10" min="800" max="2200" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Tilt Factor" data-zh="倾斜修正系数" data-ja="傾斜補正係数"></span> <span class="val" id="dispTilt"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpTilt" min="0.9" max="1.25" step="0.01" value="1.05">
+        <input type="text" inputmode="decimal" id="numTilt" step="0.01" min="0.9" max="1.25" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="System Efficiency" data-zh="系统综合效率" data-ja="システム総合効率"></span> <span class="val" id="dispSysEff"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpSysEff" min="70" max="92" step="0.5" value="83.5">
+        <input type="text" inputmode="decimal" id="numSysEff" step="0.5" min="70" max="92" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row param-derived">
+      <label><span data-en="→ Gen Year 1" data-zh="→ 首年发电量" data-ja="→ 初年度発電量"></span> <span class="val derived" id="dispGenPerW"></span></label>
+      <div class="derived-info" data-en="= Irradiance × Tilt × Efficiency / 1000" data-zh="= 辐照量 × 倾斜修正 × 系统效率 ÷ 1000" data-ja="= 日射量 × 傾斜補正 × 効率 ÷ 1000">= 辐照量 × 倾斜修正 × 系统效率 ÷ 1000</div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Degrad. Year 1" data-zh="首年衰减率" data-ja="初年度劣化率"></span> <span class="val" id="dispDegradY1"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpDegradY1" min="0" max="3" step="0.1" value="1.0">
+        <input type="text" inputmode="decimal" id="numDegradY1" step="0.1" min="0" max="3" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Degrad. Annual" data-zh="经年衰减率" data-ja="経年劣化率"></span> <span class="val" id="dispDegrad"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpDegrad" min="0.2" max="1" step="0.05" value="0.55">
+        <input type="text" inputmode="decimal" id="numDegrad" step="0.05" min="0.2" max="1" class="num-field">
+      </div>
+    </div>
+
+    <h3 data-en="💰 Power & Price" data-zh="💰 用电与电价" data-ja="💰 電力・価格">💰 用电与电价</h3>
+
+    <div class="param-row">
+      <label><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span> <span class="val" id="dispSelfUse"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90">
+        <input type="text" inputmode="decimal" id="numSelfUse" step="5" min="30" max="100" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span> <span class="val" id="dispDayPrice"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664">
+        <input type="text" inputmode="decimal" id="numDayPrice" step="0.001" min="0.3" max="1.2" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Grid Settlement Price" data-zh="上网结算电价" data-ja="系統連系価格"></span> <span class="val" id="dispGridPrice"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3">
+        <input type="text" inputmode="decimal" id="numGridPrice" step="0.001" min="0.1" max="0.5" class="num-field">
+      </div>
+      <div class="param-note" data-en="Market-based price + CfD settlement (post-2025 reform). Differs by province, typically 0.22-0.42 ¥/kWh." data-zh="市场化交易价+差价结算(2025年136号文改革)。各省差异大，分布式光伏约0.22-0.42元/kWh。" data-ja="市場価格+差額決済(2025年改革)。省により異なり、0.22-0.42元/kWh。">市场化交易价+差价结算(2025年136号文改革)。各省差异大，约0.22-0.42元/kWh。</div>
+    </div>
+
+    <h3 data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資条件">🏦 融资条件</h3>
+
+    <div class="param-row">
+      <label><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span> <span class="val" id="dispLoanRatio"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70">
+        <input type="text" inputmode="decimal" id="numLoanRatio" step="5" min="0" max="90" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span> <span class="val" id="dispLoanRate"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9">
+        <input type="text" inputmode="decimal" id="numLoanRate" step="0.1" min="2" max="8" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span> <span class="val" id="dispLoanYears"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15">
+        <input type="text" inputmode="decimal" id="numLoanYears" step="1" min="5" max="20" class="num-field">
+      </div>
+    </div>
+
+    <h3 data-en="⚙️ Other" data-zh="⚙️ 其他参数" data-ja="⚙️ その他">⚙️ 其他参数</h3>
+
+    <div class="param-row">
+      <label><span data-en="Project Life" data-zh="运营年限" data-ja="運転年数"></span> <span class="val" id="dispRunYears"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpRunYears" min="15" max="30" step="1" value="25">
+        <input type="text" inputmode="decimal" id="numRunYears" step="1" min="15" max="30" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Depr. Years" data-zh="折旧年限" data-ja="償却年数"></span> <span class="val" id="dispDeprYears"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10">
+        <input type="text" inputmode="decimal" id="numDeprYears" step="1" min="5" max="20" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Inverter Replace Cost" data-zh="逆变器更换成本" data-ja="インバーター交換費用"></span> <span class="val" id="dispInvReplace"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2">
+        <input type="text" inputmode="decimal" id="numInvReplace" step="0.01" min="0" max="0.5" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Replacement Year" data-zh="更换年份" data-ja="交換年"></span> <span class="val" id="dispInvYear"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpInvYear" min="8" max="20" step="1" value="12">
+        <input type="text" inputmode="decimal" id="numInvYear" step="1" min="8" max="20" class="num-field">
+      </div>
+      <div class="param-note" data-en="Typical string inverter lifespan 10-15 years. Set to 0 cost to disable." data-zh="组串式逆变器寿命通常 10-15 年。成本设为 0 可禁用更换。" data-ja="ストリングインバーターの寿命は通常10～15年。費用を0にすると交換なし。">组串式逆变器寿命通常 10-15 年。成本设为 0 可禁用更换。</div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span> <span class="val" id="dispDiscount"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpDiscount" min="5" max="15" step="1" value="10">
+        <input type="text" inputmode="decimal" id="numDiscount" step="1" min="5" max="15" class="num-field">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-panel">
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="metric-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div>
+        <div class="metric-value good" id="resIrrFull">—</div>
+        <div class="metric-sub" data-en="pre-tax" data-zh="税前" data-ja="税前">税前</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div>
+        <div class="metric-value" id="resIrrEq" style="color:var(--accent)">—</div>
+        <div class="metric-sub" data-en="after-tax" data-zh="税后" data-ja="税後">税后</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">NPV</div>
+        <div class="metric-value" id="resNpv">—</div>
+        <div class="metric-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label" data-en="Payback" data-zh="回收期" data-ja="回収期間">回收期</div>
+        <div class="metric-value" id="resPayback">—</div>
+        <div class="metric-sub" data-en="years" data-zh="年" data-ja="年">年</div>
+      </div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="metric-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div>
+        <div class="metric-value" style="font-size:1.1rem" id="resTotalInv">—</div>
+        <div class="metric-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label" data-en="Loan Amount" data-zh="贷款金额" data-ja="融資金額">贷款金额</div>
+        <div class="metric-value" style="font-size:1.1rem" id="resLoan">—</div>
+        <div class="metric-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label" data-en="Gen Year 1 Total" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div>
+        <div class="metric-value" style="font-size:1.1rem" id="resGenY1">—</div>
+        <div class="metric-sub" data-en="10k kWh" data-zh="万kWh" data-ja="万kWh">万kWh</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 data-en="📊 Annual Cash Flow" data-zh="📊 逐年现金流" data-ja="📊 年間キャッシュフロー">📊 逐年现金流</h3>
+      <canvas id="cfChart"></canvas>
+    </div>
+
+    <div class="table-card">
+      <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 キャッシュフロー明細（万元）">📋 现金流明细（万元）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th data-en="Year" data-zh="年" data-ja="年">年</th>
+            <th data-en="Gen" data-zh="发电量" data-ja="発電量">发电量</th>
+            <th data-en="Revenue" data-zh="收入" data-ja="収入">收入</th>
+            <th data-en="Cost" data-zh="成本" data-ja="コスト">成本</th>
+            <th data-en="Tax" data-zh="所得税" data-ja="税金">所得税</th>
+            <th data-en="Profit" data-zh="净利" data-ja="純利益">净利</th>
+            <th>CF</th>
+            <th data-en="Cum. CF" data-zh="累计CF" data-ja="累計CF">累计CF</th>
+          </tr>
+        </thead>
+        <tbody id="cfTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="calc-disclaimer"
+   data-en="⚠️ Based on standardized model (3-year tax holiday + 50% VAT refund + year-12 inverter replacement). For reference only — actual projects require detailed assessment."
+   data-zh="⚠️ 本测算基于标准参数化模型（三免三减半所得税、增值税即征即退50%、第12年逆变器更换），仅供参考，实际项目需结合具体条件评估。"
+   data-ja="⚠️ 標準モデルに基づく試算（3年間免税·付加価値税50%還付·12年目インバーター交換）。参考値であり、実際のプロジェクトでは詳細な評価が必要です。">
+   ⚠️ 本测算基于标准参数化模型（三免三减半所得税、增值税即征即退50%、第12年逆变器更换），仅供参考，实际项目需结合具体条件评估。
+</p>
+
+<script src="js/theme.js?v=2"></script>
+<script src="js/calculator.js?v=6"></script>
+</body>
+</html>
