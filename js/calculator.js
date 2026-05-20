@@ -156,6 +156,12 @@
     sync(parseFloat(slider.value));
   }
 
+  function computeGen() {
+    var irr = parseFloat(document.getElementById('inpIrradiance').value) || 1350;
+    var tilt = parseFloat(document.getElementById('inpTilt').value) || 1.05;
+    var eff = (parseFloat(document.getElementById('inpSysEff').value) || 83.5) / 100;
+    return irr * tilt * eff / 1000;
+  }
   function getP() {
     return {
       capacity: parseFloat(document.getElementById('inpCapacity').value) || 0.4725,
@@ -163,7 +169,7 @@
       loanRatio: (parseFloat(document.getElementById('inpLoanRatio').value) || 70) / 100,
       loanRate: (parseFloat(document.getElementById('inpLoanRate').value) || 3.9) / 100,
       loanYears: parseInt(document.getElementById('inpLoanYears').value) || 15,
-      genPerW: parseFloat(document.getElementById('inpGenPerW').value) || 1.182,
+      genPerW: computeGen(),
       degrad: (parseFloat(document.getElementById('inpDegrad').value) || 0.7) / 100,
       selfUse: (parseFloat(document.getElementById('inpSelfUse').value) || 90) / 100,
       dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
@@ -178,6 +184,9 @@
   let R = null;
 
   function update() {
+    // Update derived gen display
+    var gw = computeGen();
+    document.getElementById('dispGenPerW').textContent = gw.toFixed(3) + ' kWh/W';
     R = calc(getP());
     var fm = function(v) { return v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v).toString(); };
     document.getElementById('resTotalInv').textContent = fm(R.totalInv);
@@ -248,6 +257,18 @@
     }, { passive: true });
   }
 
+  // ── Region preset ──
+  var regionMap = { tibet: 1900, nw: 1600, nc: 1400, ec: 1350, sc: 1100, sw: 1000 };
+  window.setRegionPreset = function(val) {
+    if (val === 'custom') return;
+    var irr = regionMap[val];
+    if (!irr) return;
+    document.getElementById('inpIrradiance').value = irr;
+    document.getElementById('numIrradiance').value = irr;
+    document.getElementById('dispIrradiance').textContent = irr + ' kWh/m²';
+    update();
+  };
+
   // ── Init ──
   function init() {
     function uYr(v) { var l = document.documentElement.lang || 'zh'; return Math.round(v) + (l==='en'?' yr':(l==='ja'?' 年':' 年')); }
@@ -263,7 +284,9 @@
     bindDual('inpLoanRatio', 'numLoanRatio', 'dispLoanRatio', uPct, update);
     bindDual('inpLoanRate', 'numLoanRate', 'dispLoanRate', uPct1, update);
     bindDual('inpLoanYears', 'numLoanYears', 'dispLoanYears', uYr, update);
-    bindDual('inpGenPerW', 'numGenPerW', 'dispGenPerW', uKwh, update);
+    bindDual('inpIrradiance', 'numIrradiance', 'dispIrradiance', function(v) { return Math.round(v) + ' kWh/m²'; }, update);
+    bindDual('inpTilt', 'numTilt', 'dispTilt', function(v) { return v.toFixed(2); }, update);
+    bindDual('inpSysEff', 'numSysEff', 'dispSysEff', function(v) { return v.toFixed(1) + '%'; }, update);
     bindDual('inpSelfUse', 'numSelfUse', 'dispSelfUse', uPct, update);
     bindDual('inpDayPrice', 'numDayPrice', 'dispDayPrice', uPrc, update);
     bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', uPrc, update);

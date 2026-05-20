@@ -62,12 +62,46 @@
       </div>
     </div>
 
+    <!-- Gen breakdown -->
+    <div class="param-section-header"><span data-en="☀ Generation" data-zh="☀ 发电量参数" data-ja="☀ 発電量パラメータ">☀ 发电量参数</span>
+      <select id="regionPreset" class="region-select" aria-label="Region preset" onchange="window.setRegionPreset(this.value)">
+        <option value="custom" data-en="Custom" data-zh="自定义" data-ja="カスタム" selected>自定义</option>
+        <option value="tibet" data-en="Tibet/Qinghai (1900)" data-zh="西藏/青海 (1900)" data-ja="チベット/青海 (1900)">西藏/青海 (1900)</option>
+        <option value="nw" data-en="NW China (1600)" data-zh="西北 (1600)" data-ja="西北 (1600)">西北 (1600)</option>
+        <option value="nc" data-en="N China (1400)" data-zh="华北 (1400)" data-ja="華北 (1400)">华北 (1400)</option>
+        <option value="ec" data-en="E China (1350)" data-zh="华东 (1350)" data-ja="華東 (1350)">华东 (1350)</option>
+        <option value="sc" data-en="S China (1100)" data-zh="华南 (1100)" data-ja="華南 (1100)</option>
+        <option value="sw" data-en="SW China (1000)" data-zh="西南 (1000)" data-ja="西南 (1000)">西南 (1000)</option>
+      </select>
+    </div>
+
     <div class="param-row">
-      <label><span data-en="Gen Year 1" data-zh="首年发电量" data-ja="初年度発電量"></span> <span class="val" id="dispGenPerW"></span></label>
+      <label><span data-en="Annual Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span> <span class="val" id="dispIrradiance"></span></label>
       <div class="dual-input">
-        <input type="range" id="inpGenPerW" min="0.6" max="1.6" step="0.01" value="1.182">
-        <input type="text" inputmode="decimal" id="numGenPerW" step="0.01" min="0.6" max="1.6" class="num-field">
+        <input type="range" id="inpIrradiance" min="800" max="2200" step="10" value="1350">
+        <input type="text" inputmode="decimal" id="numIrradiance" step="10" min="800" max="2200" class="num-field">
       </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="Tilt Factor" data-zh="倾斜修正系数" data-ja="傾斜補正係数"></span> <span class="val" id="dispTilt"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpTilt" min="0.9" max="1.25" step="0.01" value="1.05">
+        <input type="text" inputmode="decimal" id="numTilt" step="0.01" min="0.9" max="1.25" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
+      <label><span data-en="System Efficiency" data-zh="系统综合效率" data-ja="システム総合効率"></span> <span class="val" id="dispSysEff"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpSysEff" min="70" max="92" step="0.5" value="83.5">
+        <input type="text" inputmode="decimal" id="numSysEff" step="0.5" min="70" max="92" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row param-derived">
+      <label><span data-en="→ Gen Year 1" data-zh="→ 首年发电量" data-ja="→ 初年度発電量"></span> <span class="val derived" id="dispGenPerW"></span></label>
+      <div class="derived-info" data-en="= Irradiance × Tilt × Efficiency / 1000" data-zh="= 辐照量 × 倾斜修正 × 系统效率 ÷ 1000" data-ja="= 日射量 × 傾斜補正 × 効率 ÷ 1000">= 辐照量 × 倾斜修正 × 系统效率 ÷ 1000</div>
     </div>
 
     <div class="param-row">
