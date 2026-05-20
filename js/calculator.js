@@ -121,6 +121,7 @@
     });
     update();
   }
+  window.switchLang = switchLang;
 
   // ── Slider+Number binding ──
   function bindDual(sliderId, numId, dispId, fmt, onChange) {
@@ -239,24 +240,6 @@
     }, { passive: true });
   }
 
-  // ── Language ──
-  function switchLang(lang) {
-    document.documentElement.lang = lang;
-    document.querySelectorAll('[data-en],[data-zh]').forEach(function (el) {
-      if (lang === 'en') {
-        if (el.hasAttribute('data-en')) el.textContent = el.getAttribute('data-en');
-      } else {
-        if (el.hasAttribute('data-zh')) el.textContent = el.getAttribute('data-zh');
-      }
-    });
-    // Update lang select
-    const sel = document.getElementById('langSelect');
-    if (sel) sel.value = lang;
-    localStorage.setItem('nrgopt-lang', lang);
-    // Update table header tooltips
-    update();
-  }
-
   // ── Init ──
   function init() {
     function uYr(v) { var l = document.documentElement.lang || 'zh'; return Math.round(v) + (l==='en'?' yr':(l==='ja'?' 年':' 年')); }
@@ -286,7 +269,7 @@
     window.addEventListener('resize', function () { if (R) drawChart(R.rows); });
 
     // Restore language
-    const saved = localStorage.getItem('nrgopt-lang') || 'zh';
+    const saved = localStorage.getItem('nrgopt-lang') || 'en';
     switchLang(saved);
   }
 
