@@ -90,6 +90,24 @@
   .table-card table { font-size:0.64rem; }
   .table-card th, .table-card td { padding:2px 3px; }
 }
+/* ── Print / PDF ── */
+@media print {
+  .nav, .calc-hero, .params-wrap, .calc-disclaimer, .back-to-top, .skip-link, .btn-pdf { display:none !important; }
+  body { background:#fff; color:#000; font-size:11pt; }
+  .metric-band { padding:8px 0; gap:6px; }
+  .band-card { border:1px solid #ccc; box-shadow:none; background:#fff; padding:10px 12px; }
+  .band-label { color:#666; font-size:8pt; }
+  .band-value { color:#000; font-size:16pt; }
+  .band-sub { color:#888; font-size:7pt; }
+  .chart-card, .table-card { border:1px solid #ccc; box-shadow:none; background:#fff; }
+  .chart-card h3, .table-card h3 { color:#333; }
+  .table-card table { font-size:8pt; }
+  .table-card th { background:#fff; color:#333; }
+  .table-card th, .table-card td { border-color:#ddd; }
+  .chart-band { padding:4px 0; }
+  .table-band { padding:0; }
+  .table-card { max-height:none; overflow:visible; }
+}
 @media (pointer:coarse) {
   .pr input[type="range"] { height:8px; }
   .pr input[type="range"]::-webkit-slider-thumb { width:20px; height:20px; }
