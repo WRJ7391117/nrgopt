@@ -40,7 +40,7 @@
   function calc(params) {
     const cap = params.capacity, uc = params.unitCost;
     const lr = params.loanRatio, li = params.loanRate, ly = params.loanYears;
-    const gkw = params.genPerW, ry = 25, deg = params.degrad;
+    const gkw = params.genPerW, ry = params.runYears;
     const su = params.selfUse, dp = params.dayPrice, gp = params.gridPrice;
     const vr = 0.13, mpw = 0.01, me = 0.03, mtw = 0.04, mte = 0.01;
     const dy = params.deprYears, res = 0.05, irpw = params.invReplace, iry = params.invYear;
@@ -179,6 +179,7 @@
       selfUse: (parseFloat(document.getElementById('inpSelfUse').value) || 90) / 100,
       dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
       gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3,
+      runYears: parseInt(document.getElementById('inpRunYears').value) || 25,
       deprYears: parseInt(document.getElementById('inpDeprYears').value) || 10,
       invReplace: parseFloat(document.getElementById('inpInvReplace').value) || 0.2,
       invYear: parseInt(document.getElementById('inpInvYear').value) || 12,
@@ -208,9 +209,12 @@
     const irrEl = document.getElementById('resIrrFull');
     irrEl.className = 'metric-value ' + (R.irrFull >= 0.1 ? 'good' : R.irrFull >= 0.06 ? 'ok' : 'bad');
 
-    // Table
+    // Table — dynamic years based on runYears
     const tbody = document.getElementById('cfTableBody');
-    const show = new Set([1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 25]);
+    var ry = R.rows.length;
+    var showKeys = [1,2,3,4,5,6,10,12,15,20,25].filter(function(y) { return y <= ry; });
+    if (ry < 25 && showKeys.indexOf(ry) === -1) showKeys.push(ry);
+    var show = new Set(showKeys);
     tbody.innerHTML = '';
     for (const r of R.rows) {
       if (show.has(r.yr)) {
@@ -301,6 +305,7 @@
     bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', uPrc, update);
     bindDual('inpDegradY1', 'numDegradY1', 'dispDegradY1', uPct1, update);
     bindDual('inpDegrad', 'numDegrad', 'dispDegrad', function(v) { return v.toFixed(2) + '%'; }, update);
+    bindDual('inpRunYears', 'numRunYears', 'dispRunYears', uYr, update);
     bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', uYr, update);
     bindDual('inpDiscount', 'numDiscount', 'dispDiscount', uPct, update);
     bindDual('inpInvReplace', 'numInvReplace', 'dispInvReplace', function(v) { return v.toFixed(2) + ' 元/W'; }, update);

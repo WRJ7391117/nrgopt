@@ -177,6 +177,14 @@
     <h3 data-en="⚙️ Other" data-zh="⚙️ 其他参数" data-ja="⚙️ その他">⚙️ 其他参数</h3>
 
     <div class="param-row">
+      <label><span data-en="Project Life" data-zh="运营年限" data-ja="運転年数"></span> <span class="val" id="dispRunYears"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpRunYears" min="15" max="30" step="1" value="25">
+        <input type="text" inputmode="decimal" id="numRunYears" step="1" min="15" max="30" class="num-field">
+      </div>
+    </div>
+
+    <div class="param-row">
       <label><span data-en="Depr. Years" data-zh="折旧年限" data-ja="償却年数"></span> <span class="val" id="dispDeprYears"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10">
