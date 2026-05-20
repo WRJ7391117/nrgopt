@@ -127,9 +127,12 @@ function drawChart(rows){
 }
 
 // ── Slider + Number sync ──
+var _bindings=[];
 function bindDual(sliderId,numId,dispId,fmt){
   var slider=el(sliderId), num=el(numId), disp=el(dispId);
   if(!slider||!num)return;
+
+  _bindings.push({slider:slider,disp:disp,fmt:fmt});
 
   function sync(v){var vv=parseFloat(v);slider.value=vv;num.value=vv;if(disp)disp.textContent=typeof fmt==='function'?fmt(vv):vv.toFixed(2);}
 
@@ -138,6 +141,13 @@ function bindDual(sliderId,numId,dispId,fmt){
   num.addEventListener('change',function(){var raw=num.value,vv=parseFloat(raw);if(isNaN(vv))sync(parseFloat(slider.value));else sync(vv);update();});
 
   sync(parseFloat(slider.value));
+}
+
+function refreshDisplays(){
+  for(var i=0;i<_bindings.length;i++){
+    var b=_bindings[i],v=parseFloat(b.slider.value);
+    if(b.disp)b.disp.textContent=typeof b.fmt==='function'?b.fmt(v):v.toFixed(2);
+  }
 }
 
 // ── Language ──
@@ -162,6 +172,7 @@ window.switchLang=function(lang){
     var th=ths[i],txt=lang==='en'?th.getAttribute('data-en'):(lang==='zh'?th.getAttribute('data-zh'):th.getAttribute('data-ja'));
     if(txt)th.textContent=txt;
   }
+  refreshDisplays();
   update();
 };
 
@@ -172,7 +183,7 @@ window.setRegionPreset=function(val){
   var irr=regionMap[val];if(!irr)return;
   var s=el('inpIrradiance'),n=el('numIrradiance'),d=el('dispIrradiance');
   if(s)s.value=irr;if(n)n.value=irr;
-  if(d){var l=document.documentElement.lang||'en';d.textContent=irr+(l==='en'?' kWh/m²':(l==='ja'?' kWh/m²':' 千瓦时/平方米'));}
+  refreshDisplays();
   update();
 };
 
