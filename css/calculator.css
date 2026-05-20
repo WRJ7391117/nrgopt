@@ -70,6 +70,7 @@
   background: var(--border);
   outline: none;
   cursor: pointer;
+  grid-column: 1;
 }
 .param-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -80,6 +81,33 @@
   cursor: pointer;
   border: 2px solid var(--surface);
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* Dual slider + number */
+.dual-input {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 10px;
+  align-items: center;
+}
+.num-field {
+  width: 100%;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  text-align: center;
+  font-family: inherit;
+  -moz-appearance: textfield;
+}
+.num-field::-webkit-outer-spin-button,
+.num-field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.num-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(56,189,248,0.15);
 }
 
 /* ── Results Panel ── */

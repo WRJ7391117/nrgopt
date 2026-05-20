@@ -1,31 +1,29 @@
 /**
- * NrgOpt IRR Calculator — Pure JS Calculation Engine + UI
+ * NrgOpt IRR Calculator — Engine + UI
+ * Slider + number input sync, back-to-top, EN/ZH toggle
  */
 (function () {
   'use strict';
 
-  // ── IRR via Newton's method ──
-  function npv(rate, cashflows) {
-    let total = 0;
-    for (let i = 0; i < cashflows.length; i++) {
-      total += cashflows[i] / Math.pow(1 + rate, i);
-    }
-    return total;
+  // ── IRR via Newton ──
+  function npv(rate, cfs) {
+    let t = 0;
+    for (let i = 0; i < cfs.length; i++) t += cfs[i] / Math.pow(1 + rate, i);
+    return t;
   }
-
-  function irr(cashflows, guess = 0.1) {
-    let rate = guess;
-    for (let iter = 0; iter < 100; iter++) {
-      const f = npv(rate, cashflows);
-      const df = (npv(rate + 1e-6, cashflows) - f) / 1e-6;
-      if (Math.abs(df) < 1e-12) break;
-      const delta = f / df;
-      rate -= delta;
-      if (Math.abs(delta) < 1e-8) return rate;
+  function irr(cfs, guess) {
+    guess = guess || 0.1;
+    let r = guess;
+    for (let i = 0; i < 120; i++) {
+      const f = npv(r, cfs);
+      const df = (npv(r + 1e-6, cfs) - f) / 1e-6;
+      if (Math.abs(df) < 1e-14) break;
+      const d = f / df;
+      r -= d;
+      if (Math.abs(d) < 1e-8) return r;
     }
-    return rate;
+    return r;
   }
-
   function payback(cfs) {
     let cum = 0;
     for (let i = 0; i < cfs.length; i++) {
@@ -38,248 +36,227 @@
     return null;
   }
 
-  // ── Core calculation ──
-  function calculate(params) {
-    const cap = params.capacity || 0.4725;
-    const uc = params.unitCost || 3.7;
-    const lr = params.loanRatio || 0.7;
-    const li = params.loanRate || 0.039;
-    const ly = params.loanYears || 15;
-    const gkw = params.genPerW || 1.182;
-    const ry = params.runYears || 25;
-    const deg = params.degrad || 0.007;
-    const su = params.selfUse || 0.9;
-    const dp = params.dayPrice || 0.664;
-    const gp = params.gridPrice || 0.3545;
-    const vr = 0.13;
-    const mpw = 0.01;
-    const me = 0.03;
-    const mtw = 0.04;
-    const mte = 0.01;
-    const dy = params.deprYears || 10;
-    const res = 0.05;
-    const irpw = 0.2;
-    const iry = 12;
-    const disc = params.discount || 0.1;
-
-    const totalInv = cap * uc * 100;
-    const loan = totalInv * lr;
+  // ── Model ──
+  function calc(params) {
+    const cap = params.capacity, uc = params.unitCost;
+    const lr = params.loanRatio, li = params.loanRate, ly = params.loanYears;
+    const gkw = params.genPerW, ry = 25, deg = params.degrad;
+    const su = params.selfUse, dp = params.dayPrice, gp = params.gridPrice;
+    const vr = 0.13, mpw = 0.01, me = 0.03, mtw = 0.04, mte = 0.01;
+    const dy = params.deprYears, res = 0.05, irpw = 0.2, iry = 12;
+    const disc = params.discount;
+    const TI = cap * uc * 100;
+    const loan = TI * lr;
     const prin = ly > 0 ? loan / ly : 0;
-    const vatDed = totalInv * vr / (1 + vr);
-    const deprBase = totalInv - vatDed;
-    const deprAnnual = deprBase * (1 - res) / dy;
-    const invReplace = cap * irpw * 100;
+    const vatDed = TI * vr / (1 + vr);
+    const deprBase = TI - vatDed;
+    const deprA = deprBase * (1 - res) / dy;
+    const invRep = cap * irpw * 100;
     const genY1 = cap * gkw * 100;
+    const cfsF = [-TI], cfsE = [-(TI - loan)], rows = [];
+    let cum = -TI;
 
-    const cfsFull = [-totalInv];
-    const cfsEq = [-(totalInv - loan)];
-    const annualRows = [];
-    let cumCash = -totalInv;
-
-    for (let yr = 1; yr <= ry; yr++) {
-      const gen = genY1 * Math.pow(1 - deg, yr - 1);
+    for (let y = 1; y <= ry; y++) {
+      const gen = genY1 * Math.pow(1 - deg, y - 1);
       const rev = gen * su * dp / (1 + vr) + gen * (1 - su) * gp / (1 + vr);
       const vat = Math.max(0, rev * vr * 0.5);
       const sur = vat * 0.1;
-      const mgmt = cap * mpw * 100 * Math.pow(1 + me, yr - 1);
-      const maint = cap * mtw * 100 * Math.pow(1 + mte, yr - 1);
-      const ins = totalInv * 0.001 * Math.pow(1.03, yr - 1);
-      const remLoan = Math.max(0, loan - prin * Math.min(yr, ly));
-      const interest = remLoan * li;
-      const depr = yr <= dy ? deprAnnual : 0;
-      const totCost = depr + interest + mgmt + maint + ins;
+      const mgmt = cap * mpw * 100 * Math.pow(1 + me, y - 1);
+      const maint = cap * mtw * 100 * Math.pow(1 + mte, y - 1);
+      const ins = TI * 0.001 * Math.pow(1.03, y - 1);
+      const remLoan = Math.max(0, loan - prin * Math.min(y, ly));
+      const int = remLoan * li;
+      const depr = y <= dy ? deprA : 0;
+      const totCost = depr + int + mgmt + maint + ins;
       const pbt = rev - sur - totCost;
-
       let tax;
-      if (yr <= 3) tax = 0;
-      else if (yr <= 6) tax = Math.max(0, pbt * 0.125);
+      if (y <= 3) tax = 0;
+      else if (y <= 6) tax = Math.max(0, pbt * 0.125);
       else tax = Math.max(0, pbt * 0.25);
-
       const pat = pbt - tax;
       let cf = pat + depr;
-      if (yr === iry) cf -= invReplace;
-      cfsFull.push(cf);
+      if (y === iry) cf -= invRep;
+      cfsF.push(cf);
+      const prPaid = y <= ly ? prin : 0;
+      let ecf = pat + depr - prPaid;
+      if (y === iry) ecf -= invRep;
+      cfsE.push(ecf);
+      cum += cf;
+      rows.push({ yr: y, gen: gen.toFixed(1), rev: rev.toFixed(1), totCost: totCost.toFixed(1), tax: tax.toFixed(1), pat: pat.toFixed(1), cf: cf.toFixed(1), cumCash: cum.toFixed(1) });
+    }
+    cfsF[cfsF.length - 1] += deprBase * res;
+    cfsE[cfsE.length - 1] += deprBase * res;
 
-      const prPaid = yr <= ly ? prin : 0;
-      let eqCf = pat + depr - prPaid;
-      if (yr === iry) eqCf -= invReplace;
-      cfsEq.push(eqCf);
+    return {
+      totalInv: TI.toFixed(1), loan: loan.toFixed(1), equity: (TI - loan).toFixed(1),
+      genY1: genY1.toFixed(1), irrFull: irr(cfsF), irrEq: irr(cfsE),
+      npvFull: npv(disc, cfsF).toFixed(1), payback: payback(cfsF), rows
+    };
+  }
 
-      cumCash += cf;
-      annualRows.push({
-        yr, gen, rev: rev.toFixed(1), totCost: totCost.toFixed(1),
-        tax: tax.toFixed(1), pat: pat.toFixed(1), cf: cf.toFixed(1),
-        cumCash: cumCash.toFixed(1)
-      });
+  // ── Language ──
+  const L = {
+    en: {}, zh: {}
+  };
+
+  // ── Slider+Number binding ──
+  function bindDual(sliderId, numId, dispId, fmt, onChange) {
+    const slider = document.getElementById(sliderId);
+    const numInput = document.getElementById(numId);
+    const display = document.getElementById(dispId);
+    if (!slider || !numInput) return;
+
+    function sync(val) {
+      const v = parseFloat(val);
+      slider.value = v;
+      numInput.value = v;
+      if (display) display.textContent = typeof fmt === 'function' ? fmt(v) : v.toFixed(2);
     }
 
-    cfsFull[cfsFull.length - 1] += deprBase * res;
-    cfsEq[cfsEq.length - 1] += deprBase * res;
-
-    const irrFull = irr(cfsFull);
-    const irrEq = irr(cfsEq);
-    const npvFull = npv(disc, cfsFull);
-    const pb = payback(cfsFull);
-
-    return {
-      totalInv: totalInv.toFixed(1),
-      loan: loan.toFixed(1),
-      equity: (totalInv - loan).toFixed(1),
-      genY1: genY1.toFixed(1),
-      avgRev: (npvFull / ry * 5).toFixed(1), // rough annual avg
-      irrFull: irrFull,
-      irrEq: irrEq,
-      npvFull: npvFull.toFixed(1),
-      payback: pb ? pb.toFixed(1) : '—',
-      annualRows: annualRows,
-    };
-  }
-
-  // ── Global refs ──
-  let currentResults = null;
-
-  // ── Slider update ──
-  function bindSlider(sliderId, displayId, format, onChange) {
-    const slider = document.getElementById(sliderId);
-    const display = document.getElementById(displayId);
-    if (!slider || !display) return;
-    slider.addEventListener('input', function () {
-      const val = parseFloat(slider.value);
-      display.textContent = typeof format === 'function' ? format(val) : val.toFixed(2);
-      if (onChange) onChange();
+    slider.addEventListener('input', function () { sync(slider.value); if (onChange) onChange(); });
+    numInput.addEventListener('input', function () {
+      const v = parseFloat(numInput.value);
+      if (!isNaN(v)) { sync(v); if (onChange) onChange(); }
     });
-    // Init display
-    const initVal = parseFloat(slider.value);
-    display.textContent = typeof format === 'function' ? format(initVal) : initVal.toFixed(2);
+    numInput.addEventListener('change', function () {
+      const v = parseFloat(numInput.value);
+      if (isNaN(v)) { sync(parseFloat(slider.value)); if (onChange) onChange(); }
+    });
+
+    // Init
+    sync(parseFloat(slider.value));
   }
 
-  function getParams() {
+  function getP() {
     return {
-      capacity: parseFloat(document.getElementById('inpCapacity').value),
-      unitCost: parseFloat(document.getElementById('inpUnitCost').value),
-      loanRatio: parseFloat(document.getElementById('inpLoanRatio').value) / 100,
-      loanRate: parseFloat(document.getElementById('inpLoanRate').value) / 100,
-      loanYears: parseInt(document.getElementById('inpLoanYears').value),
-      genPerW: parseFloat(document.getElementById('inpGenPerW').value),
-      runYears: 25,
-      degrad: parseFloat(document.getElementById('inpDegrad').value) / 100,
-      selfUse: parseFloat(document.getElementById('inpSelfUse').value) / 100,
-      dayPrice: parseFloat(document.getElementById('inpDayPrice').value),
-      gridPrice: parseFloat(document.getElementById('inpGridPrice').value),
-      deprYears: parseInt(document.getElementById('inpDeprYears').value),
-      discount: parseFloat(document.getElementById('inpDiscount').value) / 100,
+      capacity: parseFloat(document.getElementById('inpCapacity').value) || 0.4725,
+      unitCost: parseFloat(document.getElementById('inpUnitCost').value) || 3.7,
+      loanRatio: (parseFloat(document.getElementById('inpLoanRatio').value) || 70) / 100,
+      loanRate: (parseFloat(document.getElementById('inpLoanRate').value) || 3.9) / 100,
+      loanYears: parseInt(document.getElementById('inpLoanYears').value) || 15,
+      genPerW: parseFloat(document.getElementById('inpGenPerW').value) || 1.182,
+      degrad: (parseFloat(document.getElementById('inpDegrad').value) || 0.7) / 100,
+      selfUse: (parseFloat(document.getElementById('inpSelfUse').value) || 90) / 100,
+      dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
+      gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3545,
+      deprYears: parseInt(document.getElementById('inpDeprYears').value) || 10,
+      discount: (parseFloat(document.getElementById('inpDiscount').value) || 10) / 100
     };
   }
 
-  function updateResults() {
-    const params = getParams();
-    currentResults = calculate(params);
-    const r = currentResults;
+  let R = null;
 
-    // Key metrics
-    document.getElementById('resTotalInv').textContent = r.totalInv;
-    document.getElementById('resIrrFull').textContent = (r.irrFull * 100).toFixed(2) + '%';
-    document.getElementById('resIrrEq').textContent = (r.irrEq * 100).toFixed(2) + '%';
-    document.getElementById('resNpv').textContent = r.npvFull;
-    document.getElementById('resPayback').textContent = r.payback;
-    document.getElementById('resGenY1').textContent = r.genY1;
-    document.getElementById('resLoan').textContent = r.loan;
-
-    // Color-code IRR
+  function update() {
+    R = calc(getP());
+    document.getElementById('resTotalInv').textContent = R.totalInv;
+    document.getElementById('resIrrFull').textContent = (R.irrFull * 100).toFixed(2) + '%';
+    document.getElementById('resIrrEq').textContent = (R.irrEq * 100).toFixed(2) + '%';
+    document.getElementById('resNpv').textContent = R.npvFull;
+    document.getElementById('resPayback').textContent = R.payback ? R.payback.toFixed(1) : '—';
+    document.getElementById('resGenY1').textContent = R.genY1;
+    document.getElementById('resLoan').textContent = R.loan;
     const irrEl = document.getElementById('resIrrFull');
-    irrEl.className = 'metric-value ' + (r.irrFull >= 0.1 ? 'good' : r.irrFull >= 0.06 ? 'ok' : 'bad');
+    irrEl.className = 'metric-value ' + (R.irrFull >= 0.1 ? 'good' : R.irrFull >= 0.06 ? 'ok' : 'bad');
 
-    // Cash flow table (first 10 years + key year)
+    // Table
     const tbody = document.getElementById('cfTableBody');
+    const show = new Set([1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 25]);
     tbody.innerHTML = '';
-    const showYears = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 25];
-    let lastShown = 0;
-    for (const row of r.annualRows) {
-      if (showYears.includes(row.yr)) {
-        tbody.innerHTML += `<tr>
-          <td>${row.yr}</td><td>${row.gen.toFixed(1)}</td><td>${row.rev}</td>
-          <td>${row.totCost}</td><td>${row.tax}</td><td>${row.pat}</td>
-          <td>${row.cf}</td><td>${row.cumCash}</td>
-        </tr>`;
-        lastShown = row.yr;
+    for (const r of R.rows) {
+      if (show.has(r.yr)) {
+        tbody.innerHTML += `<tr><td>${r.yr}</td><td>${r.gen}</td><td>${r.rev}</td><td>${r.totCost}</td><td>${r.tax}</td><td>${r.pat}</td><td>${r.cf}</td><td>${r.cumCash}</td></tr>`;
       }
     }
-
-    // Mini chart: cash flow over 25 years
-    drawMiniChart(r.annualRows);
+    drawChart(R.rows);
   }
 
-  function drawMiniChart(rows) {
-    const canvas = document.getElementById('cfChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width = canvas.parentElement.clientWidth - 32;
-    const H = canvas.height = 140;
+  function drawChart(rows) {
+    const c = document.getElementById('cfChart');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const W = c.width = c.parentElement.clientWidth - 32;
+    const H = c.height = 150;
     ctx.clearRect(0, 0, W, H);
-
     if (rows.length < 2) return;
 
-    // Find data range
-    let minVal = Infinity, maxVal = -Infinity;
-    for (const r of rows) {
-      const cf = parseFloat(r.cf);
-      if (cf < minVal) minVal = cf;
-      if (cf > maxVal) maxVal = cf;
-    }
-    minVal = Math.min(0, minVal);
-    maxVal = Math.max(1, maxVal);
-    const range = maxVal - minVal || 1;
-    const padX = 20, padY = 12;
-    const w = W - padX * 2, h = H - padY * 2;
+    let lo = Infinity, hi = -Infinity;
+    for (const r of rows) { const v = parseFloat(r.cf); if (v < lo) lo = v; if (v > hi) hi = v; }
+    lo = Math.min(0, lo); hi = Math.max(1, hi);
+    const range = hi - lo || 1;
+    const px = 24, py = 14;
+    const w = W - px * 2, h = H - py * 2;
+    const zy = H - py - (0 - lo) / range * h;
 
-    // Zero line
-    const zeroY = H - padY - (0 - minVal) / range * h;
     ctx.strokeStyle = 'rgba(148,163,184,0.3)';
-    ctx.beginPath(); ctx.moveTo(padX, zeroY); ctx.lineTo(W - padX, zeroY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px, zy); ctx.lineTo(W - px, zy); ctx.stroke();
 
-    // Bars
-    const barW = Math.max(2, w / rows.length - 2);
+    const bw = Math.max(2, w / rows.length - 2);
     for (let i = 0; i < rows.length; i++) {
       const cf = parseFloat(rows[i].cf);
-      const x = padX + i / rows.length * w;
-      const barH = Math.abs(cf) / range * h;
-      const y = cf >= 0 ? zeroY - barH : zeroY;
+      const x = px + i / rows.length * w;
+      const bh = Math.abs(cf) / range * h;
+      const y = cf >= 0 ? zy - bh : zy;
       ctx.fillStyle = cf >= 0 ? '#34d399' : '#f87171';
-      ctx.fillRect(x, y, barW, Math.max(1, barH));
+      ctx.fillRect(x, y, bw, Math.max(1, bh));
     }
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif';
+    for (let y = 0; y < rows.length; y += 5) ctx.fillText('Y' + (y + 1), px + y / rows.length * w - 4, H - 2);
+  }
 
-    // Labels
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px sans-serif';
-    for (let yr = 0; yr < rows.length; yr += 5) {
-      const x = padX + yr / rows.length * w;
-      ctx.fillText('Y' + (yr + 1), x - 4, H - 2);
-    }
+  // ── Back to top ──
+  function initBTT() {
+    const btn = document.createElement('button');
+    btn.className = 'back-to-top';
+    btn.setAttribute('aria-label', 'Back to top');
+    btn.innerHTML = '&#8593;';
+    btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    document.body.appendChild(btn);
+    window.addEventListener('scroll', function () {
+      btn.classList.toggle('visible', window.scrollY > 500);
+    }, { passive: true });
+  }
+
+  // ── Language ──
+  function switchLang(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-en],[data-zh]').forEach(function (el) {
+      if (lang === 'en') {
+        if (el.hasAttribute('data-en')) el.textContent = el.getAttribute('data-en');
+      } else {
+        if (el.hasAttribute('data-zh')) el.textContent = el.getAttribute('data-zh');
+      }
+    });
+    // Update lang select
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.value = lang;
+    localStorage.setItem('nrgopt-lang', lang);
+    // Update table header tooltips
+    update();
   }
 
   // ── Init ──
   function init() {
-    // Bind sliders
-    bindSlider('inpCapacity', 'dispCapacity', function(v) { return v.toFixed(3) + ' MW'; }, updateResults);
-    bindSlider('inpUnitCost', 'dispUnitCost', function(v) { return v.toFixed(1) + ' 元/W'; }, updateResults);
-    bindSlider('inpLoanRatio', 'dispLoanRatio', function(v) { return Math.round(v) + '%'; }, updateResults);
-    bindSlider('inpLoanRate', 'dispLoanRate', function(v) { return v.toFixed(1) + '%'; }, updateResults);
-    bindSlider('inpLoanYears', 'dispLoanYears', function(v) { return Math.round(v) + ' 年'; }, updateResults);
-    bindSlider('inpGenPerW', 'dispGenPerW', function(v) { return v.toFixed(2) + ' kWh/W'; }, updateResults);
-    bindSlider('inpSelfUse', 'dispSelfUse', function(v) { return Math.round(v) + '%'; }, updateResults);
-    bindSlider('inpDayPrice', 'dispDayPrice', function(v) { return v.toFixed(3) + ' 元/kWh'; }, updateResults);
-    bindSlider('inpGridPrice', 'dispGridPrice', function(v) { return v.toFixed(3) + ' 元/kWh'; }, updateResults);
-    bindSlider('inpDegrad', 'dispDegrad', function(v) { return v.toFixed(1) + '%'; }, updateResults);
-    bindSlider('inpDeprYears', 'dispDeprYears', function(v) { return Math.round(v) + ' 年'; }, updateResults);
-    bindSlider('inpDiscount', 'dispDiscount', function(v) { return Math.round(v) + '%'; }, updateResults);
+    bindDual('inpCapacity', 'numCapacity', 'dispCapacity', function (v) { return v.toFixed(3) + ' MW'; }, update);
+    bindDual('inpUnitCost', 'numUnitCost', 'dispUnitCost', function (v) { return v.toFixed(1) + ' 元/W'; }, update);
+    bindDual('inpLoanRatio', 'numLoanRatio', 'dispLoanRatio', function (v) { return Math.round(v) + '%'; }, update);
+    bindDual('inpLoanRate', 'numLoanRate', 'dispLoanRate', function (v) { return v.toFixed(1) + '%'; }, update);
+    bindDual('inpLoanYears', 'numLoanYears', 'dispLoanYears', function (v) { return Math.round(v) + ' 年'; }, update);
+    bindDual('inpGenPerW', 'numGenPerW', 'dispGenPerW', function (v) { return v.toFixed(2) + ' kWh/W'; }, update);
+    bindDual('inpSelfUse', 'numSelfUse', 'dispSelfUse', function (v) { return Math.round(v) + '%'; }, update);
+    bindDual('inpDayPrice', 'numDayPrice', 'dispDayPrice', function (v) { return v.toFixed(3) + ' 元/kWh'; }, update);
+    bindDual('inpGridPrice', 'numGridPrice', 'dispGridPrice', function (v) { return v.toFixed(3) + ' 元/kWh'; }, update);
+    bindDual('inpDegrad', 'numDegrad', 'dispDegrad', function (v) { return v.toFixed(1) + '%'; }, update);
+    bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', function (v) { return Math.round(v) + ' 年'; }, update);
+    bindDual('inpDiscount', 'numDiscount', 'dispDiscount', function (v) { return Math.round(v) + '%'; }, update);
 
-    // Initial calculation
-    updateResults();
+    initBTT();
+    update();
 
-    // Window resize → redraw chart
-    window.addEventListener('resize', function () {
-      if (currentResults) drawMiniChart(currentResults.annualRows);
-    });
+    window.addEventListener('resize', function () { if (R) drawChart(R.rows); });
+
+    // Restore language
+    const saved = localStorage.getItem('nrgopt-lang') || 'zh';
+    switchLang(saved);
   }
 
   if (document.readyState === 'loading') {
