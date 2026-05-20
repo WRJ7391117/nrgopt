@@ -141,6 +141,15 @@
     </div>
 
     <div class="param-row">
+      <label><span data-en="Inverter Replace (Yr12)" data-zh="逆变器更换(第12年)" data-ja="インバーター交換(12年目)"></span> <span class="val" id="dispInvReplace"></span></label>
+      <div class="dual-input">
+        <input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2">
+        <input type="number" id="numInvReplace" step="0.01" min="0" max="0.5" class="num-field">
+      </div>
+      <div class="param-note" data-en="One-time cost at year 12. Set to 0 if already included in unit investment." data-zh="第12年一次性支出。若已含在单位投资中可设为0。" data-ja="12年目の一時費用。単位投資に含まれている場合は0に設定。">第12年一次性支出。若已含在单位投资中可设为0。</div>
+    </div>
+
+    <div class="param-row">
       <label><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span> <span class="val" id="dispDiscount"></span></label>
       <div class="dual-input">
         <input type="range" id="inpDiscount" min="5" max="15" step="1" value="10">

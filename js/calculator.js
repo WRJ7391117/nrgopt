@@ -43,7 +43,7 @@
     const gkw = params.genPerW, ry = 25, deg = params.degrad;
     const su = params.selfUse, dp = params.dayPrice, gp = params.gridPrice;
     const vr = 0.13, mpw = 0.01, me = 0.03, mtw = 0.04, mte = 0.01;
-    const dy = params.deprYears, res = 0.05, irpw = 0.2, iry = 12;
+    const dy = params.deprYears, res = 0.05, irpw = params.invReplace, iry = 12;
     const disc = params.discount;
     const TI = cap * uc * 100;
     const loan = TI * lr;
@@ -164,6 +164,7 @@
       dayPrice: parseFloat(document.getElementById('inpDayPrice').value) || 0.664,
       gridPrice: parseFloat(document.getElementById('inpGridPrice').value) || 0.3545,
       deprYears: parseInt(document.getElementById('inpDeprYears').value) || 10,
+      invReplace: parseFloat(document.getElementById('inpInvReplace').value) || 0.2,
       discount: (parseFloat(document.getElementById('inpDiscount').value) || 10) / 100
     };
   }
@@ -262,6 +263,7 @@
     bindDual('inpDegrad', 'numDegrad', 'dispDegrad', uPct1, update);
     bindDual('inpDeprYears', 'numDeprYears', 'dispDeprYears', uYr, update);
     bindDual('inpDiscount', 'numDiscount', 'dispDiscount', uPct, update);
+    bindDual('inpInvReplace', 'numInvReplace', 'dispInvReplace', function(v) { return v.toFixed(2) + ' 元/W'; }, update);
 
     initBTT();
     update();

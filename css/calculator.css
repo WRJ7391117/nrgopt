@@ -109,6 +109,12 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(56,189,248,0.15);
 }
+.param-note {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.35;
+}
 
 /* ── Results Panel ── */
 .results-panel {
