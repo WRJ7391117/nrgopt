@@ -82,15 +82,17 @@ function update(){
 
   R=calc(getP());
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
-  setText('resTotalInv',fm(R.totalInv));
-  setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
+  var fullIrr=(R.irrFull*100).toFixed(2);
+  setText('resIrrFull',fullIrr+'%');
+  el('resIrrFull').style.color=R.irrFull>=0.1?'#34d399':R.irrFull>=0.06?'#f59e0b':'#f87171';
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
   setText('resNpv',R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString());
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
-  setText('resGenY1',fm(R.genY1));
-  setText('dispGenY1Total',fm(R.genY1)+(l==='en'?' 10k kWh':(l==='ja'?' 万kWh':' 万kWh')));
+  setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
-  e=el('resIrrFull'); if(e)e.className='metric-value '+(R.irrFull>=0.1?'good':R.irrFull>=0.06?'ok':'bad');
+  var genUnit=l==='en'?' 10k kWh':(l==='ja'?' 万kWh':' 万度电');
+  setText('resGenY1',fm(R.genY1));
+  setText('dispGenY1Total',fm(R.genY1)+genUnit);
 
   var tbody=el('cfTableBody'); if(!tbody)return;
   tbody.innerHTML='';
@@ -109,6 +111,7 @@ function drawChart(rows){
   var L=48,R=20,T=16,B=26;
   var W=c.width=c.parentElement.clientWidth-32;
   var H=c.height=240;
+  c.width=W;c.height=H;
   ctx.clearRect(0,0,W,H);
   if(rows.length<2)return;
   var lo=Infinity,hi=-Infinity;
@@ -129,9 +132,11 @@ function drawChart(rows){
   ctx.strokeStyle='rgba(148,163,184,0.35)';ctx.beginPath();ctx.moveTo(L,zy);ctx.lineTo(W-R,zy);ctx.stroke();
   // Bars
   var bw=Math.max(2,(w)/rows.length-2);
+  var bars=[];
   for(var i=0;i<rows.length;i++){
     var cf=parseFloat(rows[i].cf),x=L+i/rows.length*w,bh=Math.abs(cf)/range*h,y=cf>=0?zy-bh:zy;
     ctx.fillStyle=cf>=0?'rgba(52,211,153,0.85)':'rgba(248,113,113,0.85)';ctx.fillRect(x,y,bw,Math.max(1,bh));
+    bars.push({x:x,y:y,w:bw,h:Math.max(1,bh),cf:cf,yr:rows[i].yr});
   }
   // X labels
   ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
@@ -139,6 +144,25 @@ function drawChart(rows){
   // Y title
   ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
   ctx.save();ctx.translate(10,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('万',0,0);ctx.restore();
+  // Tooltip handler
+  var tip=el('chartTooltip');
+  c.onmousemove=function(e){
+    var rect=c.getBoundingClientRect();
+    var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    var found=null;
+    for(var i=0;i<bars.length;i++){
+      var b=bars[i];
+      if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h){found=b;break;}
+    }
+    if(found){
+      tip.style.display='block';
+      tip.style.left=(found.x+found.w/2)+'px';
+      tip.style.top=(found.y-28)+'px';
+      tip.style.transform='translate(-50%,0)';
+      tip.textContent='第'+found.yr+'年: '+found.cf.toFixed(1)+' 万';
+    }else{tip.style.display='none';}
+  };
+  c.onmouseleave=function(){tip.style.display='none';};
 }
 
 // ── Slider + Number sync ──

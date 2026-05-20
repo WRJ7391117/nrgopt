@@ -38,20 +38,23 @@
   </div>
 </section>
 
-<!-- Metric band -->
+<!-- Metric band: row 1 -->
 <div class="metric-band">
-  <div class="band-card"><div class="band-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div><div class="band-value good" id="resIrrFull">—</div><div class="band-sub" data-en="pre-tax" data-zh="税前" data-ja="税前">税前</div></div>
-  <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq" style="color:var(--accent)">—</div><div class="band-sub" data-en="after-tax" data-zh="税后" data-ja="税後">税后</div></div>
-  <div class="band-card"><div class="band-label">NPV</div><div class="band-value small" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-  <div class="band-card"><div class="band-label" data-en="Payback" data-zh="回收期" data-ja="回収期間">回收期</div><div class="band-value small" id="resPayback">—</div><div class="band-sub" data-en="years" data-zh="年" data-ja="年">年</div></div>
-  <div class="band-card"><div class="band-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="band-value small" id="resTotalInv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-  <div class="band-card"><div class="band-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="band-value small" id="resLoan">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-  <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div><div class="band-value small" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万kWh" data-ja="万kWh">万kWh</div></div>
+  <div class="band-card"><div class="band-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div><div class="band-value" id="resIrrFull">—</div><div class="band-sub" data-en="pre-tax" data-zh="税前" data-ja="税前">税前</div></div>
+  <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq">—</div><div class="band-sub" data-en="after-tax" data-zh="税后" data-ja="税後">税后</div></div>
+  <div class="band-card"><div class="band-label">NPV</div><div class="band-value" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
+  <div class="band-card"><div class="band-label" data-en="Payback" data-zh="回收期" data-ja="回収期間">回收期</div><div class="band-value" id="resPayback">—</div><div class="band-sub" data-en="years" data-zh="年" data-ja="年">年</div></div>
+</div>
+<!-- Metric band: row 2 -->
+<div class="metric-band row2">
+  <div class="band-card"><div class="band-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="band-value" id="resTotalInv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
+  <div class="band-card"><div class="band-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="band-value" id="resLoan">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
+  <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年发电总量" data-ja="初年度総発電量">首年发电总量</div><div class="band-value" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
 </div>
 
 <!-- Chart -->
 <div class="chart-band">
-  <div class="chart-card"><h3 data-en="📊 Annual Cash Flow" data-zh="📊 逐年现金流" data-ja="📊 年間キャッシュフロー">📊 逐年现金流</h3><canvas id="cfChart"></canvas></div>
+  <div class="chart-card"><h3 data-en="📊 Annual Cash Flow" data-zh="📊 逐年现金流" data-ja="📊 年間キャッシュフロー">📊 逐年现金流</h3><div style="position:relative"><canvas id="cfChart"></canvas><div id="chartTooltip" style="display:none;position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;font-size:0.75rem;color:var(--text);white-space:nowrap;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)"></div></div></div>
 </div>
 
 <!-- 2-col -->
