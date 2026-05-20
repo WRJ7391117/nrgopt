@@ -156,10 +156,10 @@ window.switchLang=function(lang){
   document.documentElement.lang=lang;
   var els=document.querySelectorAll('[data-en],[data-zh],[data-ja]');
   for(var i=0;i<els.length;i++){
-    var el=els[i];
-    if(lang==='en'&&el.hasAttribute('data-en'))el.textContent=el.getAttribute('data-en');
-    else if(lang==='zh'&&el.hasAttribute('data-zh'))el.textContent=el.getAttribute('data-zh');
-    else if(lang==='ja'&&el.hasAttribute('data-ja'))el.textContent=el.getAttribute('data-ja');
+    var elem=els[i];
+    if(lang==='en'&&elem.hasAttribute('data-en'))elem.textContent=elem.getAttribute('data-en');
+    else if(lang==='zh'&&elem.hasAttribute('data-zh'))elem.textContent=elem.getAttribute('data-zh');
+    else if(lang==='ja'&&elem.hasAttribute('data-ja'))elem.textContent=elem.getAttribute('data-ja');
   }
   var h1=document.querySelector('.calc-hero h1');
   if(h1){var hl=h1.querySelector('.hl');if(hl){
