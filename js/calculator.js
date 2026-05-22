@@ -13,11 +13,19 @@ function calc(p){
   var insR=p.insRate,res=p.residual;
   var dy=p.deprYears,irpw=p.invReplace,iry=p.invYear,disc=p.discount;
   var taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
-  var TI=cap*uc*100,loan=TI*lr,prin=ly>0?loan/ly:0;
+  var TI=cap*uc*100,loan=TI*lr;
+  // Repayment method
+  var repayMethod=p.repayMethod||'equal-principal';
+  var installment=0;
+  if(ly>0&&repayMethod==='equal-installment'){
+    var mr=li/12,n=ly*12;
+    if(mr>0){installment=loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12;}
+    else{installment=loan/ly;}
+  }
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy,invRep=cap*irpw*100;
   var idealGen=cap*gkw*100,genY1=idealGen*(1-d1);
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
-  var vatCredit=vatDed; // 建设期进项税额，抵扣用
+  var vatCredit=vatDed,remLoan=loan;
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var rev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
@@ -27,8 +35,14 @@ function calc(p){
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
     var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
-    var remLoan=Math.max(0,loan-prin*Math.min(y,ly));
     var interest=remLoan*li;
+    var prPaid=0;
+    if(y<=ly){
+      if(repayMethod==='equal-principal'){prPaid=loan/ly;}
+      else if(repayMethod==='equal-installment'){prPaid=installment-interest;}
+      else if(repayMethod==='bullet'){prPaid=0;if(y===ly)prPaid=loan;}
+    }
+    remLoan=Math.max(0,remLoan-prPaid);
     var depr=y<=dy?deprA:0;
     var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
@@ -39,7 +53,6 @@ function calc(p){
     var pat=pbt-tax;
     var cf=pat+depr;if(y===iry)cf-=invRep;
     cfsF.push(cf);
-    var prPaid=y<=ly?prin:0;
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
     cum+=cf;
@@ -59,7 +72,7 @@ function getP(){
   return {
     capacity:val('inpCapacity')||1, unitCost:val('inpUnitCost')||3.7,
     loanRatio:(val('inpLoanRatio')||70)/100, loanRate:(val('inpLoanRate')||3.9)/100,
-    loanYears:ival('inpLoanYears')||15, genPerW:computeGen(),
+    loanYears:ival('inpLoanYears')||15, repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal', genPerW:computeGen(),
     runYears:ival('inpRunYears')||25,
     degradY1:(val('inpDegradY1')||1)/100, degrad:(val('inpDegrad')||0.55)/100,
     selfUse:(val('inpSelfUse')||90)/100, dayPrice:val('inpDayPrice')||0.664,
@@ -233,6 +246,8 @@ function init(){
   bindDual('inpInvReplace','numInvReplace','dispInvReplace',function(v){return v.toFixed(3)+' 元/W';});
   bindDual('inpInvYear','numInvYear','dispInvYear',function(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
   bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
+
+  var rs=el('inpRepayMethod');if(rs){rs.addEventListener('change',update);setText('dispRepayMethod',rs.options[rs.selectedIndex].textContent);}
 
   initBTT();update();
   window.addEventListener('resize',function(){if(R)drawChart(R.rows);});
