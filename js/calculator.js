@@ -334,12 +334,13 @@ function solarFallback(lat,lon){
   var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
   if(lon>115)irr-=50;else if(lon<100)irr+=100;
   if(lat<30&&lon>110)irr-=50;if(lat>40&&lon<90)irr+=100;
-  _infoCardData={irr:irr,angle:tiltToAngle(tilt,lat),eff:se,coord:fmtCoord(lat,lon)};
   el('inpIrradiance').value=irr;el('numIrradiance').value=irr;
   el('inpTilt').value=tilt;el('numTilt').value=tilt;
   el('inpSysEff').value=se;el('numSysEff').value=se;
   activeStatus().textContent='(离线估算)';
   refreshDisplays();
+  var irr2=val('inpIrradiance'),tilt2=val('inpTilt'),se2=val('inpSysEff');
+  _infoCardData={irr:irr2,angle:tiltToAngle(tilt2,lat),eff:se2,coord:fmtCoord(lat,lon)};
   update();
 }
 function fmtCoord(lat,lon){
@@ -350,13 +351,15 @@ function tiltToAngle(tilt,lat){
   return Math.round((tilt-1)*300);
 }
 function applySolarParams(d){
-  var angle=tiltToAngle(d.tilt,d.lat);
-  _infoCardData={irr:d.irradiance,angle:angle,eff:d.efficiency,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
   el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
   el('locStatus').textContent='';el('locStatusGPS').textContent='';
   refreshDisplays();
+  // Read back slider values (may be step-rounded) for consistent display
+  var irr=val('inpIrradiance'),tilt=val('inpTilt'),eff=val('inpSysEff');
+  var angle=tiltToAngle(tilt,d.lat);
+  _infoCardData={irr:irr,angle:angle,eff:eff,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
   update();
 }
 
