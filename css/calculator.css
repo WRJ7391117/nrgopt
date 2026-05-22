@@ -6,6 +6,15 @@
 
 /* ── PART 1: CARDS ── */
 .metric-band { max-width:1180px; margin:0 auto; padding:8px 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+
+.location-bar { max-width:1180px; margin:0 auto; padding:0 24px 8px; }
+.loc-row { display:flex; gap:8px; align-items:center; }
+.loc-input { padding:7px 12px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.8rem; font-family:inherit; }
+.loc-input:focus { outline:none; border-color:var(--accent); }
+.loc-input::placeholder { color:var(--text-dim); }
+.loc-btn { padding:7px 14px; border-radius:6px; border:1px solid var(--accent); background:var(--surface); color:var(--accent); cursor:pointer; font-size:0.78rem; white-space:nowrap; transition:all 0.15s; }
+.loc-btn:hover { background:var(--accent); color:var(--btn-primary-text); }
+.loc-status { font-size:0.7rem; color:var(--text-dim); white-space:nowrap; }
 .nav-input { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; width:120px; font-family:inherit; }
 .nav-input:focus { outline:none; border-color:var(--accent); }
 .nav-input::placeholder { color:var(--text-dim); }
