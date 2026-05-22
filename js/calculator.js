@@ -268,19 +268,19 @@ window.autoFillFromAddress=function(){
   var addr=el('locAddress').value.trim();
   var st=el('locStatus');
   if(!addr){st.textContent='请先输入地址';return;}
+  // Parse lat,lng directly if user typed coordinates
+  var m=addr.match(/(-?\d+\.?\d*)\s*[,，\s]\s*(-?\d+\.?\d*)/);
+  if(m){fillFromLatLon(parseFloat(m[1]),parseFloat(m[2]));return;}
+  // Otherwise try Nominatim geocoding
   st.textContent='查询坐标中...';
-  // Try OpenStreetMap Nominatim first
   var url='https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1';
   fetch(url,{headers:{'User-Agent':'NrgOpt-IRR-Calculator/1.0'}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(d){
       if(d.length>0){fillFromLatLon(parseFloat(d[0].lat),parseFloat(d[0].lon));}
-      else{st.textContent='未找到该地址, 请尝试更详细的地址';}
+      else{st.textContent='未找到地址, 请直接输入经纬度 如: 31.23, 121.47';}
     })
-    .catch(function(e){
-      // Fallback: try with coordinates embedded in address or manual input
-      st.textContent='地址查询失败, 请手动填写参数或使用定位';
-    });
+    .catch(function(){st.textContent='地址查询失败, 请直接输入经纬度或使用 📍定位';});
 };
 window.autoFillFromGPS=function(){
   var st=el('locStatus');
@@ -289,31 +289,27 @@ window.autoFillFromGPS=function(){
   navigator.geolocation.getCurrentPosition(function(p){fillFromLatLon(p.coords.latitude,p.coords.longitude);},function(){st.textContent='定位失败';});
 };
 function fillFromLatLon(lat,lon){
-  var st=el('locStatus');st.textContent='获取辐照数据中...';
-  fetch('https://re.jrc.ec.europa.eu/api/v5_2/MRcalc?lat='+lat.toFixed(4)+'&lon='+lon.toFixed(4)+'&outputformat=json')
+  var st=el('locStatus');st.textContent='获取辐照数据中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
+  // NASA POWER API — free, global, no API key
+  fetch('https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude='+lon.toFixed(4)+'&latitude='+lat.toFixed(4)+'&start=2020&end=2020&format=JSON')
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(d){
-      var hh=0,opt=0,count=0;
-      if(d.outputs&&d.outputs.monthly){
-        d.outputs.monthly.forEach(function(m){
-          if(m['H(h)_m']!==undefined){
-            hh+=m['H(h)_m'];
-            opt+=(m['H(i_opt)_m']||m['H(h)_m']);
-            count++;
-          }
-        });
-      }
-      if(count===0||hh===0)throw new Error('no data');
-      var irr=Math.round(hh);
-      var tilt=opt>0?Math.round(opt/hh*100)/100:1.05;
-      var se=Math.round(100-14-(lat>35?0:3)-(lat<25?2:0));
-      el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=Math.round(irr)+' kWh/m²';
+      var vals=d.properties&&d.properties.parameter&&d.properties.parameter.ALLSKY_SFC_SW_DWN;
+      if(!vals)throw new Error('no data');
+      var sum=0,count=0;
+      for(var m in vals){sum+=vals[m];count++;}
+      var monthlyAvg=count>0?sum/count:0; // kWh/m²/day
+      var irr=Math.round(monthlyAvg*365/1000); // convert to annual kWh/m²
+      if(irr<500||irr>3000)throw new Error('invalid irradiance: '+irr);
+      var tilt=Math.abs(lat)<10?1.0:Math.abs(lat)>40?(1.1+Math.min(0.15,(Math.abs(lat)-40)/100)):1.05;
+      var se=Math.round(100-14-(Math.abs(lat)>35?0:3)-(Math.abs(lat)<25?2:0));
+      el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' kWh/m²';
       el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
       el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
-      st.textContent='✓ 辐照量='+irr+' 倾角='+tilt+' 效率='+se+'%';
+      st.textContent='✓ 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
       update();
     })
-    .catch(function(e){st.textContent='数据获取失败, 请手动填写 ('+e.message+')';});
+    .catch(function(e){st.textContent='辐照获取失败, 请手动填写';});
 }
 
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
