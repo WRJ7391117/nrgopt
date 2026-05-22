@@ -132,6 +132,21 @@
   body { background:#fff; color:#111; font-size:10pt; font-family:'PingFang SC','Microsoft YaHei',sans-serif; }
   body::before, body::after { display:none !important; }
 
+  /* ── Info card (print) ── */
+  .info-card { border:1px solid #ddd !important; box-shadow:none !important; background:#fff !important; padding:10px 14px !important; margin:0 auto 14pt; }
+  .loc-row { margin-bottom:6px; }
+  .loc-label { font-size:8pt; color:#555; }
+  .loc-input { border:1px solid #ddd; background:#fafafa; font-size:8pt; padding:4px 8px; }
+  .loc-btn { display:none; }
+  .loc-tabs { display:none; }
+  .loc-tab-panel { display:none !important; }
+  .loc-section-label { font-size:7pt; color:#888; margin:2px 0 4px; }
+  .loc-results { border-top:1px solid #eee; padding-top:6px; gap:14px; }
+  .loc-res-item { font-size:7pt; }
+  .loc-res-item b { color:#555; }
+  .loc-val { color:#0369a1; }
+  .loc-status { display:none; }
+
   /* ── Section titles (visible only in print) ── */
   .print-title { display:block !important; font-size:16pt; font-weight:800; color:#0369a1; text-align:center; padding:0 0 4pt; margin:0 0 14pt; border-bottom:3px solid #0369a1; }
   .print-sec { display:block !important; font-size:11pt; font-weight:700; color:#111; padding:12pt 0 4pt; margin-bottom:8pt; border-bottom:1.5px solid #eee; }
