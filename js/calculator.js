@@ -72,6 +72,7 @@ function syncInfoCard(){
   if(!_infoCardData)return;
   if(_infoCardData.coord)el('locCoord').textContent=_infoCardData.coord;
   el('locIrr').textContent=_infoCardData.irr+' kWh/m²';
+  if(_infoCardData.hours!=null)el('locHours').textContent=_infoCardData.hours+' h';
   el('locAngle').textContent=_infoCardData.angle+'°';
   if(_infoCardData.eff!=null)el('locEff').textContent=_infoCardData.eff+'%';
 }
@@ -340,7 +341,7 @@ function solarFallback(lat,lon){
   activeStatus().textContent='(离线估算)';
   refreshDisplays();
   var irr2=val('inpIrradiance'),tilt2=val('inpTilt'),se2=val('inpSysEff');
-  _infoCardData={irr:irr2,angle:tiltToAngle(tilt2,lat),eff:se2,coord:fmtCoord(lat,lon)};
+  _infoCardData={irr:irr2,hours:Math.round(irr2*tilt2*se2/100),angle:tiltToAngle(tilt2,lat),eff:se2,coord:fmtCoord(lat,lon)};
   update();
 }
 function fmtCoord(lat,lon){
@@ -360,7 +361,7 @@ function applySolarParams(d){
   // Read back slider values (may be step-rounded) for consistent display
   var irr=val('inpIrradiance'),tilt=val('inpTilt'),eff=val('inpSysEff');
   var angle=tiltToAngle(tilt,d.lat);
-  _infoCardData={irr:irr,angle:angle,eff:eff,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
+  _infoCardData={irr:irr,hours:Math.round(irr*tilt*eff/100),angle:angle,eff:eff,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
   update();
 }
 
