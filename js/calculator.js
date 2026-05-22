@@ -271,10 +271,7 @@ window.downloadPDF=function(){
   var name=el('locProjectName').value.trim();
   var titleEl=document.querySelector('.print-title');
   titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';
-  var oldTitle=document.title;
-  document.title=(name||'NrgOpt')+'-IRR测算';
   window.print();
-  setTimeout(function(){document.title=oldTitle;},100);
 };
 
 // ── Tab switching ──
