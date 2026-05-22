@@ -313,12 +313,13 @@ window.autoFillFromGPS=function(){
     function(p){
       fillFromLatLon(p.coords.latitude,p.coords.longitude);
     },
-    function(e){st.textContent='定位失败: 请手动输入经纬度 如 31.23, 121.47';},
+    function(e){st.textContent='定位失败: 请手动输入经纬度';el('locStatus').textContent='';},
     {enableHighAccuracy:false,timeout:10000}
   );
 };
+function activeStatus(){return el('tabGPS').style.display==='flex'?el('locStatusGPS'):el('locStatus');}
 function fillFromLatLon(lat,lon){
-  var st=el('locStatus');st.textContent='查询中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
+  var st=activeStatus();st.textContent='查询中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
   fetch('/api/solar-data?lat='+lat+'&lon='+lon)
     .then(function(r){return r.json();})
     .then(function(d){
