@@ -338,7 +338,7 @@ function solarFallback(lat,lon){
   el('inpIrradiance').value=irr;el('numIrradiance').value=irr;
   el('inpTilt').value=tilt;el('numTilt').value=tilt;
   el('inpSysEff').value=se;el('numSysEff').value=se;
-  el('locStatus').textContent='(离线估算)';
+  activeStatus().textContent='(离线估算)';
   refreshDisplays();
   update();
 }
