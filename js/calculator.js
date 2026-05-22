@@ -334,7 +334,7 @@ function solarFallback(lat,lon){
   var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
   if(lon>115)irr-=50;else if(lon<100)irr+=100;
   if(lat<30&&lon>110)irr-=50;if(lat>40&&lon<90)irr+=100;
-  el('inpIrradiance').value=irr;el('numIrradiance').value=snap(irr,10);
+  el('inpIrradiance').value=irr;el('numIrradiance').value=snap(irr,1);
   el('inpTilt').value=tilt;el('numTilt').value=snap(tilt,0.01);
   el('inpSysEff').value=se;el('numSysEff').value=snap(se,0.5);
   activeStatus().textContent='(离线估算)';
@@ -352,7 +352,7 @@ function tiltToAngle(tilt,lat){
 }
 function snap(val,step){return Math.round(val/step)*step;}
 function applySolarParams(d){
-  el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=snap(d.irradiance,10);
+  el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=snap(d.irradiance,1);
   el('inpTilt').value=d.tilt;el('numTilt').value=snap(d.tilt,0.01);
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=snap(d.efficiency,0.5);
   el('locStatus').textContent='';el('locStatusGPS').textContent='';
