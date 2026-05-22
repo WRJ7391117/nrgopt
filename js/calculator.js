@@ -67,6 +67,10 @@ function el(id){return document.getElementById(id);}
 function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
+function syncInfoCard(){
+  var irr=el('dispIrradiance');if(irr)el('locIrr').textContent=irr.textContent;
+  var tilt=val('inpTilt')||1.05;el('locAngle').textContent=Math.round((tilt-1)*300)+'°';
+}
 
 function getP(){
   return {
@@ -96,6 +100,7 @@ function computeGen(){
 var R=null;
 function update(){
   refreshDisplays();
+  syncInfoCard();
   var gw=computeGen(),l=document.documentElement.lang||'en';
   setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
   var ir=val('inpIrradiance')||1350,ti=val('inpTilt')||1.05,ef=(val('inpSysEff')||83.5)/100;
@@ -324,8 +329,7 @@ function applySolarParams(d){
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
   if(d.lat!=null)el('locCoord').textContent=fmtCoord(d.lat,d.lon);
-  el('locIrr').textContent=d.irradiance+' kWh/m²';
-  el('locAngle').textContent=Math.round((d.tilt-1)*300)+'°';
+  // locIrr and locAngle will be set by syncInfoCard() called from update()
   refreshDisplays();
   update();
 }
