@@ -39,16 +39,19 @@
     <label class="loc-label">项目名称</label>
     <input type="text" id="locProjectName" placeholder="选填" class="loc-input" style="max-width:300px" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
   </div>
-  <div class="loc-section-label">获取位置辐照数据（二选一）</div>
-  <div class="loc-row">
-    <label class="loc-label">输入地址</label>
-    <input type="text" id="locAddress" placeholder="城市名或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
-    <button type="button" onclick="autoFillFromAddress()" class="loc-btn">🔍 查询</button>
+  <div class="loc-section-label">获取位置辐照数据</div>
+  <div class="loc-tabs">
+    <button class="loc-tab active" onclick="switchLocTab('address',this)">🔍 输入地址</button>
+    <button class="loc-tab" onclick="switchLocTab('gps',this)">📍 GPS 定位</button>
   </div>
-  <div class="loc-row">
-    <label class="loc-label">GPS 定位</label>
-    <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 获取我的当前位置</button>
+  <div class="loc-tab-panel" id="tabAddress">
+    <input type="text" id="locAddress" placeholder="城市名或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
+    <button type="button" onclick="autoFillFromAddress()" class="loc-btn">查询</button>
     <span id="locStatus" class="loc-status"></span>
+  </div>
+  <div class="loc-tab-panel" id="tabGPS" style="display:none">
+    <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 获取我的当前位置</button>
+    <span id="locStatusGPS" class="loc-status"></span>
   </div>
   <div class="loc-results">
     <span class="loc-label" style="min-width:auto">结果</span>

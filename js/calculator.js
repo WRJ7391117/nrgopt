@@ -274,7 +274,15 @@ window.downloadPDF=function(){
   window.print();
 };
 
-// ── Auto-fill from address ──
+// ── Tab switching ──
+window.switchLocTab=function(type,btn){
+  document.querySelectorAll('.loc-tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('tabAddress').style.display=type==='address'?'flex':'none';
+  document.getElementById('tabGPS').style.display=type==='gps'?'flex':'none';
+};
+
+// ── Auto-fill ──
 window.autoFillFromAddress=function(){
   var addr=el('locAddress').value.trim(),st=el('locStatus');
   if(!addr){st.textContent='请先输入地址';return;}
@@ -297,7 +305,7 @@ window.autoFillFromAddress=function(){
   });
 };
 window.autoFillFromGPS=function(){
-  var st=el('locStatus');
+  var st=el('locStatusGPS');
   if(!navigator.geolocation){st.textContent='浏览器不支持定位';return;}
   st.textContent='定位中...';
   navigator.geolocation.getCurrentPosition(
