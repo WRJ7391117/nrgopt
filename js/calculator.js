@@ -306,18 +306,23 @@ function solarFallback(lat,lon){
   var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
   if(lon>115)irr-=50;else if(lon<100)irr+=100;
   if(lat<30&&lon>110)irr-=50;if(lat>40&&lon<90)irr+=100;
-  el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' kWh/m²';
-  el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
-  el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
-  el('locCoord').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
-  el('locStatus').textContent='✓ (离线估算) 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
+  el('inpIrradiance').value=irr;el('numIrradiance').value=irr;
+  el('inpTilt').value=tilt;el('numTilt').value=tilt;
+  el('inpSysEff').value=se;el('numSysEff').value=se;
+  el('locCoord').textContent=fmtCoord(lat,lon);
+  el('locStatus').textContent='✓ (离线估算)';
+  refreshDisplays();
   update();
 }
+function fmtCoord(lat,lon){
+  return (lat>=0?lat.toFixed(4)+'°N':(-lat).toFixed(4)+'°S')+', '+(lon>=0?lon.toFixed(4)+'°E':(-lon).toFixed(4)+'°W');
+}
 function applySolarParams(d){
-  el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;el('dispIrradiance').textContent=d.irradiance+' kWh/m²';
-  el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;el('dispTilt').textContent=d.tilt.toFixed(2);
-  el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;el('dispSysEff').textContent=d.efficiency.toFixed(1)+'%';
-  if(d.lat!=null)el('locCoord').textContent=d.lat.toFixed(4)+', '+d.lon.toFixed(4);
+  el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
+  el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
+  el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
+  if(d.lat!=null){el('locCoord').textContent=fmtCoord(d.lat,d.lon);}
+  refreshDisplays();
   update();
 }
 
