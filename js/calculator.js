@@ -102,6 +102,8 @@ function update(){
   setText('dispSunHours',Math.round(ir*ti*ef));
   var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.04);
   setText('dispOmTotal',omT.toFixed(3)+' 元/W');
+  var tilt=val('inpTilt')||1.05;
+  setText('dispBestAngle',Math.round((tilt-1)*300));
 
   R=calc(getP());
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
