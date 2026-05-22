@@ -5,7 +5,7 @@
 .calc-hero .hero-sub { font-size:0.88rem; color:var(--text-dim); max-width:560px; margin:0 auto; }
 
 /* ── PART 1: CARDS ── */
-.metric-band { max-width:1180px; margin:0 auto; padding:8px 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.metric-band { max-width:1180px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 
 .location-bar { max-width:1180px; margin:0 auto 12px; padding:0 24px; }
 .loc-row { display:flex; gap:8px; align-items:center; }
@@ -19,13 +19,14 @@
 .nav-input { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; width:120px; font-family:inherit; }
 .nav-input:focus { outline:none; border-color:var(--accent); }
 .nav-input::placeholder { color:var(--text-dim); }
-.band-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; box-shadow:var(--shadow); }
+.band-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 16px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); transition:box-shadow 0.2s; }
+.band-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.1); }
 .band-label { font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; font-weight:500; }
 .band-value { font-size:1.7rem; font-weight:700; color:var(--text); line-height:1.2; }
 .band-sub { font-size:0.65rem; color:var(--text-dim); margin-top:1px; }
 
 /* ── PART 2: PARAMETERS ── */
-.params-wrap { max-width:1180px; margin:0 auto; padding:16px 24px 12px; }
+.params-wrap { max-width:1180px; margin:0 auto 18px; padding:0 24px 12px; }
 .params-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
 .params-grid > div > .param-group { width:100%; }
 
@@ -65,17 +66,17 @@
 .repay-select:focus { outline:none; border-color:var(--accent); }
 
 /* ── PART 3: CHART ── */
-.chart-band { max-width:1180px; margin:0 auto; padding:8px 24px 12px; }
+.chart-band { max-width:1180px; margin:0 auto 18px; padding:0 24px 12px; }
 .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 14px 6px; box-shadow:var(--shadow); }
 .chart-card h3 { font-size:0.78rem; color:var(--text-dim); margin-bottom:4px; }
 .chart-card canvas { display:block; }
 
 .print-title { display:none; }
-.print-sec { display:block; max-width:1180px; margin:0 auto; padding:18px 24px 4px; font-size:0.9rem; font-weight:700; color:var(--text); letter-spacing:0.03em; }
-.print-sec:first-of-type { padding-top:10px; }
+.print-sec { display:block; max-width:1180px; margin:0 auto; padding:24px 24px 0; font-size:0.95rem; font-weight:700; color:var(--text); border-bottom:2px solid var(--accent); padding-bottom:6px; margin-bottom:14px; letter-spacing:0.03em; }
+.print-sec:first-of-type { padding-top:8px; }
 
 /* ── PART 4: TABLE ── */
-.table-band { max-width:1180px; margin:0 auto; padding:0 24px 48px; }
+.table-band { max-width:1180px; margin:0 auto 18px; padding:0 24px 48px; }
 .table-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:var(--shadow); }
 .table-card h3 { font-size:0.78rem; color:var(--text-dim); margin-bottom:6px; }
 .table-card table { width:100%; border-collapse:collapse; font-size:0.73rem; }
