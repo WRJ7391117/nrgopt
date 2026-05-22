@@ -39,16 +39,21 @@
     <label class="loc-label">项目名称</label>
     <input type="text" id="locProjectName" placeholder="选填" class="loc-input" style="flex:1" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
   </div>
-  <div class="loc-row" style="margin-top:8px">
+  <div class="loc-row">
     <label class="loc-label">项目所在区域</label>
     <input type="text" id="locAddress" placeholder="输入地址或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
   </div>
-  <div class="loc-row" style="margin-top:8px">
+  <div class="loc-row">
     <button type="button" onclick="autoFillFromAddress()" class="loc-btn">🔍 自动填充</button>
     <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 当前位置</button>
-    <span id="locStatus" class="loc-status"></span>
-    <span id="locCoord" style="font-size:0.7rem;color:var(--accent);white-space:nowrap;margin-left:4px"></span>
   </div>
+  <div class="loc-results">
+    <span class="loc-res-item"><b>经纬度</b> <span id="locCoord" class="loc-val">—</span></span>
+    <span class="loc-res-item"><b>年辐照量</b> <span id="locIrr" class="loc-val">—</span></span>
+    <span class="loc-res-item"><b>最佳倾角</b> <span id="locAngle" class="loc-val">—</span></span>
+    <span id="locStatus" class="loc-status"></span>
+  </div>
+</div>
 </div>
 
 <!-- PART 1 -->

@@ -9,17 +9,17 @@
 
 .info-card { max-width:1132px; margin:0 auto 20px; padding:16px 24px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
 .loc-label { min-width:70px; font-size:0.8rem; color:var(--text-dim); font-weight:500; }
-.loc-row { display:flex; gap:8px; align-items:center; }
+.loc-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.loc-results { display:flex; gap:20px; align-items:center; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border); }
+.loc-res-item { display:flex; align-items:center; gap:4px; font-size:0.76rem; }
+.loc-res-item b { color:var(--text-dim); font-weight:500; }
+.loc-val { color:var(--accent); font-weight:600; }
+.loc-status { font-size:0.68rem; color:var(--text-dim); white-space:nowrap; }
 .loc-input { padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.8rem; font-family:inherit; transition:border-color 0.15s; }
 .loc-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(56,189,248,0.1); }
 .loc-input::placeholder { color:var(--text-dim); }
 .loc-btn { padding:6px 12px; border-radius:18px; border:1.5px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; font-size:0.76rem; white-space:nowrap; font-family:inherit; transition:all 0.15s; }
 .loc-btn:hover { background:var(--accent); color:var(--btn-primary-text); }
-.loc-status { font-size:0.68rem; color:var(--text-dim); white-space:nowrap; margin-left:8px; }
-.loc-results { gap:20px; flex-wrap:wrap; padding-top:8px; border-top:1px solid var(--border); }
-.loc-res-item { display:flex; align-items:center; gap:4px; font-size:0.76rem; }
-.loc-res-item b { color:var(--text-dim); font-weight:500; }
-.loc-val { color:var(--accent); font-weight:600; }
 @media (max-width:768px) { .loc-row { flex-wrap:wrap; } .loc-input { flex:auto !important; width:100% !important; } .loc-status { width:100%; text-align:center; } }
 .nav-input { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; width:120px; font-family:inherit; }
 .nav-input:focus { outline:none; border-color:var(--accent); }
