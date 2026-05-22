@@ -287,11 +287,11 @@ window.autoFillFromAddress=function(){
   var url=m?'/api/solar-data?lat='+parseFloat(m[1])+'&lon='+parseFloat(m[2]):'/api/solar-data?address='+encodeURIComponent(addr);
   st.textContent='查询中...';
   fetch(url).then(function(r){return r.json();}).then(function(d){
-    if(!d.ok){st.textContent=d.error||'查询失败';if(m)solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
+    if(!d.ok){st.textContent=(d.error||'查询失败')+' 请尝试输入经纬度或使用GPS定位';if(m)solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
     applySolarParams(d);
   }).catch(function(){
     if(m){solarFallback(parseFloat(m[1]),parseFloat(m[2]));}
-    else{st.textContent='网络错误, 请重试';}
+    else{st.textContent='网络错误, 请输入经纬度如 31.23,121.47 或使用GPS定位';}
   });
 };
 window.autoFillFromGPS=function(){
