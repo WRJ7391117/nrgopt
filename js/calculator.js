@@ -310,7 +310,9 @@ function solarFallback(lat,lon){
   el('inpTilt').value=tilt;el('numTilt').value=tilt;
   el('inpSysEff').value=se;el('numSysEff').value=se;
   el('locCoord').textContent=fmtCoord(lat,lon);
-  el('locStatus').textContent='✓ (离线估算)';
+  el('locIrr').textContent=irr+' kWh/m²';
+  el('locAngle').textContent=Math.round((tilt-1)*300)+'°';
+  el('locStatus').textContent='(离线估算)';
   refreshDisplays();
   update();
 }
@@ -321,7 +323,9 @@ function applySolarParams(d){
   el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
-  if(d.lat!=null){el('locCoord').textContent=fmtCoord(d.lat,d.lon);}
+  if(d.lat!=null)el('locCoord').textContent=fmtCoord(d.lat,d.lon);
+  el('locIrr').textContent=d.irradiance+' kWh/m²';
+  el('locAngle').textContent=Math.round((d.tilt-1)*300)+'°';
   refreshDisplays();
   update();
 }

@@ -15,7 +15,11 @@
 .loc-input::placeholder { color:var(--text-dim); }
 .loc-btn { padding:6px 12px; border-radius:18px; border:1.5px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; font-size:0.76rem; white-space:nowrap; font-family:inherit; transition:all 0.15s; }
 .loc-btn:hover { background:var(--accent); color:var(--btn-primary-text); }
-.loc-status { font-size:0.68rem; color:var(--text-dim); white-space:nowrap; min-width:60px; }
+.loc-status { font-size:0.68rem; color:var(--text-dim); white-space:nowrap; margin-left:8px; }
+.loc-results { gap:20px; flex-wrap:wrap; padding-top:8px; border-top:1px solid var(--border); }
+.loc-res-item { display:flex; align-items:center; gap:4px; font-size:0.76rem; }
+.loc-res-item b { color:var(--text-dim); font-weight:500; }
+.loc-val { color:var(--accent); font-weight:600; }
 @media (max-width:768px) { .loc-row { flex-wrap:wrap; } .loc-input { flex:auto !important; width:100% !important; } .loc-status { width:100%; text-align:center; } }
 .nav-input { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; width:120px; font-family:inherit; }
 .nav-input:focus { outline:none; border-color:var(--accent); }
