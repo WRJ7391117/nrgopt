@@ -280,6 +280,7 @@ window.switchLocTab=function(type,btn){
   btn.classList.add('active');
   document.getElementById('tabAddress').style.display=type==='address'?'flex':'none';
   document.getElementById('tabGPS').style.display=type==='gps'?'flex':'none';
+  el('locStatus').textContent='';el('locStatusGPS').textContent='';
 };
 
 // ── Auto-fill ──
@@ -353,7 +354,7 @@ function applySolarParams(d){
   el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
-  el('locStatus').textContent='';
+  el('locStatus').textContent='';el('locStatusGPS').textContent='';
   refreshDisplays();
   update();
 }
