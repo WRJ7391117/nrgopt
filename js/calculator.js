@@ -68,8 +68,10 @@ function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
 function syncInfoCard(){
-  var irr=el('dispIrradiance');if(irr)el('locIrr').textContent=irr.textContent;
-  var tilt=val('inpTilt')||1.05;el('locAngle').textContent=Math.round((tilt-1)*300)+'°';
+  var irr=el('dispIrradiance');if(irr&&irr.textContent)el('locIrr').textContent=irr.textContent;
+  var tilt=val('inpTilt')||1.05;
+  if(tilt<0.5)tilt=1.05;
+  el('locAngle').textContent=Math.round((tilt-1)*300)+'°';
 }
 
 function getP(){
@@ -276,12 +278,19 @@ window.autoFillFromAddress=function(){
   if(!addr){st.textContent='请先输入地址';return;}
   // Direct lat,lon input
   var m=addr.match(/(-?\d+\.?\d*)\s*[,，\s]\s*(-?\d+\.?\d*)/);
+  if(m){
+    var lat=parseFloat(m[1]),lon=parseFloat(m[2]);
+    el('locCoord').textContent=fmtCoord(lat,lon);
+  }
   var url=m?'/api/solar-data?lat='+parseFloat(m[1])+'&lon='+parseFloat(m[2]):'/api/solar-data?address='+encodeURIComponent(addr);
   st.textContent='查询中...';
   fetch(url).then(function(r){return r.json();}).then(function(d){
-    if(!d.ok){st.textContent=d.error||'查询失败';return;}
-    applySolarParams(d);st.textContent='✓ 辐照='+d.irradiance+' 倾角='+d.tilt+' 效率='+d.efficiency+'%';
-  }).catch(function(){st.textContent='网络错误, 请重试';});
+    if(!d.ok){st.textContent=d.error||'查询失败';if(m)solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
+    applySolarParams(d);
+  }).catch(function(){
+    if(m){solarFallback(parseFloat(m[1]),parseFloat(m[2]));}
+    else{st.textContent='网络错误, 请重试';}
+  });
 };
 window.autoFillFromGPS=function(){
   var st=el('locStatus');
