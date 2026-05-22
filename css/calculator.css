@@ -193,7 +193,7 @@
   .table-card th, .table-card td { border-color:#ddd; padding:3px 5px; }
   .table-card tr:nth-child(even) td { background:#fafafa; }
 
-  @page { margin:22mm 14mm 14mm 14mm; size:A4; }
+  @page { margin:22mm 14mm 14mm 14mm; size:A4; @top-center { content: none; } @bottom-center { content: none; } }
 }
 @media (pointer:coarse) {
   .pr input[type="range"] { height:8px; }
