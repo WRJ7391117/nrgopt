@@ -286,12 +286,14 @@ window.autoFillFromAddress=function(){
   }
   var url=m?'/api/solar-data?lat='+parseFloat(m[1])+'&lon='+parseFloat(m[2]):'/api/solar-data?address='+encodeURIComponent(addr);
   st.textContent='查询中...';
-  fetch(url).then(function(r){return r.json();}).then(function(d){
+  var controller=new AbortController();
+  setTimeout(function(){controller.abort();},15000);
+  fetch(url,{signal:controller.signal}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(d){
     if(!d.ok){st.textContent=(d.error||'查询失败')+' 请尝试输入经纬度或使用GPS定位';if(m)solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
     applySolarParams(d);
-  }).catch(function(){
-    if(m){solarFallback(parseFloat(m[1]),parseFloat(m[2]));}
-    else{st.textContent='网络错误, 请输入经纬度如 31.23,121.47 或使用GPS定位';}
+  }).catch(function(e){
+    if(m){solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
+    st.textContent='网络错误, 请输入经纬度如 31.23,121.47 或使用GPS定位';
   });
 };
 window.autoFillFromGPS=function(){
@@ -322,7 +324,7 @@ function solarFallback(lat,lon){
   var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
   if(lon>115)irr-=50;else if(lon<100)irr+=100;
   if(lat<30&&lon>110)irr-=50;if(lat>40&&lon<90)irr+=100;
-  _infoCardData={irr:irr,angle:Math.round((tilt-1)*300),eff:se,coord:fmtCoord(lat,lon)};
+  _infoCardData={irr:irr,angle:tiltToAngle(tilt,lat),eff:se,coord:fmtCoord(lat,lon)};
   el('inpIrradiance').value=irr;el('numIrradiance').value=irr;
   el('inpTilt').value=tilt;el('numTilt').value=tilt;
   el('inpSysEff').value=se;el('numSysEff').value=se;
@@ -333,11 +335,17 @@ function solarFallback(lat,lon){
 function fmtCoord(lat,lon){
   return (lat>=0?lat.toFixed(4)+'°N':(-lat).toFixed(4)+'°S')+', '+(lon>=0?lon.toFixed(4)+'°E':(-lon).toFixed(4)+'°W');
 }
+function tiltToAngle(tilt,lat){
+  if(lat!=null)return Math.round(Math.abs(lat)*0.9);
+  return Math.round((tilt-1)*300);
+}
 function applySolarParams(d){
-  _infoCardData={irr:d.irradiance,angle:Math.round((d.tilt-1)*300),eff:d.efficiency,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
+  var angle=tiltToAngle(d.tilt,d.lat);
+  _infoCardData={irr:d.irradiance,angle:angle,eff:d.efficiency,coord:d.lat!=null?fmtCoord(d.lat,d.lon):null};
   el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
+  el('locStatus').textContent='';
   refreshDisplays();
   update();
 }
