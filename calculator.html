@@ -34,14 +34,14 @@
 <section class="calc-hero" id="calcMain"><div class="container"><h1>分布式光伏 <span class="hl">IRR 测算</span></h1><p class="hero-sub" data-en="Adjust parameters — real-time IRR, NPV, and cash flow" data-zh="调节参数，实时查看全投资/资本金收益率与现金流分析" data-ja="パラメータを調整 — IRR・NPV・キャッシュフローをリアルタイム計算">调节参数，实时查看全投资/资本金收益率与现金流分析</p></div></section>
 
 <div class="print-sec">一、项目信息</div>
-<div class="location-bar">
+<div class="info-card">
   <div class="loc-row">
     <input type="text" id="locProjectName" placeholder="项目名称（选填）" class="loc-input" style="width:100%" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
   </div>
-  <div class="loc-row" style="margin-top:6px">
+  <div class="loc-row" style="margin-top:8px">
     <input type="text" id="locAddress" placeholder="输入项目地址，自动获取辐照数据…" class="loc-input" style="flex:1">
   </div>
-  <div class="loc-row" style="margin-top:6px">
+  <div class="loc-row" style="margin-top:8px">
     <button type="button" onclick="autoFillFromAddress()" class="loc-btn">🔍 自动填充</button>
     <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 当前位置</button>
     <span id="locStatus" class="loc-status"></span>

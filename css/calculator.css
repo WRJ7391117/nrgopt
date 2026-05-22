@@ -7,7 +7,7 @@
 /* ── PART 1: CARDS ── */
 .metric-band { max-width:1180px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 
-.location-bar { max-width:1180px; margin:0 auto 12px; padding:0 24px; }
+.info-card { max-width:1180px; margin:0 auto 20px; padding:16px 18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
 .loc-row { display:flex; gap:8px; align-items:center; }
 .loc-input { padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.8rem; font-family:inherit; transition:border-color 0.15s; }
 .loc-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(56,189,248,0.1); }
@@ -73,7 +73,7 @@
 
 .print-title { display:none; }
 .print-sec { max-width:1180px; margin:0 auto 10px; padding:22px 24px 6px; font-size:0.88rem; font-weight:600; color:var(--text); letter-spacing:0.02em; }
-.print-sec::after { content:''; display:block; margin-top:6px; border-bottom:1px solid var(--border); }
+.print-sec::after { content:''; display:block; margin-top:6px; border-bottom:2px solid var(--accent); }
 .print-sec:first-of-type { padding-top:8px; }
 
 /* ── PART 4: TABLE ── */
