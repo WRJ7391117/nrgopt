@@ -218,8 +218,16 @@
     </div>
     <div class="s-group"><h3>电价信息</h3>
       <div class="s-row"><label>供电公司</label><input type="text"><label>用电类别</label><span class="s-check"><input type="checkbox"><label>大工业</label></span><span class="s-check"><input type="checkbox"><label>一般工商业</label></span></div>
-      <div class="s-row"><label>峰时电价(元/kWh)</label><input type="number" step="0.001"><label>平时电价</label><input type="number" step="0.001"><label>谷时电价</label><input type="number" step="0.001"></div>
       <div class="s-row"><label>加权平均电价</label><input type="number" step="0.001"><label>需量费(元/kW/月)</label><input type="number"></div>
+    </div>
+    <div class="s-group"><h3>分时电价与时段</h3>
+      <table class="s-table">
+        <tr><th>时段类型</th><th>电价 (元/kWh)</th><th>起始时间</th><th>结束时间</th></tr>
+        <tr><td>尖峰</td><td><input type="number" step="0.001"></td><td><input type="text" placeholder="例: 11:00"></td><td><input type="text" placeholder="例: 13:00"></td></tr>
+        <tr><td>高峰</td><td><input type="number" step="0.001"></td><td><input type="text" placeholder="例: 08:00"></td><td><input type="text" placeholder="例: 11:00"></td></tr>
+        <tr><td>平段</td><td><input type="number" step="0.001"></td><td><input type="text" placeholder="例: 06:00"></td><td><input type="text" placeholder="例: 08:00"></td></tr>
+        <tr><td>谷段</td><td><input type="number" step="0.001"></td><td><input type="text" placeholder="例: 22:00"></td><td><input type="text" placeholder="例: 06:00"></td></tr>
+      </table>
     </div>
   </div>
 
