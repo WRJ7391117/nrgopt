@@ -67,7 +67,9 @@ function el(id){return document.getElementById(id);}
 function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
+var _infoCardFilled=false;
 function syncInfoCard(){
+  if(!_infoCardFilled)return;
   var irr=el('dispIrradiance');if(irr&&irr.textContent)el('locIrr').textContent=irr.textContent;
   var tilt=val('inpTilt')||1.05;
   if(tilt<0.5)tilt=1.05;
@@ -315,6 +317,7 @@ function fillFromLatLon(lat,lon){
     .catch(function(){solarFallback(lat,lon);});
 }
 function solarFallback(lat,lon){
+  _infoCardFilled=true;
   var al=Math.abs(lat),irr=al<22?1450:al<27?1350:al<32?1300:al<38?1450:al<44?1600:1800;
   var tilt=al<10?1.0:al>40?(1.1+Math.min(0.15,(al-40)/100)):1.05;
   var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
@@ -334,11 +337,11 @@ function fmtCoord(lat,lon){
   return (lat>=0?lat.toFixed(4)+'°N':(-lat).toFixed(4)+'°S')+', '+(lon>=0?lon.toFixed(4)+'°E':(-lon).toFixed(4)+'°W');
 }
 function applySolarParams(d){
+  _infoCardFilled=true;
   el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;
   el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;
   el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;
   if(d.lat!=null)el('locCoord').textContent=fmtCoord(d.lat,d.lon);
-  // locIrr and locAngle will be set by syncInfoCard() called from update()
   refreshDisplays();
   update();
 }
