@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Survey — NrgOpt 现场踏勘表</title>
+<meta name="description" content="Online photovoltaic project site survey checklist">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .survey-hero { padding:100px 0 20px; text-align:center; background:var(--hero-grad); }
+  .survey-hero h1 { font-size:clamp(1.4rem,3vw,2rem); }
+  .survey-hero h1 .hl { color:var(--accent); }
+  .survey-wrap { max-width:900px; margin:0 auto; padding:20px 24px 60px; }
+  .s-section { margin-bottom:28px; }
+  .s-title { font-size:0.95rem; font-weight:700; color:var(--text); padding-bottom:4px; margin-bottom:14px; border-bottom:2px solid var(--accent); display:flex; align-items:center; gap:6px; }
+  .s-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:14px; }
+  .s-group h3 { font-size:0.82rem; color:var(--accent); margin-bottom:10px; }
+  .s-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .s-row label { min-width:140px; font-size:0.78rem; color:var(--text-dim); font-weight:500; }
+  .s-row input[type="text"], .s-row input[type="number"] { flex:1; min-width:120px; padding:6px 10px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; font-family:inherit; }
+  .s-row input:focus { outline:none; border-color:var(--accent); }
+  .s-row textarea { flex:1; min-width:200px; padding:6px 10px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; font-family:inherit; resize:vertical; min-height:40px; }
+  .s-row textarea:focus { outline:none; border-color:var(--accent); }
+  .s-check { display:flex; align-items:center; gap:4px; margin-bottom:5px; }
+  .s-check input[type="checkbox"] { width:15px; height:15px; }
+  .s-check label { font-size:0.76rem; color:var(--text); min-width:auto; }
+  .s-table { width:100%; border-collapse:collapse; font-size:0.74rem; margin:8px 0; }
+  .s-table th,.s-table td { border:1px solid var(--border); padding:5px 8px; }
+  .s-table th { background:var(--bg); color:var(--text-dim); font-weight:600; font-size:0.7rem; }
+  .s-table input { width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.72rem; font-family:inherit; }
+  .s-table input:focus { outline:none; border-color:var(--accent); }
+  .s-actions { display:flex; gap:10px; justify-content:center; margin:24px 0; }
+  .btn-survey { padding:10px 28px; border-radius:22px; font-weight:600; font-size:0.88rem; border:none; cursor:pointer; }
+  .btn-save { background:var(--accent); color:var(--btn-primary-text); }
+  .btn-reset { background:var(--surface); color:var(--text); border:1.5px solid var(--border); }
+  .survey-input-name { width:200px !important; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.82rem; }
+
+  @media print {
+    .nav,.survey-hero,.s-actions,.back-to-top,.skip-link,.btn-pdf { display:none !important; }
+    body { background:#fff; color:#111; font-size:9pt; }
+    body::before,body::after { display:none !important; }
+    :root,[data-theme="dark"] { --bg:#fff;--surface:#fff;--text:#111;--text-dim:#555;--accent:#0369a1;--border:#ddd; }
+    .survey-wrap { padding:0; max-width:none; }
+    .s-group { border:1px solid #ddd; box-shadow:none; break-inside:avoid; }
+    .s-title { color:#111; border-color:#0369a1; }
+    .s-row input,.s-row textarea,.s-table input { border:1px solid #ddd; background:#fff; }
+    @page { margin:14mm; size:A4; }
+  }
+
+  @media (max-width:600px) {
+    .s-row { flex-direction:column; align-items:stretch; }
+    .s-row label { min-width:auto; }
+    .survey-wrap { padding:12px 10px 40px; }
+    .s-group { padding:12px 10px; }
+  }
+</style>
+</head>
+<body>
+<a href="#sMain" class="skip-link">跳转到踏勘表</a>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub">Site Survey</span></a>
+    <ul class="nav-links">
+      <li><a href="/">← 返回首页</a></li>
+      <li><input type="text" id="projectName" placeholder="项目名称" class="survey-input-name" oninput="document.title=(this.value||'NrgOpt')+'-现场踏勘表'"></li>
+      <li><a href="#" onclick="var n=document.getElementById('projectName').value.trim();document.title=(n||'NrgOpt')+'-现场踏勘表';window.print();return false">📄 下载PDF</a></li>
+    </ul>
+    <div class="nav-tools">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="切换主题">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<section class="survey-hero" id="sMain">
+  <div class="container"><h1>光伏项目 <span class="hl">现场踏勘表</span></h1><p>在线填写 · 保存PDF · 版本 v2.0</p></div>
+</section>
+
+<div class="survey-wrap">
+
+  <!-- Project Info -->
+  <div class="s-section"><div class="s-title">📋 项目信息</div>
+    <div class="s-group">
+      <div class="s-row"><label>项目名称</label><input type="text" placeholder="项目名称/业主名称"></div>
+      <div class="s-row"><label>项目地址</label><input type="text"></div>
+      <div class="s-row"><label>GPS经纬度</label><input type="text" placeholder="例: 31.2304, 121.4737"></div>
+      <div class="s-row"><label>业主联系人</label><input type="text"><label>联系电话</label><input type="text"></div>
+      <div class="s-row"><label>踏勘日期</label><input type="text" placeholder="2026-05-22"><label>踏勘工程师</label><input type="text"></div>
+      <div class="s-row"><label>踏勘时天气</label><input type="text" placeholder="晴/多云/雨"></div>
+    </div>
+  </div>
+
+  <!-- 1. Building -->
+  <div class="s-section"><div class="s-title">🏗️ 一、建筑参数</div>
+    <div class="s-group"><h3>基本尺寸</h3>
+      <div class="s-row"><label>建筑面积(m²)</label><input type="number"><label>海拔(m)</label><input type="number"><label>楼层数</label><input type="number"></div>
+      <div class="s-row"><label>建筑朝向</label><input type="text" placeholder="正南/东南"><label>建成年份</label><input type="text"><label>产权类型</label><input type="text"></div>
+    </div>
+    <div class="s-group"><h3>结构承载力</h3>
+      <div class="s-row"><label>设计活荷载(kg/m²)</label><input type="number"><label>已有设备重量(kg)</label><input type="number"><label>剩余承载力(kg/m²)</label><input type="number"></div>
+      <div class="s-row"><label>是否需要结构加固</label><span class="s-check"><input type="checkbox" id="s1"><label for="s1">是</label></span><span class="s-check"><input type="checkbox" id="s2"><label for="s2">否</label></span><label>抗震等级</label><input type="text"></div>
+    </div>
+    <div class="s-group"><h3>屋顶类型 — 水泥楼面</h3>
+      <div class="s-row"><label>长×宽(m)</label><input type="text" placeholder="例: 80×30"><label>女儿墙高(m)</label><input type="number"><label>屋面坡度</label><input type="text"></div>
+      <div class="s-row"><label>渗漏情况</label><input type="text"><label>屋面修补/污染</label><input type="text"></div>
+      <div class="s-row"><label>障碍物尺寸(m)</label><input type="text" placeholder="L×W×H"><label>采光带面积</label><input type="text"></div>
+      <div class="s-row"><label>防水状况</label><input type="text"></div>
+    </div>
+    <div class="s-group"><h3>屋顶类型 — 彩钢瓦</h3>
+      <div class="s-row">
+        <label>瓦型</label>
+        <span class="s-check"><input type="checkbox" id="w1"><label for="w1">直立锁边</label></span>
+        <span class="s-check"><input type="checkbox" id="w2"><label for="w2">角驰型</label></span>
+        <span class="s-check"><input type="checkbox" id="w3"><label for="w3">梯形</label></span>
+      </div>
+      <div class="s-row"><label>屋面坡度</label><input type="text"><label>钢梁规格</label><input type="text"><label>钢梁跨度(m)</label><input type="number"></div>
+      <div class="s-row"><label>檩条规格</label><input type="text"><label>檩条跨度(m)</label><input type="number"><label>钢柱规格</label><input type="text"></div>
+      <div class="s-row"><label>檩条锈蚀</label><input type="text"><label>屋面锈蚀</label><input type="text"><label>板厚(mm)</label><input type="number"></div>
+      <div class="s-row"><label>图纸与实屋面一致？</label><span class="s-check"><input type="checkbox"><label>是</label></span><span class="s-check"><input type="checkbox"><label>否</label></span></div>
+    </div>
+    <div class="s-group"><h3>遮挡物 + 阴影分析</h3>
+      <div class="s-row"><label>遮挡物1 L×W×H(m)</label><input type="text"><label>方位</label><input type="text"></div>
+      <div class="s-row"><label>遮挡物2 L×W×H(m)</label><input type="text"><label>方位</label><input type="text"></div>
+      <div class="s-row"><label>遮挡物3 L×W×H(m)</label><input type="text"><label>方位</label><input type="text"></div>
+      <div class="s-row"><label>周边建筑1高度(m)</label><input type="number"><label>距离(m)</label><input type="number"><label>方位</label><input type="text"></div>
+      <div class="s-row"><label>周边建筑2高度(m)</label><input type="number"><label>距离(m)</label><input type="number"><label>方位</label><input type="text"></div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>树木遮挡</label></span>
+        <span class="s-check"><input type="checkbox"><label>烟囱/排气管</label></span>
+        <span class="s-check"><input type="checkbox"><label>相邻屋顶结构遮挡</label></span>
+        <span class="s-check"><input type="checkbox"><label>冬至日影已确认</label></span>
+      </div>
+    </div>
+    <div class="s-group"><h3>组件排布</h3>
+      <div class="s-row"><label>导轨间距(mm)</label><input type="number"><label>设计倾角(°)</label><input type="number"><label>排间距(m)</label><input type="number"></div>
+      <div class="s-row"><label>安装方向</label><span class="s-check"><input type="checkbox"><label>横装</label></span><span class="s-check"><input type="checkbox"><label>竖装</label></span><label>预估组件数</label><input type="number"><label>电站高度(m)</label><input type="number"></div>
+    </div>
+  </div>
+
+  <!-- 2. Meteorology -->
+  <div class="s-section"><div class="s-title">🌤️ 二、气象与环境</div>
+    <div class="s-group"><h3>气象数据</h3>
+      <div class="s-row"><label>年辐照量(kWh/m²)</label><input type="number"><label>最大风速(m/s)</label><input type="number"><label>雪荷载(kN/m²)</label><input type="number"></div>
+      <div class="s-row"><label>极端低温(°C)</label><input type="number"><label>极端高温(°C)</label><input type="number"><label>年均气温(°C)</label><input type="number"></div>
+      <div class="s-row"><label>年降雨量(mm)</label><input type="number"><label>雷击频率</label><span class="s-check"><input type="checkbox"><label>低</label></span><span class="s-check"><input type="checkbox"><label>中</label></span><span class="s-check"><input type="checkbox"><label>高</label></span></div>
+    </div>
+    <div class="s-group"><h3>环境风险</h3>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>距海岸线5km内(盐雾)</label></span>
+        <span class="s-check"><input type="checkbox"><label>附近化工厂/水泥/钢厂(粉尘)</label></span>
+      </div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>附近水体(洪水风险)</label></span>
+        <span class="s-check"><input type="checkbox"><label>地震带</label></span>
+        <span class="s-check"><input type="checkbox"><label>台风路径</label></span>
+      </div>
+      <div class="s-row"><label>土壤腐蚀等级</label><span class="s-check"><input type="checkbox"><label>低</label></span><span class="s-check"><input type="checkbox"><label>中</label></span><span class="s-check"><input type="checkbox"><label>高</label></span></div>
+    </div>
+  </div>
+
+  <!-- 3. Electrical -->
+  <div class="s-section"><div class="s-title">⚡ 三、电气设施</div>
+    <div class="s-group"><h3>并网接入</h3>
+      <div class="s-row"><label>并网方式</label><span class="s-check"><input type="checkbox"><label>低压并网</label></span><span class="s-check"><input type="checkbox"><label>高压并网</label></span></div>
+      <div class="s-row"><label>变压器数量</label><input type="number"><label>容量(kVA)</label><input type="number"><label>型号/接线组别</label><input type="text"></div>
+      <div class="s-row"><label>现有保护装置型号</label><input type="text"><label>已有光伏系统容量(kW)</label><input type="number"><label>并网点距离(m)</label><input type="number"></div>
+    </div>
+    <div class="s-group"><h3>配电房</h3>
+      <div class="s-row"><label>备用开关位数</label><input type="number"><label>变压器室温度/通风</label><input type="text"></div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>可安装并网柜</label></span>
+        <span class="s-check"><input type="checkbox"><label>有电缆沟</label></span>
+        <span class="s-check"><input type="checkbox"><label>需穿路</label></span>
+        <span class="s-check"><input type="checkbox"><label>一次系统图已提供</label></span>
+      </div>
+    </div>
+    <div class="s-group"><h3>用电负荷</h3>
+      <div class="s-row"><label>发电模式</label><span class="s-check"><input type="checkbox"><label>全额上网</label></span><span class="s-check"><input type="checkbox"><label>自发自用余额上网</label></span></div>
+      <div class="s-row"><label>合同需量(kW)</label><input type="number"><label>峰值时段</label><input type="text" placeholder="例: 9:00-11:00"><label>周末/节假日生产</label><span class="s-check"><input type="checkbox"><label>是</label></span></div>
+      <div class="s-row"><label>夜班</label><span class="s-check"><input type="checkbox"><label>是</label></span><label>季节性负荷变化</label><input type="text"></div>
+    </div>
+    <div class="s-group"><h3>月用电量 (kWh)</h3>
+      <table class="s-table">
+        <tr><th>1月</th><th>2月</th><th>3月</th><th>4月</th><th>5月</th><th>6月</th><th>7月</th><th>8月</th><th>9月</th><th>10月</th><th>11月</th><th>12月</th><th>年合计</th></tr>
+        <tr><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td></tr>
+      </table>
+    </div>
+    <div class="s-group"><h3>电价信息</h3>
+      <div class="s-row"><label>供电公司</label><input type="text"><label>用电类别</label><span class="s-check"><input type="checkbox"><label>大工业</label></span><span class="s-check"><input type="checkbox"><label>一般工商业</label></span></div>
+      <div class="s-row"><label>峰时电价(元/kWh)</label><input type="number" step="0.001"><label>平时电价</label><input type="number" step="0.001"><label>谷时电价</label><input type="number" step="0.001"></div>
+      <div class="s-row"><label>加权平均电价</label><input type="number" step="0.001"><label>需量费(元/kW/月)</label><input type="number"></div>
+    </div>
+  </div>
+
+  <!-- 4. Access -->
+  <div class="s-section"><div class="s-title">🚛 四、进场与施工</div>
+    <div class="s-group">
+      <div class="s-row"><label>进场道路宽(m)</label><input type="number"><label>货车最大车长(m)</label><input type="number"><label>吊车作业半径(m)</label><input type="number"></div>
+      <div class="s-row"><label>物料垂直运输</label><span class="s-check"><input type="checkbox"><label>电梯</label></span><span class="s-check"><input type="checkbox"><label>吊车</label></span><span class="s-check"><input type="checkbox"><label>其他</label></span><input type="text" placeholder="说明"></div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>吊车位置已确认</label></span>
+        <span class="s-check"><input type="checkbox"><label>需封路/审批</label></span>
+        <span class="s-check"><input type="checkbox"><label>材料堆放场可用</label></span>
+      </div>
+      <div class="s-row"><label>材料堆放面积(m²)</label><input type="number"><label>屋面通道类型</label><input type="text" placeholder="楼梯/爬梯/天窗"></div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>屋面有护栏</label></span>
+        <span class="s-check"><input type="checkbox"><label>有防坠落锚点</label></span>
+        <span class="s-check"><input type="checkbox"><label>有石棉/危险材料</label></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Regulatory -->
+  <div class="s-section"><div class="s-title">📄 五、合规与资料</div>
+    <div class="s-group"><h3>业主文件收集</h3>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>房产证</label></span><span class="s-check"><input type="checkbox"><label>土地证</label></span>
+        <span class="s-check"><input type="checkbox"><label>建造图纸</label></span><span class="s-check"><input type="checkbox"><label>结构计算书</label></span>
+      </div>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>电气一次图</label></span><span class="s-check"><input type="checkbox"><label>消防验收</label></span>
+        <span class="s-check"><input type="checkbox"><label>环评</label></span><span class="s-check"><input type="checkbox"><label>营业执照</label></span>
+      </div>
+    </div>
+    <div class="s-group"><h3>合规检查</h3>
+      <div class="s-row">
+        <span class="s-check"><input type="checkbox"><label>电网预审批需要</label></span><span class="s-check"><input type="checkbox"><label>限高要求</label></span>
+        <span class="s-check"><input type="checkbox"><label>文保/风貌区</label></span><span class="s-check"><input type="checkbox"><label>航空限高</label></span>
+      </div>
+      <div class="s-row"><label>当地备案要求</label><input type="text"></div>
+    </div>
+  </div>
+
+  <!-- 6. Cost -->
+  <div class="s-section"><div class="s-title">💰 六、成本与工期预估</div>
+    <div class="s-group">
+      <div class="s-row"><label>预估电缆长度(m)</label><input type="number"><label>预估电缆沟(m)</label><input type="number"><label>特殊登高设备</label><input type="text"></div>
+      <div class="s-row"><label>停电窗口日期</label><input type="text"><label>开工日期</label><input type="text"><label>施工周期(天)</label><input type="number"></div>
+      <div class="s-row"><label>季节性限制</label><input type="text"></div>
+    </div>
+  </div>
+
+  <!-- 7. Sign-off -->
+  <div class="s-section"><div class="s-title">✍️ 七、签字</div>
+    <div class="s-group">
+      <table class="s-table">
+        <tr><th>角色</th><th>姓名</th><th>日期</th></tr>
+        <tr><td>踏勘工程师</td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td>项目经理</td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td>业主代表</td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td>电气工程师</td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td>结构工程师</td><td><input type="text"></td><td><input type="text"></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. Notes -->
+  <div class="s-section"><div class="s-title">📝 八、补充说明</div>
+    <div class="s-group">
+      <div class="s-row"><textarea rows="4" style="width:100%"></textarea></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/theme.js?v=2"></script>
+</body>
+</html>
