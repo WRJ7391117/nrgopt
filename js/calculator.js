@@ -268,48 +268,40 @@ window.autoFillFromAddress=function(){
   var addr=el('locAddress').value.trim();
   var st=el('locStatus');
   if(!addr){st.textContent='请先输入地址';return;}
-  // Parse lat,lng directly if user typed coordinates
   var m=addr.match(/(-?\d+\.?\d*)\s*[,，\s]\s*(-?\d+\.?\d*)/);
   if(m){fillFromLatLon(parseFloat(m[1]),parseFloat(m[2]));return;}
-  // Otherwise try Nominatim geocoding
-  st.textContent='查询坐标中...';
-  var url='https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1';
-  fetch(url,{headers:{'User-Agent':'NrgOpt-IRR-Calculator/1.0'}})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .then(function(d){
-      if(d.length>0){fillFromLatLon(parseFloat(d[0].lat),parseFloat(d[0].lon));}
-      else{st.textContent='未找到地址, 请直接输入经纬度 如: 31.23, 121.47';}
-    })
-    .catch(function(){st.textContent='地址查询失败, 请直接输入经纬度或使用 📍定位';});
+  st.textContent='请输入经纬度 如: 31.23, 121.47 或使用 📍定位';
 };
 window.autoFillFromGPS=function(){
   var st=el('locStatus');
-  if(!navigator.geolocation){st.textContent='浏览器不支持定位';return;}
+  if(!navigator.geolocation){st.textContent='浏览器不支持定位, 请手动输入经纬度';return;}
   st.textContent='定位中...';
-  navigator.geolocation.getCurrentPosition(function(p){fillFromLatLon(p.coords.latitude,p.coords.longitude);},function(){st.textContent='定位失败';});
+  navigator.geolocation.getCurrentPosition(
+    function(p){fillFromLatLon(p.coords.latitude,p.coords.longitude);},
+    function(e){st.textContent='定位失败: 请手动输入经纬度 如 31.23, 121.47';},
+    {enableHighAccuracy:false,timeout:10000}
+  );
 };
+function solarLookup(lat){
+  var al=Math.abs(lat);
+  if(al<22)return[1450,1.02,80];
+  if(al<27)return[1350,1.04,82];
+  if(al<32)return[1300,1.05,83];
+  if(al<38)return[1450,1.08,84];
+  if(al<44)return[1600,1.12,85];
+  return[1800,1.18,85];
+}
 function fillFromLatLon(lat,lon){
-  var st=el('locStatus');st.textContent='获取辐照数据中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
-  // NASA POWER API — free, global, no API key
-  fetch('https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude='+lon.toFixed(4)+'&latitude='+lat.toFixed(4)+'&start=2020&end=2020&format=JSON')
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .then(function(d){
-      var vals=d.properties&&d.properties.parameter&&d.properties.parameter.ALLSKY_SFC_SW_DWN;
-      if(!vals)throw new Error('no data');
-      var sum=0,count=0;
-      for(var m in vals){sum+=vals[m];count++;}
-      var monthlyAvg=count>0?sum/count:0; // kWh/m²/day
-      var irr=Math.round(monthlyAvg*365/1000); // convert to annual kWh/m²
-      if(irr<500||irr>3000)throw new Error('invalid irradiance: '+irr);
-      var tilt=Math.abs(lat)<10?1.0:Math.abs(lat)>40?(1.1+Math.min(0.15,(Math.abs(lat)-40)/100)):1.05;
-      var se=Math.round(100-14-(Math.abs(lat)>35?0:3)-(Math.abs(lat)<25?2:0));
-      el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' kWh/m²';
-      el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
-      el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
-      st.textContent='✓ 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
-      update();
-    })
-    .catch(function(e){st.textContent='辐照获取失败, 请手动填写';});
+  var st=el('locStatus'),d=solarLookup(lat);
+  var irr=d[0],tilt=d[1],se=d[2];
+  if(lon>115)irr-=50;else if(lon<100)irr+=100;
+  if(lat<30&&lon>110)irr-=50;
+  if(lat>40&&lon<90)irr+=100;
+  el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' kWh/m²';
+  el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
+  el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
+  st.textContent='✓ 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
+  update();
 }
 
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
