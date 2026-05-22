@@ -7,7 +7,7 @@
 /* ── PART 1: CARDS ── */
 .metric-band { max-width:1180px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 
-.info-card { max-width:1132px; margin:0 auto 20px; padding:18px 24px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+.info-card { max-width:1132px; margin:0 auto 20px; padding:22px 28px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
 .loc-label { min-width:70px; font-size:0.8rem; color:var(--text-dim); font-weight:500; }
 .loc-section-label { font-size:0.72rem; color:var(--text-dim); margin-bottom:6px; margin-top:8px; letter-spacing:0.03em; }
 .loc-tabs { display:flex; gap:0; margin-bottom:8px; }
@@ -17,7 +17,7 @@
 .loc-tab.active { background:var(--accent); color:var(--btn-primary-text); border-color:var(--accent); }
 .loc-tab:not(.active):hover { background:var(--surface); color:var(--text); }
 .loc-tab-panel { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-.loc-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.loc-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
 .loc-results { display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border); }
 .loc-res-item { display:flex; align-items:center; gap:4px; font-size:0.76rem; }
 .loc-res-item b { color:var(--text-dim); font-weight:500; }
