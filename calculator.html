@@ -35,10 +35,12 @@
 
 <div class="location-bar">
   <div class="loc-row">
-    <input type="text" id="locProjectName" placeholder="项目名称（选填）" class="loc-input" style="width:180px" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
+    <input type="text" id="locProjectName" placeholder="项目名称（选填）" class="loc-input" style="width:100%" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
+  </div>
+  <div class="loc-row" style="margin-top:6px">
     <input type="text" id="locAddress" placeholder="输入项目地址，自动获取辐照数据…" class="loc-input" style="flex:1">
     <button type="button" onclick="autoFillFromAddress()" class="loc-btn">🔍 自动填充</button>
-    <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 定位当前</button>
+    <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 定位</button>
     <span id="locStatus" class="loc-status"></span>
   </div>
 </div>

@@ -9,7 +9,7 @@
 
 .location-bar { max-width:1180px; margin:0 auto 12px; padding:0 24px; }
 .loc-row { display:flex; gap:8px; align-items:center; }
-.loc-input { padding:6px 10px; border-radius:6px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.78rem; font-family:inherit; transition:border-color 0.15s; }
+.loc-input { padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.8rem; font-family:inherit; transition:border-color 0.15s; }
 .loc-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(56,189,248,0.1); }
 .loc-input::placeholder { color:var(--text-dim); }
 .loc-btn { padding:6px 12px; border-radius:18px; border:1.5px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; font-size:0.76rem; white-space:nowrap; font-family:inherit; transition:all 0.15s; }
