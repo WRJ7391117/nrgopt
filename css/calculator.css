@@ -10,7 +10,7 @@
 .nav-input:focus { outline:none; border-color:var(--accent); }
 .nav-input::placeholder { color:var(--text-dim); }
 .band-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; box-shadow:var(--shadow); }
-.band-label { font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px; font-weight:500; }
+.band-label { font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; font-weight:500; }
 .band-value { font-size:1.7rem; font-weight:700; color:var(--text); line-height:1.2; }
 .band-sub { font-size:0.65rem; color:var(--text-dim); margin-top:1px; }
 
@@ -25,16 +25,16 @@
 .param-group-header:hover { background:var(--border); }
 .param-group-header .arrow { font-size:0.6rem; color:var(--text-dim); transition:transform 0.2s; }
 .param-group.open .param-group-header .arrow { transform:rotate(90deg); }
-.param-group-body { display:none; padding:0 14px 12px; }
+.param-group-body { display:none; padding:4px 14px 14px; }
 .param-group.open .param-group-body { display:block; }
 
-.pr { margin-bottom:10px; }
+.pr { margin-bottom:16px; }
 .pr:last-child { margin-bottom:0; }
-.pr-label { display:flex; justify-content:space-between; align-items:baseline; font-size:0.78rem; color:var(--text); margin-bottom:2px; font-weight:500; }
+.pr-label { display:flex; justify-content:space-between; align-items:baseline; font-size:0.78rem; color:var(--text); margin-bottom:5px; font-weight:500; }
 .pr, .dual-input { text-align:left; }
 .pr-val { color:var(--accent); font-weight:700; font-size:0.8rem; }
 .pr-val.gold { color:var(--gold); }
-.pr.derived { background:var(--bg); border-radius:6px; padding:8px 10px; margin-bottom:10px; }
+.pr.derived { background:var(--bg); border-radius:6px; padding:8px 10px; margin-bottom:16px; }
 .pr.derived .pr-label { font-weight:600; }
 
 .dual-input { display:grid; grid-template-columns:1fr 62px; gap:8px; align-items:center; }
