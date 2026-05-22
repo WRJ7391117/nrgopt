@@ -265,42 +265,55 @@ window.downloadPDF=function(){
 
 // ── Auto-fill from address ──
 window.autoFillFromAddress=function(){
-  var addr=el('locAddress').value.trim();
-  var st=el('locStatus');
+  var addr=el('locAddress').value.trim(),st=el('locStatus');
   if(!addr){st.textContent='请先输入地址';return;}
+  // Direct lat,lon input
   var m=addr.match(/(-?\d+\.?\d*)\s*[,，\s]\s*(-?\d+\.?\d*)/);
-  if(m){fillFromLatLon(parseFloat(m[1]),parseFloat(m[2]));return;}
-  st.textContent='请输入经纬度 如: 31.23, 121.47 或使用 📍定位';
+  var url=m?'/api/solar-data?lat='+parseFloat(m[1])+'&lon='+parseFloat(m[2]):'/api/solar-data?address='+encodeURIComponent(addr);
+  st.textContent='查询中...';
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){st.textContent=d.error||'查询失败';return;}
+    applySolarParams(d);st.textContent='✓ 辐照='+d.irradiance+' 倾角='+d.tilt+' 效率='+d.efficiency+'%';
+  }).catch(function(){st.textContent='网络错误, 请重试';});
 };
 window.autoFillFromGPS=function(){
   var st=el('locStatus');
-  if(!navigator.geolocation){st.textContent='浏览器不支持定位, 请手动输入经纬度';return;}
+  if(!navigator.geolocation){st.textContent='浏览器不支持定位';return;}
   st.textContent='定位中...';
   navigator.geolocation.getCurrentPosition(
-    function(p){fillFromLatLon(p.coords.latitude,p.coords.longitude);},
+    function(p){
+      fillFromLatLon(p.coords.latitude,p.coords.longitude);
+    },
     function(e){st.textContent='定位失败: 请手动输入经纬度 如 31.23, 121.47';},
     {enableHighAccuracy:false,timeout:10000}
   );
 };
-function solarLookup(lat){
-  var al=Math.abs(lat);
-  if(al<22)return[1450,1.02,80];
-  if(al<27)return[1350,1.04,82];
-  if(al<32)return[1300,1.05,83];
-  if(al<38)return[1450,1.08,84];
-  if(al<44)return[1600,1.12,85];
-  return[1800,1.18,85];
-}
 function fillFromLatLon(lat,lon){
-  var st=el('locStatus'),d=solarLookup(lat);
-  var irr=d[0],tilt=d[1],se=d[2];
+  var st=el('locStatus');st.textContent='查询中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
+  fetch('/api/solar-data?lat='+lat+'&lon='+lon)
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok){solarFallback(lat,lon);return;}
+      applySolarParams(d);st.textContent='✓ 辐照='+d.irradiance+' 倾角='+d.tilt+' 效率='+d.efficiency+'%';
+    })
+    .catch(function(){solarFallback(lat,lon);});
+}
+function solarFallback(lat,lon){
+  var al=Math.abs(lat),irr=al<22?1450:al<27?1350:al<32?1300:al<38?1450:al<44?1600:1800;
+  var tilt=al<10?1.0:al>40?(1.1+Math.min(0.15,(al-40)/100)):1.05;
+  var se=Math.round(100-14-(al>35?0:3)-(al<25?2:0));
   if(lon>115)irr-=50;else if(lon<100)irr+=100;
-  if(lat<30&&lon>110)irr-=50;
-  if(lat>40&&lon<90)irr+=100;
+  if(lat<30&&lon>110)irr-=50;if(lat>40&&lon<90)irr+=100;
   el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' kWh/m²';
   el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
   el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
-  st.textContent='✓ 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
+  el('locStatus').textContent='✓ (离线估算) 辐照='+irr+' 倾角='+tilt+' 效率='+se+'%';
+  update();
+}
+function applySolarParams(d){
+  el('inpIrradiance').value=d.irradiance;el('numIrradiance').value=d.irradiance;el('dispIrradiance').textContent=d.irradiance+' kWh/m²';
+  el('inpTilt').value=d.tilt;el('numTilt').value=d.tilt;el('dispTilt').textContent=d.tilt.toFixed(2);
+  el('inpSysEff').value=d.efficiency;el('numSysEff').value=d.efficiency;el('dispSysEff').textContent=d.efficiency.toFixed(1)+'%';
   update();
 }
 
