@@ -281,21 +281,31 @@ window.autoFillFromGPS=function(){
   navigator.geolocation.getCurrentPosition(function(p){fillFromLatLon(p.coords.latitude,p.coords.longitude);},function(){st.textContent='定位失败';});
 };
 function fillFromLatLon(lat,lon){
-  var st=el('locStatus');st.textContent='获取辐照数据中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
-  fetch('https://re.jrc.ec.europa.eu/api/v5_2/MRcalc?lat='+lat+'&lon='+lon+'&outputformat=json')
-    .then(function(r){return r.json();})
+  var st=el('locStatus');st.textContent='获取辐照数据中...';
+  fetch('https://re.jrc.ec.europa.eu/api/v5_2/MRcalc?lat='+lat.toFixed(4)+'&lon='+lon.toFixed(4)+'&outputformat=json')
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(d){
-      var ghi=0,opt=0;if(d.outputs&&d.outputs.monthly){var c=0;d.outputs.monthly.forEach(function(m){if(m["H(i_opt)"]){ghi+=m["H(i_opt)"];opt+=m["H(i_opt)_m"]||m["H(i_opt)"];c++;}});}
-      var irr=Math.round(ghi||(lat<30?1400:lat<40?1350:lat<50?1100:900));
-      var tilt=opt>0?Math.round(opt/ghi*100)/100:1.05;
+      var hh=0,opt=0,count=0;
+      if(d.outputs&&d.outputs.monthly){
+        d.outputs.monthly.forEach(function(m){
+          if(m['H(h)_m']!==undefined){
+            hh+=m['H(h)_m'];
+            opt+=(m['H(i_opt)_m']||m['H(h)_m']);
+            count++;
+          }
+        });
+      }
+      if(count===0||hh===0)throw new Error('no data');
+      var irr=Math.round(hh);
+      var tilt=opt>0?Math.round(opt/hh*100)/100:1.05;
       var se=Math.round(100-14-(lat>35?0:3)-(lat<25?2:0));
-      el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=irr+' 千瓦时/平方米';
+      el('inpIrradiance').value=irr;el('numIrradiance').value=irr;el('dispIrradiance').textContent=Math.round(irr)+' kWh/m²';
       el('inpTilt').value=tilt;el('numTilt').value=tilt;el('dispTilt').textContent=tilt.toFixed(2);
       el('inpSysEff').value=se;el('numSysEff').value=se;el('dispSysEff').textContent=se.toFixed(1)+'%';
       st.textContent='✓ 辐照量='+irr+' 倾角='+tilt+' 效率='+se+'%';
       update();
     })
-    .catch(function(){st.textContent='辐照数据获取失败, 请手动填写';});
+    .catch(function(e){st.textContent='数据获取失败, 请手动填写 ('+e.message+')';});
 }
 
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
