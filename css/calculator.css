@@ -7,7 +7,7 @@
 /* ── PART 1: CARDS ── */
 .metric-band { max-width:1180px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 
-.info-card { max-width:1180px; margin:0 auto 20px; padding:16px 18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+.info-card { max-width:1180px; margin:0 auto 20px; padding:16px 24px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
 .loc-label { min-width:70px; font-size:0.8rem; color:var(--text-dim); font-weight:500; }
 .loc-row { display:flex; gap:8px; align-items:center; }
 .loc-input { padding:9px 12px; border-radius:6px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-size:0.8rem; font-family:inherit; transition:border-color 0.15s; }
