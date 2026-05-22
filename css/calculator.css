@@ -51,7 +51,7 @@
 
 .region-select-full { width:100%; padding:3px 6px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.72rem; margin-bottom:6px; cursor:pointer; }
 .region-select-full:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(56,189,248,0.1); }
-.repay-select { width:100%; padding:4px 8px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; cursor:pointer; margin-top:2px; }
+.repay-select { width:100%; padding:7px 10px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; cursor:pointer; margin-top:4px; }
 .repay-select:focus { outline:none; border-color:var(--accent); }
 
 /* ── PART 3: CHART ── */
