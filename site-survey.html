@@ -84,8 +84,8 @@
   <div class="s-section"><div class="s-title">📋 项目信息</div>
     <div class="s-group">
       <div class="s-row"><label>项目名称</label><input type="text" placeholder="项目名称/业主名称"></div>
-      <div class="s-row"><label>项目地址</label><input type="text"></div>
-      <div class="s-row"><label>GPS经纬度</label><input type="text" placeholder="例: 31.2304, 121.4737"></div>
+      <div class="s-row"><label>项目地址</label><input type="text" id="surveyAddress" onchange="geocodeAddress()" placeholder="输入详细地址后点 →"><button type="button" onclick="geocodeAddress()" style="padding:6px 12px;border-radius:5px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;font-size:0.75rem;white-space:nowrap">📍 获取坐标</button></div>
+      <div class="s-row"><label>GPS经纬度</label><input type="text" id="surveyGPS" placeholder="自动获取或手动输入 例: 31.2304, 121.4737"><span id="geoStatus" style="font-size:0.7rem;color:var(--text-dim)"></span></div>
       <div class="s-row"><label>业主联系人</label><input type="text"><label>联系电话</label><input type="text"></div>
       <div class="s-row"><label>踏勘日期</label><input type="text" placeholder="2026-05-22"><label>踏勘工程师</label><input type="text"></div>
       <div class="s-row"><label>踏勘时天气</label><input type="text" placeholder="晴/多云/雨"></div>
@@ -267,5 +267,21 @@
 </div>
 
 <script src="js/theme.js?v=2"></script>
+<script>
+function geocodeAddress(){
+  var addr=document.getElementById('surveyAddress').value.trim();
+  var gps=document.getElementById('surveyGPS');
+  var st=document.getElementById('geoStatus');
+  if(!addr){st.textContent='请先输入地址';return;}
+  st.textContent='查询中...';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.length>0){gps.value=d[0].lat+', '+d[0].lon;st.textContent='✓';}
+      else{st.textContent='未找到, 请手动输入';}
+    })
+    .catch(function(){st.textContent='查询失败, 请手动输入';});
+}
+</script>
 </body>
 </html>
