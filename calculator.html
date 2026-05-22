@@ -33,6 +33,7 @@
 
 <section class="calc-hero" id="calcMain"><div class="container"><h1>分布式光伏 <span class="hl">IRR 测算</span></h1><p class="hero-sub" data-en="Adjust parameters — real-time IRR, NPV, and cash flow" data-zh="调节参数，实时查看全投资/资本金收益率与现金流分析" data-ja="パラメータを調整 — IRR・NPV・キャッシュフローをリアルタイム計算">调节参数，实时查看全投资/资本金收益率与现金流分析</p></div></section>
 
+<div class="print-sec">一、项目信息</div>
 <div class="location-bar">
   <div class="loc-row">
     <input type="text" id="locProjectName" placeholder="项目名称（选填）" class="loc-input" style="width:100%" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';document.title=(n||'NrgOpt')+'-IRR测算'">
@@ -50,21 +51,21 @@
 
 <!-- PART 1 -->
 <div class="print-title">NrgOpt 分布式光伏 IRR 测算报告</div>
-<div class="print-sec">一、核心指标</div>
+<div class="print-sec">二、核心指标</div>
 <div class="metric-band">
   <div class="band-card"><div class="band-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div><div class="band-value" id="resIrrFull">—</div><div class="band-sub" data-en="all-equity" data-zh="不考虑杠杆" data-ja="全額自己資金">不考虑杠杆</div></div>
   <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq">—</div><div class="band-sub" data-en="leveraged" data-zh="含杠杆效应" data-ja="レバレッジあり">含杠杆效应</div></div>
   <div class="band-card"><div class="band-label" data-en="Net Present Value" data-zh="净现值 NPV" data-ja="正味現在価値">净现值 NPV</div><div class="band-value" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
   <div class="band-card"><div class="band-label" data-en="Payback" data-zh="回收期" data-ja="回収期間">回收期</div><div class="band-value" id="resPayback">—</div><div class="band-sub" data-en="years" data-zh="年" data-ja="年">年</div></div>
 </div>
-<div class="print-sec">二、投资与产出</div>
+<div class="print-sec">三、投资与产出</div>
 <div class="metric-band row2">
   <div class="band-card"><div class="band-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="band-value" id="resTotalInv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
   <div class="band-card"><div class="band-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="band-value" id="resLoan">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
   <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年总发电量" data-ja="初年度総発電量">首年总发电量</div><div class="band-value" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
   <div class="band-card"><div class="band-label" data-en="Gen Life Total" data-zh="运营期总发电量" data-ja="全期間総発電量">运营期总发电量</div><div class="band-value" id="resGenTotal">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
 </div>
-<div class="print-sec">三、收入成本利润</div>
+<div class="print-sec">四、收入成本利润</div>
 <div class="metric-band row3">
   <div class="band-card"><div class="band-label" data-en="Total Revenue" data-zh="总收入" data-ja="総収入">总收入</div><div class="band-value" id="resTotalRev">—</div><div class="band-sub" data-en="Sum of annual revenue" data-zh="各年营业收入合计" data-ja="各年営業収入合計">各年营业收入合计</div></div>
   <div class="band-card"><div class="band-label" data-en="Total VAT" data-zh="总增值税" data-ja="総消費税">总增值税</div><div class="band-value" id="resTotalVat">—</div><div class="band-sub" data-en="VAT paid + surcharges" data-zh="实缴增值税+城建教育附加" data-ja="消費税+付加税">实缴增值税+城建教育附加</div></div>
@@ -73,7 +74,7 @@
 </div>
 
 <!-- PART 2: PARAMETERS -->
-<div class="print-sec">四、测算参数</div>
+<div class="print-sec">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
   <!-- Col 1 -->
@@ -163,7 +164,7 @@
 </div></div>
 
 <!-- PART 3: CHART -->
-<div class="print-sec">五、逐年现金流图</div>
+<div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
   <div class="chart-card">
     <h3 data-en="📊 Annual Cash Flow (10k CNY)" data-zh="📊 逐年现金流（万元）" data-ja="📊 年間CF（万元）">📊 逐年现金流（万元）</h3>
@@ -172,7 +173,7 @@
 </div>
 
 <!-- PART 4: TABLE -->
-<div class="print-sec">六、现金流明细</div>
+<div class="print-sec">七、现金流明细</div>
 <div class="table-band">
   <div class="table-card">
     <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 CF明細（万元）">📋 现金流明细（万元）</h3>
