@@ -269,10 +269,18 @@ window.autoFillFromAddress=function(){
   var st=el('locStatus');
   if(!addr){st.textContent='请先输入地址';return;}
   st.textContent='查询坐标中...';
-  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1')
-    .then(function(r){return r.json();})
-    .then(function(d){if(d.length>0){fillFromLatLon(parseFloat(d[0].lat),parseFloat(d[0].lon));}else{st.textContent='未找到地址';}})
-    .catch(function(){st.textContent='查询失败';});
+  // Try OpenStreetMap Nominatim first
+  var url='https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1';
+  fetch(url,{headers:{'User-Agent':'NrgOpt-IRR-Calculator/1.0'}})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      if(d.length>0){fillFromLatLon(parseFloat(d[0].lat),parseFloat(d[0].lon));}
+      else{st.textContent='未找到该地址, 请尝试更详细的地址';}
+    })
+    .catch(function(e){
+      // Fallback: try with coordinates embedded in address or manual input
+      st.textContent='地址查询失败, 请手动填写参数或使用定位';
+    });
 };
 window.autoFillFromGPS=function(){
   var st=el('locStatus');
