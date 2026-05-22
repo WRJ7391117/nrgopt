@@ -148,7 +148,7 @@
   .loc-status { display:none; }
 
   /* ── Section titles (visible only in print) ── */
-  .print-title { display:block !important; font-size:16pt; font-weight:800; color:#0369a1; text-align:center; padding:0 0 2pt; margin:0 0 14pt; border-top:1.5px solid #0369a1; border-bottom:1.5px solid #0369a1; }
+  .print-title { display:block !important; font-size:16pt; font-weight:800; color:#0369a1; text-align:center; padding:6pt 0 4pt; margin:0 0 14pt; border-top:1.5px solid #0369a1; border-bottom:1.5px solid #0369a1; }
   .print-sec { display:block !important; font-size:11pt; font-weight:700; color:#111; padding:12pt 0 4pt; margin-bottom:8pt; border-bottom:1.5px solid #eee; }
 
   .chart-band { padding:0; }
