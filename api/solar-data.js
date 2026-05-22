@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     let sum = 0, count = 0;
     for (const m in vals) { sum += vals[m]; count++; }
     const monthlyAvg = count > 0 ? sum / count : 0;
-    const irradiance = Math.round(monthlyAvg * 365);
+    let irradiance = Math.round(monthlyAvg * 365);
 
     if (irradiance < 500 || irradiance > 3000) throw new Error('Irradiance out of range: ' + irradiance);
 
