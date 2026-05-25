@@ -20,6 +20,17 @@ function switchTab(tab){
     else if(tab==='hy')show=(g==='pv'||g==='ci'||g==='is');
     groups[j].style.display=show?'':'none';
   }
+  // Set tab-appropriate defaults
+  if(tab==='ci'){
+    // C&I storage: battery cost 0.3-2.0 元/Wh, default 0.8
+    setSlider('inpUnitCost','numUnitCost',0.3,2.0,0.8);
+    // hide GenY1Total derived display
+    var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
+  }else if(tab==='pv'){
+    // PV: unit investment 1-50 元/W, default 3.7
+    setSlider('inpUnitCost','numUnitCost',1,50,3.7);
+    var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
+  }
   update();
 }
 
@@ -156,6 +167,12 @@ function calcCI(p){
   return {totalInv:TI,loan:loan,equity:equity,genY1:thruY1,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
+function setSlider(sid,nid,min,max,val){
+  var s=el(sid),n=el(nid);if(!s||!n)return;
+  s.min=min;s.max=max;s.value=val;n.value=val;
+  refreshDisplays();
+}
+
 function el(id){return document.getElementById(id);}
 function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
@@ -193,7 +210,7 @@ function getP(){
 
 function getPCI(){
   return {
-    capacity:val('inpCapacity')||200,duration:val('inpDuration')||2,unitCost:val('inpUnitCost')||1.5,
+    capacity:val('inpCapacity')||200,duration:val('inpDuration')||2,unitCost:val('inpUnitCost')||0.8,
     spread:val('inpSpread')||0.7,cycles:val('inpCycles')||2,opDays:ival('inpOpDays')||330,
     rte:val('inpRte')||88,
     runYears:ival('inpRunYears')||20,
