@@ -120,10 +120,8 @@ function computeGen(){
 
 var R=null;
 function update(){
-  var isPv=(currentTab==='pv'||currentTab==='hy');
   refreshDisplays();
   syncInfoCard();
-  if(isPv){
   var gw=computeGen(),l=document.documentElement.lang||'en';
   setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
   var ir=val('inpIrradiance')||1350,ti=val('inpTilt')||1.05,ef=(val('inpSysEff')||83.5)/100;
