@@ -1,5 +1,21 @@
-/* NrgOpt IRR Calculator v4 */
+/* NrgOpt Project Calculator v5 */
 'use strict';
+
+var currentTab='pv';
+
+function switchTab(tab){
+  currentTab=tab;
+  var btns=document.querySelectorAll('.tab-btn');
+  for(var i=0;i<btns.length;i++){
+    btns[i].classList.toggle('active',btns[i].getAttribute('data-tab')===tab);
+  }
+  // Show/hide PV-specific param groups
+  var pvEls=document.querySelectorAll('[data-pv-only]');
+  for(var j=0;j<pvEls.length;j++){
+    pvEls[j].style.display=(tab==='pv'||tab==='hy')?'':'none';
+  }
+  update();
+}
 
 function npv(r,c){var t=0;for(var i=0;i<c.length;i++)t+=c[i]/Math.pow(1+r,i);return t;}
 function irr(c,g){g=g||0.1;var r=g;for(var i=0;i<120;i++){var f=npv(r,c),d=(npv(r+1e-6,c)-f)/1e-6;if(Math.abs(d)<1e-14)break;var x=f/d;r-=x;if(Math.abs(x)<1e-8)return r;}return r;}
@@ -104,8 +120,10 @@ function computeGen(){
 
 var R=null;
 function update(){
+  var isPv=(currentTab==='pv'||currentTab==='hy');
   refreshDisplays();
   syncInfoCard();
+  if(isPv){
   var gw=computeGen(),l=document.documentElement.lang||'en';
   setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
   var ir=val('inpIrradiance')||1350,ti=val('inpTilt')||1.05,ef=(val('inpSysEff')||83.5)/100;
