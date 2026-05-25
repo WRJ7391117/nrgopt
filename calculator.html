@@ -79,6 +79,24 @@
       <span class="loc-res-item"><b>年运行天数</b> <span id="ciOpDays" class="loc-val">330 天</span></span>
     </div>
   </div>
+  <div data-tab-group="is" style="display:none">
+    <div class="loc-section-label">项目概况</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>系统配置</b> <span id="isSysSize" class="loc-val">50 MW / 100 MWh</span></span>
+      <span class="loc-res-item"><b>日充放循环</b> <span id="isCycles" class="loc-val">1.5 次/天</span></span>
+      <span class="loc-res-item"><b>年运行天数</b> <span id="isOpDays" class="loc-val">330 天</span></span>
+      <span class="loc-res-item"><b>容量租赁率</b> <span id="isLeaseRate" class="loc-val">85%</span></span>
+    </div>
+  </div>
+  <div data-tab-group="hy" style="display:none">
+    <div class="loc-section-label">项目概况</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>光伏装机</b> <span id="hyPvCap" class="loc-val">1 MW</span></span>
+      <span class="loc-res-item"><b>储能配置</b> <span id="hyStCap" class="loc-val">200 kW / 400 kWh</span></span>
+      <span class="loc-res-item"><b>自用比例</b> <span id="hySelfUse" class="loc-val">90%</span></span>
+      <span class="loc-res-item"><b>年辐照量</b> <span id="hyIrr" class="loc-val">—</span></span>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -154,6 +172,22 @@
         <div class="pr"><div class="pr-label"><span data-en="Operating Days/Yr" data-zh="年运行天数" data-ja="年間稼働日数"></span><span class="pr-val" id="dispOpDays"></span></div><div class="dual-input"><input type="range" id="inpOpDays" min="250" max="365" step="5" value="330"><input type="text" inputmode="decimal" id="numOpDays" step="5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="RTE" data-zh="充放电效率" data-ja="充放電効率"></span><span class="pr-val" id="dispRte"></span></div><div class="dual-input"><input type="range" id="inpRte" min="80" max="95" step="1" value="88"><input type="text" inputmode="decimal" id="numRte" step="1" class="num-field"></div></div>
         <div class="pr derived"><div class="pr-label"><span data-en="→ Daily Arbitrage" data-zh="→ 单次循环套利" data-ja="→ 日次裁定益"></span><span class="pr-val gold" id="dispArbitrage"></span></div></div>
+      </div>
+    </div>
+
+    <div class="param-group open" data-tab-group="is">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚡ Indep. Storage" data-zh="⚡ 独立储能参数" data-ja="⚡ 系統用蓄電">⚡ 独立储能参数</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDurationIs"></span></div><div class="dual-input"><input type="range" id="inpDurationIs" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDurationIs" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Lease Price" data-zh="容量租赁单价" data-ja="容量リース単価"></span><span class="pr-val" id="dispLeasePrice"></span></div><div class="dual-input"><input type="range" id="inpLeasePrice" min="100" max="500" step="10" value="300"><input type="text" inputmode="decimal" id="numLeasePrice" step="10" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Lease Rate" data-zh="租赁率" data-ja="リース率"></span><span class="pr-val" id="dispLeaseRate"></span></div><div class="dual-input"><input type="range" id="inpLeaseRate" min="50" max="100" step="5" value="85"><input type="text" inputmode="decimal" id="numLeaseRate" step="5" class="num-field"></div></div>
+        <div class="pr-note" style="margin-bottom:4px;font-weight:600;color:var(--text)"><span data-en="⚡ Market Revenue" data-zh="⚡ 电力市场收入" data-ja="⚡ 市場収入">⚡ 电力市场收入</span></div>
+        <div class="tou-row"><span class="tou-label" style="color:#f59e0b">峰谷价差</span><input type="text" inputmode="decimal" id="inpSpreadIs" class="tou-price" value="0.5" onchange="update()"><span class="tou-unit"> 元/kWh</span><input type="text" inputmode="decimal" id="inpPeakHoursIs" class="tou-hour" value="6" onchange="update()"><span class="tou-unit"> h</span></div>
+        <div class="tou-row"><span class="tou-label" style="color:#a78bfa">调频收入</span><input type="text" inputmode="decimal" id="inpFreqReg" class="tou-price" value="50" onchange="update()"><span class="tou-unit"> 万元/MW/年</span></div>
+        <div class="pr"><div class="pr-label"><span data-en="Cycles / Day" data-zh="每日充放次数" data-ja="1日サイクル数"></span><span class="pr-val" id="dispCyclesIs"></span></div><div class="dual-input"><input type="range" id="inpCyclesIs" min="0.5" max="3" step="0.5" value="1.5"><input type="text" inputmode="decimal" id="numCyclesIs" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Operating Days/Yr" data-zh="年运行天数" data-ja="年間稼働日数"></span><span class="pr-val" id="dispOpDaysIs"></span></div><div class="dual-input"><input type="range" id="inpOpDaysIs" min="250" max="365" step="5" value="330"><input type="text" inputmode="decimal" id="numOpDaysIs" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="RTE" data-zh="充放电效率" data-ja="充放電効率"></span><span class="pr-val" id="dispRteIs"></span></div><div class="dual-input"><input type="range" id="inpRteIs" min="80" max="95" step="1" value="88"><input type="text" inputmode="decimal" id="numRteIs" step="1" class="num-field"></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Daily Revenue Est." data-zh="→ 预估日收入" data-ja="→ 推定日収"></span><span class="pr-val gold" id="dispIsDailyRev"></span></div></div>
       </div>
     </div>
 
@@ -237,6 +271,6 @@
 <p class="calc-disclaimer" data-en="⚠️ Standard model (tax holiday + 50% VAT refund + inverter replacement). Estimates only." data-zh="⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。" data-ja="⚠️ 標準モデル。参考値です。">⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。</p>
 
 <script src="js/theme.js?v=2"></script>
-<script src="js/calculator.js?v=11"></script>
+<script src="js/calculator.js?v=12"></script>
 </body>
 </html>
