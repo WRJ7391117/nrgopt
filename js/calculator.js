@@ -23,7 +23,7 @@ function switchTab(tab){
   // Set tab-appropriate defaults
   if(tab==='ci'){
     // C&I storage: battery cost 0.3-2.0 元/Wh, default 0.8
-    setSlider('inpUnitCost','numUnitCost',0.3,2.0,0.8);
+    setSlider('inpUnitCost','numUnitCost',0.3,5.0,0.8);
     // hide GenY1Total derived display
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='pv'){
