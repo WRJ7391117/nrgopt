@@ -49,7 +49,7 @@
 
 /* ── PART 2: PARAMETERS ── */
 .params-wrap { max-width:1180px; margin:0 auto 18px; padding:0 24px 12px; }
-.params-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:start; }
+.params-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; align-items:start; }
 .params-grid > div > .param-group { width:100%; }
 
 .param-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
@@ -182,7 +182,7 @@
 
   /* ── Part 4: Parameters ── */
   .params-wrap { padding:0; }
-  .params-grid { grid-template-columns:repeat(3,1fr) !important; gap:8px; }
+  .params-grid { grid-template-columns:repeat(2,1fr) !important; gap:8px; }
   .param-group { border:1px solid #ddd; box-shadow:none; background:#fff; margin-bottom:8px; break-inside:avoid; }
   .param-group-header { background:#f5f5f5; font-size:8pt; cursor:default; color:#111; padding:5px 10px; }
   .param-group-header .arrow { display:none; }
