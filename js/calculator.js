@@ -60,7 +60,7 @@ function calc(p){
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
   var totalRev=0,totalCost=0,totalProfit=0,totalVat=0,totalGen=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;totalGen+=rows[i].gen;}
-  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function el(id){return document.getElementById(id);}
@@ -125,6 +125,8 @@ function update(){
   setText('resNpv',npvTxt);
   el('resNpv').style.color=R.npvFull>=0?'':'#f87171';
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
+  setText('resRoi',R.roi.toFixed(1)+'%');
+  el('resRoi').style.color=R.roi>=0?'#10b981':'#f87171';
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
   setText('resTotalRev',fm(R.totalRev));
@@ -214,7 +216,7 @@ window.switchLang=function(lang){
   document.documentElement.lang=lang;
   var els=document.querySelectorAll('[data-en],[data-zh],[data-ja]');
   for(var i=0;i<els.length;i++){var e=els[i];if(lang==='en'&&e.hasAttribute('data-en'))e.textContent=e.getAttribute('data-en');else if(lang==='zh'&&e.hasAttribute('data-zh'))e.textContent=e.getAttribute('data-zh');else if(lang==='ja'&&e.hasAttribute('data-ja'))e.textContent=e.getAttribute('data-ja');}
-  var h1=document.querySelector('.calc-hero h1');if(h1){var hl=h1.querySelector('.hl');if(hl){var t={en:['Distributed PV ','IRR Calculator'],zh:['分布式光伏 ','IRR 测算'],ja:['分散型太陽光 ','IRR試算']},tt=t[lang]||t.zh;h1.childNodes[0]&&(h1.childNodes[0].textContent=tt[0]);hl.textContent=tt[1];}}
+  var h1=document.querySelector('.calc-hero h1');if(h1){var hl=h1.querySelector('.hl');if(hl){var t={en:['Distributed PV ','Project Calculator'],zh:['分布式光伏 ','项目测算'],ja:['分散型太陽光 ','プロジェクト試算']},tt=t[lang]||t.zh;h1.childNodes[0]&&(h1.childNodes[0].textContent=tt[0]);hl.textContent=tt[1];}}
   var sel=el('langSelect');if(sel)sel.value=lang;try{localStorage.setItem('nrgopt-lang',lang);}catch(e){}
   var ths=document.querySelectorAll('th[data-en]');for(var i=0;i<ths.length;i++){var th=ths[i],txt=lang==='en'?th.getAttribute('data-en'):(lang==='zh'?th.getAttribute('data-zh'):th.getAttribute('data-ja'));if(txt)th.textContent=txt;}
   refreshDisplays();update();
@@ -270,7 +272,7 @@ function init(){
 window.downloadPDF=function(){
   var name=el('locProjectName').value.trim();
   var titleEl=document.querySelector('.print-title');
-  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt 分布式光伏 IRR 测算报告';
+  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt 光伏项目测算报告';
   window.print();
 };
 
