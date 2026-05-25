@@ -159,6 +159,19 @@
         <div class="pr"><div class="pr-label"><span data-en="Grid Price" data-zh="上网结算电价" data-ja="系統連系価格"></span><span class="pr-val" id="dispGridPrice"></span></div><div class="dual-input"><input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3"><input type="text" inputmode="decimal" id="numGridPrice" step="0.001" class="num-field"></div><div class="pr-note" data-en="CfD + market price (2025 reform)" data-zh="市场化交易价+差价结算(136号文)" data-ja="市場価格+差額決済(2025年改革)">市场化交易价+差价结算(136号文)</div></div>
       </div>
     </div>
+
+    <div class="param-group open" data-tab-group="ci">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage" data-zh="🔋 储能参数" data-ja="🔋 蓄電パラメータ">🔋 储能参数</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDuration"></span></div><div class="dual-input"><input type="range" id="inpDuration" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDuration" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Peak-Valley Spread" data-zh="峰谷价差" data-ja="ピーク-オフ差"></span><span class="pr-val" id="dispSpread"></span></div><div class="dual-input"><input type="range" id="inpSpread" min="0.3" max="1.5" step="0.01" value="0.7"><input type="text" inputmode="decimal" id="numSpread" step="0.01" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Cycles / Day" data-zh="每日充放次数" data-ja="1日サイクル数"></span><span class="pr-val" id="dispCycles"></span></div><div class="dual-input"><input type="range" id="inpCycles" min="0.5" max="3" step="0.5" value="2"><input type="text" inputmode="decimal" id="numCycles" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Operating Days/Yr" data-zh="年运行天数" data-ja="年間稼働日数"></span><span class="pr-val" id="dispOpDays"></span></div><div class="dual-input"><input type="range" id="inpOpDays" min="250" max="365" step="5" value="330"><input type="text" inputmode="decimal" id="numOpDays" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="RTE" data-zh="充放电效率" data-ja="充放電効率"></span><span class="pr-val" id="dispRte"></span></div><div class="dual-input"><input type="range" id="inpRte" min="80" max="95" step="1" value="88"><input type="text" inputmode="decimal" id="numRte" step="1" class="num-field"></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Throughput" data-zh="→ 年放电量" data-ja="→ 年間放電量"></span><span class="pr-val gold" id="dispDischarge"></span></div></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Col 3 -->
