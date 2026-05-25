@@ -145,18 +145,27 @@ function calcCI(p){
   var irpw=p.invReplace,iry=p.invYear,disc=p.discount;
   var repayMethod=p.repayMethod||'equal-principal';
 
-  // CAPEX = capacity(元/Wh) × kWh
-  var kWh=cap*dur,TI=kWh*uc;
-  var loan=TI*lr,equity=TI-loan;
+  // CAPEX
+  var kWh=cap*dur,TI=kWh*uc,loan=TI*lr,equity=TI-loan;
+  var dod=p.dod/100,priceEscal=p.priceEscal/100;
+  var demandCharge=p.demandCharge,demandReduction=p.demandReduction/100;
+  var effKWh=kWh*dod;
 
-  // TOU arbitrage: fill super-peak first, then peak (逐层填满)
-  var spFill=Math.min(dur,spHrs); // 尖峰可放电小时
-  var pkFill=Math.min(dur-spFill,peakHrs); // 剩余放高峰
-  var totalDisHrs=spFill+pkFill; // 单次循环总放电小时
+  // TOU arbitrage (逐层填满)
+  var spFill=Math.min(dur,spHrs),pkFill=Math.min(dur-spFill,peakHrs);
+  var totalDisHrs=spFill+pkFill;
   var avgOutPrice=totalDisHrs>0?(spFill*spPrice+pkFill*peakPrice)/totalDisHrs:peakPrice;
-  var dailyRev=kWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte); // 万元/天
-  var annualRev=dailyRev*opDays; // 万元/年
-  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1); // 万kWh 首年
+  var baseDailyArb=effKWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte);
+
+  // Demand charge savings
+  var peakReduction=cap*demandReduction,demandSavings=peakReduction*demandCharge*12/10000;
+
+  // Battery degradation: calendar + cycle-based
+  var totalCycles=cycles*opDays*ry,cycleLife=6000;
+  var cycleDegRate=0.2/(cycles*opDays); // lose 20% per year-equivalent cycles
+  var calendarDegRate=da;
+  var annualThru=effKWh*cycles*opDays*rte/1000;
+  var baseAnnualRev=baseDailyArb*opDays+demandSavings;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
   var invRep=kWh*irpw;
@@ -172,8 +181,12 @@ function calcCI(p){
   }
 
   for(var y=1;y<=ry;y++){
-    var thru=y===1?annualThru:annualThru*Math.pow(1-da,y-1);
-    var rev=annualRev*Math.pow(1-da,y-1)/(1-d1); // revenue degrades with throughput
+    var calD=1-calendarDegRate*(y-1);
+    var cycD=1-cycleDegRate*cyc*(y-1);
+    var degF=Math.max(0.65,calD*cycD);
+    var thru=annualThru*degF;
+    var priceF=Math.pow(1+priceEscal,y-1);
+    var rev=baseAnnualRev*priceF*degF;
     var outputVat=rev*vr;
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
@@ -415,6 +428,8 @@ function getP(){
 function getPCI(){
   return {
     capacity:val('inpCapacity')||200,duration:val('inpDuration')||2,unitCost:val('inpUnitCost')||0.8,
+    dod:val('inpDod')||85,priceEscal:val('inpPriceEscal')||2.5,
+    demandCharge:val('inpDemandCharge')||40,demandReduction:val('inpDemandReduction')||30,
     spPrice:val('inpSpPrice')||1.2,spHours:val('inpSpHours')||2,
     peakPrice:val('inpPeakPrice')||1.0,peakHours:val('inpPeakHours')||4,
     flatPrice:val('inpFlatPrice')||0.6,flatHours:val('inpFlatHours')||10,
@@ -505,9 +520,14 @@ function update(){
     var pkFill=Math.min(dur-spFill,pkH);
     var totalDisH=spFill+pkFill;
     var avgOut=totalDisH>0?(spFill*spP+pkFill*pkP)/totalDisH:pkP;
-    var dailyArb=kWh*rte2/1000*cyc*(avgOut-vlP/rte2);
-    setText('dispArbitrage','尖'+spFill.toFixed(1)+'h×'+spP.toFixed(2)+' + 高'+pkFill.toFixed(1)+'h×'+pkP.toFixed(2)+' ≈ '+dailyArb.toFixed(2)+' 万元/天');
-    var idealThru=kWh*cyc*opD*rte2/1000;
+        var dod2=(val('inpDod')||85)/100;
+    var effKWh=kWh*dod2;
+    var baseArb=effKWh*rte2/1000*cyc*(avgOut-vlP/rte2);
+    var pe=(val('inpPriceEscal')||2.5)/100;
+    var dmCharge=val('inpDemandCharge')||40,dmRed=(val('inpDemandReduction')||30)/100;
+    var dmSave=(val('inpCapacity')||200)*dmRed*dmCharge*12/10000;
+    var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330);
+    setText('dispArbitrage','套利'+baseArb.toFixed(2)+'+需量'+dmSave.toFixed(1)+' ≈ '+dailyTotal.toFixed(2)+' 万元/天');    var idealThru=kWh*cyc*opD*rte2/1000;
     setText('dispGenPerW',(idealThru/val('inpCapacity')).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
