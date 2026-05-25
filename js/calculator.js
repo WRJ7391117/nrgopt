@@ -60,7 +60,7 @@ function calc(p){
   }
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
   var totalRev=0,totalCost=0,totalProfit=0,totalVat=0,totalGen=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;totalGen+=rows[i].gen;}
-  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/(TI-loan)*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/(TI-loan)*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function el(id){return document.getElementById(id);}
@@ -129,6 +129,8 @@ function update(){
   el('resRoi').style.color='#f59e0b';
   setText('resRoe',R.roe.toFixed(1)+'%');
   el('resRoe').style.color='#38bdf8';
+  setText('resRoa',R.roa.toFixed(1)+'%');
+  el('resRoa').style.color='#a78bfa';
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
   setText('resTotalRev',fm(R.totalRev));
