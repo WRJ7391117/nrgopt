@@ -16,7 +16,7 @@ function switchTab(tab){
     var show=false;
     if(tab==='pv')show=(g==='pv');
     else if(tab==='ci')show=(g==='ci');
-    else if(tab==='is')show=(g==='is');
+    else if(tab==='is')show=(g==='is'||g==='ci');
     else if(tab==='hy')show=(g==='pv'||g==='ci'||g==='is');
     groups[j].style.display=show?'':'none';
   }
@@ -512,6 +512,39 @@ function update(){
     setText('dispSunHours',Math.round(idealThru));
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
     setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
+    setText('dispBestAngle','');
+  }else if(currentTab==='is'){
+    // IS info card
+    var isCap=val('inpCapacity')||50,isDur=val('inpDurationIs')||2;
+    var isKwh=isCap*isDur;
+    var ss=el('isSysSize');if(ss)ss.textContent=Math.round(isCap)+' MW / '+Math.round(isKwh)+' MWh';
+    var sc=el('isCycles');if(sc)sc.textContent=(val('inpCyclesIs')||1.5).toFixed(1)+' 次/天';
+    var so=el('isOpDays');if(so)so.textContent=(ival('inpOpDaysIs')||330)+' 天';
+    var sl=el('isLeaseRate');if(sl)sl.textContent=Math.round(val('inpLeaseRate')||85)+'%';
+    // IS display
+    var isRte2=(val('inpRteIs')||88)/100,isSpread=val('inpSpreadIs')||0.5;
+    var isCycles=val('inpCyclesIs')||1.5,isOpD=ival('inpOpDaysIs')||330;
+    var isLeaseRev=isCap/1000*(val('inpLeasePrice')||300)*(val('inpLeaseRate')||85)/100;
+    var isArbRev=isKwh*isRte2/1000*isCycles*isSpread;
+    var isFreqRev=isCap/1000*(val('inpFreqReg')||50);
+    var isDailyRev=isArbRev+(isLeaseRev+isFreqRev)/isOpD;
+    setText('dispIsDailyRev','租赁'+isLeaseRev.toFixed(1)+'+套利'+isArbRev.toFixed(1)+'+调频'+isFreqRev.toFixed(1)+' 万元');
+    setText('dispGenPerW',(isKwh*isCycles*isOpD*isRte2/1000/isCap).toFixed(2)+' 万kWh/kW');
+    setText('dispSunHours',Math.round(isKwh*isCycles*isOpD*isRte2/1000));
+    setText('dispOmTotal',((val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015)).toFixed(3)+' 元/Wh');
+    // Metric labels
+    var g1i=el('resGenY1');if(g1i&&g1i.parentElement){var bl=g1i.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
+    var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
+  }else if(currentTab==='hy'){
+    // HY info card
+    var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
+    var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
+    var hySt=el('hyStCap');if(hySt)hySt.textContent=Math.round(hyCap*200)+' kW / '+Math.round(hyCap*200*hyDur)+' kWh';
+    var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
+    var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
+    // Metric labels
+    var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
+    var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
     setText('dispBestAngle','');
   }else{
     // Restore PV metric labels
