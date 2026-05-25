@@ -115,7 +115,7 @@
         <div class="pr"><div class="pr-label"><span data-en="Depreciation Years" data-zh="折旧年限" data-ja="償却年数"></span><span class="pr-val" id="dispDeprYears"></span></div><div class="dual-input"><input type="range" id="inpDeprYears" min="5" max="20" step="1" value="10"><input type="text" inputmode="decimal" id="numDeprYears" step="1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Residual Rate" data-zh="残值率" data-ja="残存率"></span><span class="pr-val" id="dispResidual"></span></div><div class="dual-input"><input type="range" id="inpResidual" min="0" max="10" step="1" value="5"><input type="text" inputmode="decimal" id="numResidual" step="1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Discount Rate" data-zh="折现率" data-ja="割引率"></span><span class="pr-val" id="dispDiscount"></span></div><div class="dual-input"><input type="range" id="inpDiscount" min="0" max="100" step="1" value="10"><input type="text" inputmode="decimal" id="numDiscount" step="1" min="0" max="100" class="num-field"></div></div>
-        <div class="pr derived"><div class="pr-label"><span data-en="→ Gen Year 1" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span><span class="pr-val gold" id="dispGenY1Total"></span></div></div>
+        <div class="pr derived" style="display:block" class-pv-only="1"><div class="pr-label"><span data-en="→ Gen Year 1" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span><span class="pr-val gold" id="dispGenY1Total"></span></div></div>
       </div>
     </div>
 
@@ -139,7 +139,7 @@
 
   <!-- Col 2 -->
   <div>
-    <div class="param-group open">
+    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ Generation" data-zh="☀ 发电量" data-ja="☀ 発電量">☀ 发电量</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span><span class="pr-val" id="dispIrradiance"></span></div><div class="dual-input"><input type="range" id="inpIrradiance" min="800" max="2200" step="1" value="1350"><input type="text" inputmode="decimal" id="numIrradiance" step="1" class="num-field"></div></div>
@@ -151,7 +151,7 @@
       </div>
     </div>
 
-    <div class="param-group open">
+    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💰 Price" data-zh="💰 用电与电价" data-ja="💰 電力価格">💰 用电与电价</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span><span class="pr-val" id="dispSelfUse"></span></div><div class="dual-input"><input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90"><input type="text" inputmode="decimal" id="numSelfUse" step="5" class="num-field"></div></div>
