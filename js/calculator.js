@@ -22,11 +22,28 @@ function switchTab(tab){
   }
   // Set tab-appropriate defaults
   if(tab==='ci'){
-    // C&I storage: battery cost 0.3-2.0 元/Wh, default 0.8
+    // C&I storage defaults: 20yr life, 8yr depr, higher insurance, battery replacement Y10
+    setSlider('inpRunYears','numRunYears',15,30,20);
+    setSlider('inpDeprYears','numDeprYears',5,15,8);
+    setSlider('inpLoanYears','numLoanYears',5,15,10);
     setSlider('inpUnitCost','numUnitCost',0.3,5.0,0.8);
-    // hide GenY1Total derived display
+    setSlider('inpInvReplace','numInvReplace',0,0.6,0.3);
+    setSlider('inpInvYear','numInvYear',8,15,10);
+    setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.015);
+    setSlider('inpInsRate','numInsRate',0,0.3,0.15);
+    setSlider('inpDiscount','numDiscount',0,100,8);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='pv'){
+    // PV defaults
+    setSlider('inpRunYears','numRunYears',15,30,25);
+    setSlider('inpDeprYears','numDeprYears',5,20,10);
+    setSlider('inpLoanYears','numLoanYears',5,20,15);
+    setSlider('inpUnitCost','numUnitCost',1,50,3.7);
+    setSlider('inpInvReplace','numInvReplace',0,0.5,0.2);
+    setSlider('inpInvYear','numInvYear',8,20,12);
+    setSlider('inpMaintFee','numMaintFee',0.01,0.08,0.04);
+    setSlider('inpInsRate','numInsRate',0,0.3,0.1);
+    setSlider('inpDiscount','numDiscount',0,100,10);
     // PV: unit investment 1-50 元/W, default 3.7
     setSlider('inpUnitCost','numUnitCost',1,50,3.7);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
@@ -113,18 +130,14 @@ function calcCI(p){
   var kWh=cap*dur,TI=kWh*uc;
   var loan=TI*lr,equity=TI-loan;
 
-  // TOU-based arbitrage revenue per cycle
-  var chargeHrs=Math.min(dur,valleyHrs); // can only charge during valley
-  var dischargeHrs=Math.min(dur,spHrs+peakHrs); // discharge during peak+super-peak
-  var dischargePerCycle=kWh*rte/1000; // 万kWh per full cycle
-  // Weighted discharge price: prioritize super-peak, then peak
-  var effDisHrs=Math.min(dur,spHrs+peakHrs);
-  var spShare=Math.min(spHrs,effDisHrs)/effDisHrs;
-  var peakShare=1-spShare;
-  var avgOutPrice=spShare*spPrice+peakShare*peakPrice;
-  var dailyRev=kWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte); // 万元/day
-  var annualRev=dailyRev*opDays; // 万元/yr
-  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1); // 万kWh in first year
+  // TOU arbitrage: fill super-peak first, then peak (逐层填满)
+  var spFill=Math.min(dur,spHrs); // 尖峰可放电小时
+  var pkFill=Math.min(dur-spFill,peakHrs); // 剩余放高峰
+  var totalDisHrs=spFill+pkFill; // 单次循环总放电小时
+  var avgOutPrice=totalDisHrs>0?(spFill*spPrice+pkFill*peakPrice)/totalDisHrs:peakPrice;
+  var dailyRev=kWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte); // 万元/天
+  var annualRev=dailyRev*opDays; // 万元/年
+  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1); // 万kWh 首年
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
   var invRep=kWh*irpw;
@@ -260,11 +273,12 @@ function update(){
     var pkP=val('inpPeakPrice')||1.0,pkH=val('inpPeakHours')||4;
     var vlP=val('inpValleyPrice')||0.35,vlH=val('inpValleyHours')||8;
     var cyc=val('inpCycles')||2,opD=ival('inpOpDays')||330;
-    var effDisHrs=Math.min(dur,spH+pkH);
-    var spSh=Math.min(spH,effDisHrs)/effDisHrs;
-    var avgOut=spSh*spP+(1-spSh)*pkP;
-    var dailyArb=kWh*rte2/1000*cyc*(avgOut-vlP/rte2).toFixed(2);
-    setText('dispArbitrage','≈ '+dailyArb.toFixed(2)+' 万元/天');
+    var spFill=Math.min(dur,spH);
+    var pkFill=Math.min(dur-spFill,pkH);
+    var totalDisH=spFill+pkFill;
+    var avgOut=totalDisH>0?(spFill*spP+pkFill*pkP)/totalDisH:pkP;
+    var dailyArb=kWh*rte2/1000*cyc*(avgOut-vlP/rte2);
+    setText('dispArbitrage','尖'+spFill.toFixed(1)+'h×'+spP.toFixed(2)+' + 高'+pkFill.toFixed(1)+'h×'+pkP.toFixed(2)+' ≈ '+dailyArb.toFixed(2)+' 万元/天');
     var idealThru=kWh*cyc*opD*rte2/1000;
     setText('dispGenPerW',(idealThru/val('inpCapacity')).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
