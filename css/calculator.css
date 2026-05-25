@@ -5,7 +5,7 @@
 .calc-hero .hero-sub { font-size:0.88rem; color:var(--text-dim); max-width:560px; margin:0 auto; }
 
 /* ── PART 1: CARDS ── */
-.metric-band { max-width:1200px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(7,1fr); gap:10px; }
+.metric-band { max-width:1000px; margin:0 auto 18px; padding:0 24px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 
 .info-card { max-width:1132px; margin:0 auto 20px; padding:22px 28px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
 .loc-label { min-width:70px; font-size:0.8rem; color:var(--text-dim); font-weight:500; }
@@ -32,6 +32,9 @@
 .nav-input { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.78rem; width:120px; font-family:inherit; }
 .nav-input:focus { outline:none; border-color:var(--accent); }
 .nav-input::placeholder { color:var(--text-dim); }
+.metric-band.row2 { grid-template-columns:repeat(4,1fr); }
+.metric-band.row3 { grid-template-columns:repeat(4,1fr); }
+.metric-band.row4 { grid-template-columns:repeat(4,1fr); }
 .band-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 16px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); transition:box-shadow 0.2s; }
 .band-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.1); }
 .band-label { font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; font-weight:500; }
@@ -153,7 +156,10 @@
   .print-sec { display:block !important; font-size:11pt; font-weight:700; color:#111; padding:12pt 0 4pt; margin-bottom:8pt; border-bottom:1.5px solid #eee; }
 
   .chart-band { padding:0; }
-  .metric-band { grid-template-columns:repeat(7,1fr) !important; padding:4px 0 10pt; gap:6px; }
+  .metric-band { grid-template-columns:repeat(3,1fr) !important; padding:4px 0 10pt; gap:6px; }
+  .metric-band.row2 { grid-template-columns:repeat(4,1fr) !important; }
+  .metric-band.row3 { grid-template-columns:repeat(4,1fr) !important; }
+  .metric-band.row4 { grid-template-columns:repeat(4,1fr) !important; }
   .band-card { border:1px solid #ddd; box-shadow:none; background:#fff; padding:8px 10px; }
   .band-label { color:#555; font-size:7pt; }
   .band-value { color:#111; font-size:14pt; }
