@@ -27,8 +27,8 @@ function switchTab(tab){
     setSlider('inpDeprYears','numDeprYears',5,15,8);
     setSlider('inpLoanYears','numLoanYears',5,15,10);
     setSlider('inpUnitCost','numUnitCost',0.3,5.0,0.8);
-    setSlider('inpInvReplace','numInvReplace',0,0.6,0.3);
-    setSlider('inpInvYear','numInvYear',8,15,10);
+    setSlider('inpBatReplace','numBatReplace',0,0.6,0.3);
+    setSlider('inpBatYear','numBatYear',8,15,10);
     setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.015);
     setSlider('inpInsRate','numInsRate',0,0.3,0.15);
     setSlider('inpDiscount','numDiscount',0,100,8);
@@ -251,7 +251,7 @@ function getPCI(){
     vatRate:(ival('inpVatRate')||13)/100,
     taxFreeYr:ival('inpTaxFreeYr')||3,taxHalfYr:ival('inpTaxHalfYr')||3,
     taxRate:(val('inpTaxRate')||25)/100,
-    invReplace:val('inpInvReplace')||0.3,invYear:ival('inpInvYear')||10,
+    invReplace:val('inpBatReplace')||0.3,invYear:ival('inpBatYear')||10,
     discount:(val('inpDiscount')||10)/100
   };
 }
@@ -441,7 +441,9 @@ function init(){
   bindDual('inpTaxRate','numTaxRate','dispTaxRate',function(v){return Math.round(v)+'%';});
   bindDual('inpInvReplace','numInvReplace','dispInvReplace',function(v){return v.toFixed(3)+' 元/W';});
   bindDual('inpInvYear','numInvYear','dispInvYear',function(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
-  bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
+bindDual('inpBatReplace','numBatReplace','dispBatReplace',function(v){return v.toFixed(3)+' 元/Wh';});
+  bindDual('inpBatYear','numBatYear','dispBatYear',function(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
+    bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
 bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
   bindDual('inpSpread','numSpread','dispSpread',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));});
   bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
