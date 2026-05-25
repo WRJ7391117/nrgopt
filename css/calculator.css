@@ -78,6 +78,14 @@
 .num-field { width:100%; padding:3px 4px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.73rem; text-align:center; font-family:inherit; transition:border-color 0.15s; }
 .num-field:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(56,189,248,0.1); }
 
+/* ── TOU price rows ── */
+.tou-row { display:flex; align-items:center; gap:4px; margin-bottom:4px; padding:2px 0; }
+.tou-label { font-size:0.75rem; font-weight:600; min-width:28px; }
+.tou-price { width:48px; padding:2px 3px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.73rem; text-align:center; font-family:inherit; }
+.tou-hour { width:32px; padding:2px 3px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.73rem; text-align:center; font-family:inherit; }
+.tou-unit { font-size:0.65rem; color:var(--text-dim); }
+.tou-price:focus,.tou-hour:focus { outline:none; border-color:var(--accent); }
+
 .pr-note { font-size:0.62rem; color:var(--text-dim); margin-top:1px; line-height:1.2; }
 .pr-sub { font-size:0.62rem; color:var(--text-dim); margin-bottom:2px; }
 .pr-sub span { color:var(--accent); font-weight:600; }

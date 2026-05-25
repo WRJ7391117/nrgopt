@@ -99,8 +99,9 @@ function calc(p){
 
 function calcCI(p){
   var cap=p.capacity,dur=p.duration,uc=p.unitCost,lr=p.loanRatio,li=p.loanRate,ly=p.loanYears;
-  var spread=p.spread,cycles=p.cycles,opDays=p.opDays,rte=p.rte/100;
-  var mWh=p.capacity*dur/1000; // MW -> MWh for display
+  var spPrice=p.spPrice,spHrs=p.spHours,peakPrice=p.peakPrice,peakHrs=p.peakHours;
+  var flatPrice=p.flatPrice,flatHrs=p.flatHours,valleyPrice=p.valleyPrice,valleyHrs=p.valleyHours;
+  var cycles=p.cycles,opDays=p.opDays,rte=p.rte/100;
   var d1=p.degradY1||0.02,da=p.degrad||0.015;
   var ry=p.runYears,dy=p.deprYears,res=p.residual;
   var vr=p.vatRate,taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
@@ -112,9 +113,18 @@ function calcCI(p){
   var kWh=cap*dur,TI=kWh*uc;
   var loan=TI*lr,equity=TI-loan;
 
-  // Annual throughput
-  var idealThru=kWh*cycles*opDays*rte/1000; // 万kWh in first year
-  var thruY1=idealThru*(1-d1);
+  // TOU-based arbitrage revenue per cycle
+  var chargeHrs=Math.min(dur,valleyHrs); // can only charge during valley
+  var dischargeHrs=Math.min(dur,spHrs+peakHrs); // discharge during peak+super-peak
+  var dischargePerCycle=kWh*rte/1000; // 万kWh per full cycle
+  // Weighted discharge price: prioritize super-peak, then peak
+  var effDisHrs=Math.min(dur,spHrs+peakHrs);
+  var spShare=Math.min(spHrs,effDisHrs)/effDisHrs;
+  var peakShare=1-spShare;
+  var avgOutPrice=spShare*spPrice+peakShare*peakPrice;
+  var dailyRev=kWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte); // 万元/day
+  var annualRev=dailyRev*opDays; // 万元/yr
+  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1); // 万kWh in first year
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
   var invRep=kWh*irpw;
@@ -130,8 +140,8 @@ function calcCI(p){
   }
 
   for(var y=1;y<=ry;y++){
-    var thru=y===1?thruY1:thruY1*Math.pow(1-da,y-1);
-    var rev=thru*spread; // 万kWh * 元/kWh = 万元
+    var thru=y===1?annualThru:annualThru*Math.pow(1-da,y-1);
+    var rev=annualRev*Math.pow(1-da,y-1)/(1-d1); // revenue degrades with throughput
     var outputVat=rev*vr;
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
@@ -164,7 +174,7 @@ function calcCI(p){
   cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
   var totalThru=0,totalRev=0,totalCost=0,totalProfit=0,totalVat=0;
   for(var i=0;i<rows.length;i++){totalThru+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
-  return {totalInv:TI,loan:loan,equity:equity,genY1:thruY1,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  return {totalInv:TI,loan:loan,equity:equity,genY1:annualThru,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function setSlider(sid,nid,min,max,val){
@@ -211,7 +221,11 @@ function getP(){
 function getPCI(){
   return {
     capacity:val('inpCapacity')||200,duration:val('inpDuration')||2,unitCost:val('inpUnitCost')||0.8,
-    spread:val('inpSpread')||0.7,cycles:val('inpCycles')||2,opDays:ival('inpOpDays')||330,
+    spPrice:val('inpSpPrice')||1.2,spHours:val('inpSpHours')||2,
+    peakPrice:val('inpPeakPrice')||1.0,peakHours:val('inpPeakHours')||4,
+    flatPrice:val('inpFlatPrice')||0.6,flatHours:val('inpFlatHours')||10,
+    valleyPrice:val('inpValleyPrice')||0.35,valleyHours:val('inpValleyHours')||8,
+    cycles:val('inpCycles')||2,opDays:ival('inpOpDays')||330,
     rte:val('inpRte')||88,
     runYears:ival('inpRunYears')||20,
     loanRatio:(val('inpLoanRatio')||70)/100,loanRate:(val('inpLoanRate')||3.9)/100,
@@ -241,7 +255,17 @@ function update(){
   if(currentTab==='ci'){
     // C&I storage display values
     var dur=val('inpDuration')||2,kWh=val('inpCapacity')*dur;
-    var idealThru=kWh*(val('inpCycles')||2)*(ival('inpOpDays')||330)*(val('inpRte')||88)/100/1000;
+    var rte2=(val('inpRte')||88)/100;
+    var spP=val('inpSpPrice')||1.2,spH=val('inpSpHours')||2;
+    var pkP=val('inpPeakPrice')||1.0,pkH=val('inpPeakHours')||4;
+    var vlP=val('inpValleyPrice')||0.35,vlH=val('inpValleyHours')||8;
+    var cyc=val('inpCycles')||2,opD=ival('inpOpDays')||330;
+    var effDisHrs=Math.min(dur,spH+pkH);
+    var spSh=Math.min(spH,effDisHrs)/effDisHrs;
+    var avgOut=spSh*spP+(1-spSh)*pkP;
+    var dailyArb=kWh*rte2/1000*cyc*(avgOut-vlP/rte2).toFixed(2);
+    setText('dispArbitrage','≈ '+dailyArb.toFixed(2)+' 万元/天');
+    var idealThru=kWh*cyc*opD*rte2/1000;
     setText('dispGenPerW',(idealThru/val('inpCapacity')).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
