@@ -126,9 +126,9 @@ function update(){
   el('resNpv').style.color=R.npvFull>=0?'':'#f87171';
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
   setText('resRoi',R.roi.toFixed(1)+'%');
-  el('resRoi').style.color=R.roi>=0?'#10b981':'#f87171';
+  el('resRoi').style.color='#f59e0b';
   setText('resRoe',R.roe.toFixed(1)+'%');
-  el('resRoe').style.color=R.roe>=0?'#10b981':'#f87171';
+  el('resRoe').style.color='#38bdf8';
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
   setText('resTotalRev',fm(R.totalRev));
