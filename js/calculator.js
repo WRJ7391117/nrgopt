@@ -266,6 +266,18 @@ function update(){
   syncInfoCard();
   var l=document.documentElement.lang||'en';
   if(currentTab==='ci'){
+    // Update C&I info card
+    var ciCap=val('inpCapacity')||200,ciDur=val('inpDuration')||2;
+    var ciKwh=ciCap*ciDur,ciDays=ival('inpOpDays')||330;
+    var ciRte=(val('inpRte')||88)/100;
+    var ciDaily=ciKwh*ciRte*(val('inpCycles')||2)/1000;
+    var sy=el('ciSysSize');if(sy)sy.textContent=Math.round(ciCap)+' kW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
+    var dd=el('ciDailyDis');if(dd)dd.textContent=ciDaily.toFixed(1)+' 万kWh';
+    var od=el('ciOpDays');if(od)od.textContent=ciDays+' 天';
+    // Update metric labels
+    var g1=el('resGenY1');if(g1&&g1.parentElement){var bl=g1.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
+    var gt=el('resGenTotal');if(gt&&gt.parentElement){var bl2=gt.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
+    //
     // C&I storage display values
     var dur=val('inpDuration')||2,kWh=val('inpCapacity')*dur;
     var rte2=(val('inpRte')||88)/100;
@@ -286,6 +298,9 @@ function update(){
     setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
     setText('dispBestAngle','');
   }else{
+    // Restore PV metric labels
+    var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
+    var gtr=el('resGenTotal');if(gtr&&gtr.parentElement){var bl2=gtr.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
     var gw=computeGen();
     setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
     var ir=val('inpIrradiance')||1350,ti=val('inpTilt')||1.05,ef=(val('inpSysEff')||83.5)/100;
@@ -296,7 +311,19 @@ function update(){
     setText('dispBestAngle',Math.round((tilt-1)*300));
   }
 
-  if(currentTab==='ci'){R=calcCI(getPCI());}
+  if(currentTab==='ci'){
+    // Update C&I info card
+    var ciCap=val('inpCapacity')||200,ciDur=val('inpDuration')||2;
+    var ciKwh=ciCap*ciDur,ciDays=ival('inpOpDays')||330;
+    var ciRte=(val('inpRte')||88)/100;
+    var ciDaily=ciKwh*ciRte*(val('inpCycles')||2)/1000;
+    var sy=el('ciSysSize');if(sy)sy.textContent=Math.round(ciCap)+' kW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
+    var dd=el('ciDailyDis');if(dd)dd.textContent=ciDaily.toFixed(1)+' 万kWh';
+    var od=el('ciOpDays');if(od)od.textContent=ciDays+' 天';
+    // Update metric labels
+    var g1=el('resGenY1');if(g1&&g1.parentElement){var bl=g1.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
+    var gt=el('resGenTotal');if(gt&&gt.parentElement){var bl2=gt.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
+    //R=calcCI(getPCI());}
   else{R=calc(getP());}
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
@@ -461,7 +488,8 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
 window.downloadPDF=function(){
   var name=el('locProjectName').value.trim();
   var titleEl=document.querySelector('.print-title');
-  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt 光伏项目测算报告';
+  var tnames={pv:'光伏项目测算报告',ci:'工商业储能项目测算报告',is:'独立储能项目测算报告',hy:'光储一体化项目测算报告'};
+  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt '+(tnames[currentTab]||'项目测算报告');
   window.print();
 };
 

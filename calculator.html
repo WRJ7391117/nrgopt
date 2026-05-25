@@ -45,29 +45,39 @@
 <div class="info-card">
   <div class="loc-row">
     <label class="loc-label">项目名称</label>
-    <input type="text" id="locProjectName" placeholder="选填" class="loc-input" style="width:100%; max-width:400px" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 光伏项目测算报告'">
+    <input type="text" id="locProjectName" placeholder="选填" class="loc-input" style="width:100%; max-width:400px" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 项目测算报告'">
   </div>
-  <div class="loc-section-label">获取位置辐照数据</div>
-  <div class="loc-tabs">
-    <button class="loc-tab active" onclick="switchLocTab('address',this)">🔍 输入地址</button>
-    <button class="loc-tab" onclick="switchLocTab('gps',this)">📍 GPS 定位</button>
+  <div data-tab-group="pv">
+    <div class="loc-section-label">获取位置辐照数据</div>
+    <div class="loc-tabs">
+      <button class="loc-tab active" onclick="switchLocTab('address',this)">🔍 输入地址</button>
+      <button class="loc-tab" onclick="switchLocTab('gps',this)">📍 GPS 定位</button>
+    </div>
+    <div class="loc-tab-panel" id="tabAddress">
+      <input type="text" id="locAddress" placeholder="城市名或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
+      <button type="button" onclick="autoFillFromAddress()" class="loc-btn">查询</button>
+      <span id="locStatus" class="loc-status"></span>
+    </div>
+    <div class="loc-tab-panel" id="tabGPS" style="display:none">
+      <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 获取我的当前位置</button>
+      <span id="locStatusGPS" class="loc-status"></span>
+    </div>
+    <div class="loc-results">
+      <span class="loc-label" style="min-width:auto">结果</span>
+      <span class="loc-res-item"><b>经纬度</b> <span id="locCoord" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>年辐照量</b> <span id="locIrr" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>等效利用小时</b> <span id="locHours" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>最佳倾角</b> <span id="locAngle" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>建议效率</b> <span id="locEff" class="loc-val">—</span></span>
+    </div>
   </div>
-  <div class="loc-tab-panel" id="tabAddress">
-    <input type="text" id="locAddress" placeholder="城市名或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
-    <button type="button" onclick="autoFillFromAddress()" class="loc-btn">查询</button>
-    <span id="locStatus" class="loc-status"></span>
-  </div>
-  <div class="loc-tab-panel" id="tabGPS" style="display:none">
-    <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 获取我的当前位置</button>
-    <span id="locStatusGPS" class="loc-status"></span>
-  </div>
-  <div class="loc-results">
-    <span class="loc-label" style="min-width:auto">结果</span>
-    <span class="loc-res-item"><b>经纬度</b> <span id="locCoord" class="loc-val">—</span></span>
-    <span class="loc-res-item"><b>年辐照量</b> <span id="locIrr" class="loc-val">—</span></span>
-    <span class="loc-res-item"><b>等效利用小时</b> <span id="locHours" class="loc-val">—</span></span>
-    <span class="loc-res-item"><b>最佳倾角</b> <span id="locAngle" class="loc-val">—</span></span>
-    <span class="loc-res-item"><b>建议效率</b> <span id="locEff" class="loc-val">—</span></span>
+  <div data-tab-group="ci" style="display:none">
+    <div class="loc-section-label">项目概况</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>系统配置</b> <span id="ciSysSize" class="loc-val">200 kW × 2h = 400 kWh</span></span>
+      <span class="loc-res-item"><b>日放电量</b> <span id="ciDailyDis" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>年运行天数</b> <span id="ciOpDays" class="loc-val">330 天</span></span>
+    </div>
   </div>
 </div>
 </div>
