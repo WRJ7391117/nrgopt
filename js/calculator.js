@@ -452,7 +452,7 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   
   var rs=el('inpRepayMethod');if(rs){rs.addEventListener('change',update);setText('dispRepayMethod',rs.options[rs.selectedIndex].textContent);}
 
-  initBTT();update();
+  initBTT();switchTab('pv');update();
   window.addEventListener('resize',function(){if(R)drawChart(R.rows);});
   var saved='en';try{saved=localStorage.getItem('nrgopt-lang')||'en';}catch(e){}
   switchLang(saved);
