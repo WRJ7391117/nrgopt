@@ -667,7 +667,8 @@ function update(){
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
     var hyStMw=val('inpHyStCap')||0.2;var hyStKw=hyStMw*1000;
-    var hyStIL=el('dispHyStCapInline');if(hyStIL)hyStIL.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
+    var hyStIL=el('dispHyStCapInline');if(hyStIL)hyStIL.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
+    var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(hyStMw*(val('inpDuration')||2)).toFixed(1)+' MWh';var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
     var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
     var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
     // Metric labels
