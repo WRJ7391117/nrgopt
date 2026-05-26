@@ -34,6 +34,7 @@ function switchTab(tab){
     setSlider('inpDiscount','numDiscount',0,100,8);
     setSlider('inpDod','numDod',70,95,85);
     setSlider('inpPriceEscal','numPriceEscal',0,5,2.5);
+    setSlider('inpCapacity','numCapacity',50,500,200);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='is'){
     setSlider('inpRunYears','numRunYears',15,30,20);
@@ -66,6 +67,7 @@ function switchTab(tab){
     setSlider('inpMaintFee','numMaintFee',0.01,0.08,0.04);
     setSlider('inpInsRate','numInsRate',0,0.3,0.1);
     setSlider('inpDiscount','numDiscount',0,100,10);
+    setSlider('inpCapacity','numCapacity',0.1,10,1);
     // PV defaults
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }
