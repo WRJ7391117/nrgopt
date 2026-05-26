@@ -8,7 +8,7 @@
 <meta property="og:title" content="NrgOpt PV Project Calculator">
 <link rel="canonical" href="https://nrgopt.com/calculator">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/calculator.css?v=3">
+<link rel="stylesheet" href="css/calculator.css?v=4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
 <body>
@@ -132,7 +132,7 @@
 <div class="print-sec">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
-  <!-- Col 1: Investment + Revenue -->
+  <!-- Col 1: Investment & Financing -->
   <div>
     <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💵 Investment" data-zh="💵 投资参数" data-ja="💵 投資">💵 投资参数</span><span class="arrow">▶</span></div>
@@ -146,6 +146,17 @@
       </div>
     </div>
   </div>
+<div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Repay" data-zh="还款方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal">等额本金</option><option value="equal-installment">等额本息</option><option value="bullet">先息后本</option></select></div>
+      </div>
+    </div>
+  
+
 
   <!-- Col 2: Revenue Models -->
   <div>
@@ -163,7 +174,6 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Gen/kW" data-zh="→ 每瓦发电"></span><span class="pr-val gold" id="dispGenPerW"></span></div></div>
       </div>
     </div>
-
     <div class="param-group open" data-tab-group="ci">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 C&I Storage" data-zh="🔋 储能收入" data-ja="🔋 蓄電収入">🔋 储能收入</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
@@ -180,14 +190,12 @@
         <div class="pr"><div class="pr-label"><span data-en="RTE" data-zh="充放效率"></span><span class="pr-val" id="dispRte"></span></div><div class="dual-input"><input type="range" id="inpRte" min="80" max="95" step="1" value="88"><input type="text" inputmode="decimal" id="numRte" step="1" class="num-field"></div></div>
       </div>
     </div>
-
     <div class="param-group open" data-tab-group="is">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚡ IS Revenue" data-zh="⚡ 独立储能" data-ja="⚡ 系統蓄電">⚡ 独立储能</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长"></span><span class="pr-val" id="dispDurationIs"></span></div><div class="dual-input"><input type="range" id="inpDurationIs" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDurationIs" step="0.5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Lease Price" data-zh="租赁单价"></span><span class="pr-val" id="dispLeasePrice"></span></div><div class="dual-input"><input type="range" id="inpLeasePrice" min="100" max="500" step="10" value="300"><input type="text" inputmode="decimal" id="numLeasePrice" step="10" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Lease Rate" data-zh="租赁率"></span><span class="pr-val" id="dispLeaseRate"></span></div><div class="dual-input"><input type="range" id="inpLeaseRate" min="50" max="100" step="5" value="85"><input type="text" inputmode="decimal" id="numLeaseRate" step="5" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Arbitrage" data-zh="峰谷价差"></span><span class="tou-price" style="font-size:0.73rem;padding:0;width:auto;border:none;background:transparent;color:var(--accent);font-weight:700" id="dispSpreadIs"></span></div><div class="dual-input"><input type="range" id="inpSpreadIs" min="0.2" max="1.0" step="0.05" value="0.5"><input type="text" inputmode="decimal" id="numSpreadIs" step="0.05" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Cycles" data-zh="日充放次"></span><span class="pr-val" id="dispCyclesIs"></span></div><div class="dual-input"><input type="range" id="inpCyclesIs" min="0.5" max="3" step="0.5" value="1.5"><input type="text" inputmode="decimal" id="numCyclesIs" step="0.5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Op. Days" data-zh="运行天数"></span><span class="pr-val" id="dispOpDaysIs"></span></div><div class="dual-input"><input type="range" id="inpOpDaysIs" min="250" max="365" step="5" value="330"><input type="text" inputmode="decimal" id="numOpDaysIs" step="5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="RTE" data-zh="充放效率"></span><span class="pr-val" id="dispRteIs"></span></div><div class="dual-input"><input type="range" id="inpRteIs" min="80" max="95" step="1" value="88"><input type="text" inputmode="decimal" id="numRteIs" step="1" class="num-field"></div></div>
@@ -195,18 +203,9 @@
     </div>
   </div>
 
-  <!-- Col 3: Financing + Tax + Operations -->
+<!-- Col 3: Tax & Operations -->
   <div>
-    <div class="param-group open">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
-      <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Repay" data-zh="还款方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal">等额本金</option><option value="equal-installment">等额本息</option><option value="bullet">先息后本</option></select></div>
-      </div>
-    </div>
-    <div class="param-group open">
+      <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🧾 Tax" data-zh="🧾 税务设置" data-ja="🧾 税務">🧾 税务设置</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="VAT" data-zh="增值税率"></span><span class="pr-val" id="dispVatRate"></span></div><div class="dual-input"><input type="range" id="inpVatRate" min="9" max="17" step="1" value="13"><input type="text" inputmode="decimal" id="numVatRate" step="1" class="num-field"></div></div>
@@ -235,6 +234,7 @@
   </div>
 
 </div></div>
+
 <!-- PART 3: CHART -->
 <div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
