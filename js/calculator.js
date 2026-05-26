@@ -204,7 +204,7 @@ function calcCI(p){
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-    var opex=cap*mgmt*Math.pow(1+me,y-1)+cap*maint*Math.pow(1+mte,y-1);
+    var opex=cap*1000*mgmt*Math.pow(1+me,y-1)+cap*1000*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -253,15 +253,15 @@ function calcIS(p){
   var irpw=p.invReplace,iry=p.invYear,disc=p.discount;
   var repayMethod=p.repayMethod||'equal-principal';
 
-  var kWh=cap*dur,TI=kWh*uc;
+  var kWh=cap*1000*dur,TI=kWh*uc/10;
   var loan=TI*lr,equity=TI-loan;
 
   // Revenue: lease + arbitrage + frequency regulation
-  var leaseRev=cap/1000*leasePrice*leaseRate; // 万元/yr (MW * 元/kW/yr * rate)
-  var dailyArb=kWh*rte/1000*cycles*(spread); // 万元/day from arbitrage
+  var leaseRev=cap*leasePrice*leaseRate/10; // 万元/yr (MW*kW/MW*元/kW/yr) (MW * 元/kW/yr * rate)
+  var dailyArb=kWh*rte*cycles*spread/10000; // 万元/day from arbitrage
   var arbRev=dailyArb*opDays;
-  var freqRev=cap/1000*freqReg; // 万元/yr
-  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1);
+  var freqRev=cap*freqReg; // 万元/yr (MW * 万元/MW/yr)
+  var annualThru=kWh*cycles*opDays*rte/1000*(1-d1); // 万kWh
   var annualRev=leaseRev+arbRev+freqRev;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
@@ -284,7 +284,7 @@ function calcIS(p){
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-    var opex=cap*mgmt*Math.pow(1+me,y-1)+cap*maint*Math.pow(1+mte,y-1);
+    var opex=cap*1000*mgmt*Math.pow(1+me,y-1)+cap*1000*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -553,7 +553,7 @@ function update(){
   }else if(currentTab==='is'){
     // IS info card
     var isCap=val('inpCapacity')||50,isDur=val('inpDurationIs')||2;
-    var isKwh=isCap*isDur;
+    var isKwh=isCap*1000*isDur;
     var ss=el('isSysSize');if(ss)ss.textContent=Math.round(isCap)+' MW / '+Math.round(isKwh)+' MWh';
     var sc=el('isCycles');if(sc)sc.textContent=(val('inpCyclesIs')||1.5).toFixed(1)+' 次/天';
     var so=el('isOpDays');if(so)so.textContent=(ival('inpOpDaysIs')||330)+' 天';
@@ -561,9 +561,9 @@ function update(){
     // IS display
     var isRte2=(val('inpRteIs')||88)/100,isSpread=val('inpSpreadIs')||0.5;
     var isCycles=val('inpCyclesIs')||1.5,isOpD=ival('inpOpDaysIs')||330;
-    var isLeaseRev=isCap/1000*(val('inpLeasePrice')||300)*(val('inpLeaseRate')||85)/100;
-    var isArbRev=isKwh*isRte2/1000*isCycles*isSpread;
-    var isFreqRev=isCap/1000*(val('inpFreqReg')||50);
+    var isLeaseRev=isCap*(val('inpLeasePrice')||300)*(val('inpLeaseRate')||85)/100/10;
+    var isArbRev=isKwh*isRte2*isCycles*isSpread/10000;
+    var isFreqRev=isCap*(val('inpFreqReg')||50);
     var isDailyRev=isArbRev+(isLeaseRev+isFreqRev)/isOpD;
     setText('dispIsDailyRev','租赁'+isLeaseRev.toFixed(1)+'+套利'+isArbRev.toFixed(1)+'+调频'+isFreqRev.toFixed(1)+' 万元');
     setText('dispGenPerW',(isKwh*isCycles*isOpD*isRte2/1000/isCap).toFixed(2)+' 万kWh/kW');
