@@ -626,6 +626,18 @@ function update(){
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
     setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
     setText('dispBestAngle','');
+    // HY daily revenue estimate
+    var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
+    var hyExcess=hyGenY1*(1-(val('inpSelfUse')||90)/100); // 万kWh excess
+    var hyRte=(val('inpRte')||88)/100,hyCyc=val('inpCycles')||2,hyOp=ival('inpOpDays')||330;
+    var hySpP=val('inpSpPrice')||1.2,hySpH=val('inpSpHours')||2;
+    var hyPkP=val('inpPeakPrice')||1.0,hyPkH=val('inpPeakHours')||4;
+    var hyVlP=val('inpValleyPrice')||0.35;
+    var hySpFill=Math.min(hyDur,hySpH),hyPkFill=Math.min(hyDur-hySpFill,hyPkH);
+    var hyAvgOut=(hySpFill+hyPkFill)>0?(hySpFill*hySpP+hyPkFill*hyPkP)/(hySpFill+hyPkFill):hyPkP;
+    var hyStKwh=hyStMw*1000*hyDur,hyMaxDay=hyStKwh*hyRte*hyCyc/10000; // 万元/day max
+    var hyActDay=hyExcess*0.01/365*(hyAvgOut-hyVlP/hyRte); // simplified
+    setText('dispSunHours',Math.round(hyExcess));
   }else if(currentTab==='is'){
     // IS info card
     var isCap=val('inpCapacity')||50,isDur=val('inpDurationIs')||2;
@@ -652,13 +664,26 @@ function update(){
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
-    var hyStMw=val('inpHyStCap')||0.2;var hyStKw=hyStMw*1000;var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
+    var hyStMw=val('inpHyStCap')||0.2;var hyStKw=hyStMw*1000;
+    var hyStIL=el('dispHyStCapInline');if(hyStIL)hyStIL.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
     var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
     var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
     // Metric labels
     var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
     var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
     setText('dispBestAngle','');
+    // HY daily revenue estimate
+    var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
+    var hyExcess=hyGenY1*(1-(val('inpSelfUse')||90)/100); // 万kWh excess
+    var hyRte=(val('inpRte')||88)/100,hyCyc=val('inpCycles')||2,hyOp=ival('inpOpDays')||330;
+    var hySpP=val('inpSpPrice')||1.2,hySpH=val('inpSpHours')||2;
+    var hyPkP=val('inpPeakPrice')||1.0,hyPkH=val('inpPeakHours')||4;
+    var hyVlP=val('inpValleyPrice')||0.35;
+    var hySpFill=Math.min(hyDur,hySpH),hyPkFill=Math.min(hyDur-hySpFill,hyPkH);
+    var hyAvgOut=(hySpFill+hyPkFill)>0?(hySpFill*hySpP+hyPkFill*hyPkP)/(hySpFill+hyPkFill):hyPkP;
+    var hyStKwh=hyStMw*1000*hyDur,hyMaxDay=hyStKwh*hyRte*hyCyc/10000; // 万元/day max
+    var hyActDay=hyExcess*0.01/365*(hyAvgOut-hyVlP/hyRte); // simplified
+    setText('dispSunHours',Math.round(hyExcess));
   }else{
     // Restore PV metric labels
     var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
