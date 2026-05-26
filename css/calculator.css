@@ -120,7 +120,6 @@
 .calc-disclaimer { text-align:center; color:var(--text-dim); font-size:0.68rem; padding:0 24px 40px; max-width:700px; margin:0 auto; }
 
 /* ── RESPONSIVE ── */
-@media (max-width:900px) { .params-grid { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:768px) {
   .params-grid { grid-template-columns:1fr; }
   .metric-band { grid-template-columns:repeat(2,1fr); }
