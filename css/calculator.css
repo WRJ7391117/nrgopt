@@ -54,6 +54,8 @@
 
 .col-header { padding:6px 12px 4px; font-size:0.78rem; font-weight:700; color:var(--accent); letter-spacing:0.02em; border-bottom:1.5px solid var(--accent); margin-bottom:4px; }
 
+.hy-section-label { padding:8px 0 3px; font-size:0.7rem; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; }
+
 .param-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
 .param-group:last-child { margin-bottom:0; }
 .param-group-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; cursor:pointer; user-select:none; font-size:0.82rem; font-weight:600; color:var(--text); transition:background 0.15s; }
