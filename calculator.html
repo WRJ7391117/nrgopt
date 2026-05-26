@@ -147,6 +147,19 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Gen Year 1" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span><span class="pr-val gold" id="dispGenY1Total"></span></div></div>
       </div>
     </div>
+
+    <div class="param-group open" data-tab-group="hy">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage Scale" data-zh="🔋 储能系统规模" data-ja="🔋 蓄電規模">🔋 储能系统规模</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Capacity" data-zh="储能装机"></span><span class="pr-val" id="dispHyStCap2"></span></div><div class="dual-input"><input type="range" id="inpHyStCap" min="0.05" max="50" step="0.05" value="0.2"><input type="text" inputmode="decimal" id="numHyStCap" step="0.05" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Unit Cost" data-zh="储能单位投资"></span><span class="pr-val" id="dispStUC"></span></div><div class="dual-input"><input type="range" id="inpStUC" min="0.3" max="2.0" step="0.05" value="0.8"><input type="text" inputmode="decimal" id="numStUC" step="0.05" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="储能时长"></span><span class="pr-val" id="dispHyDur"></span></div><div class="dual-input"><input type="range" id="inpHyDur" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numHyDur" step="0.5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Project Life" data-zh="储能运营年限"></span><span class="pr-val" id="dispStLife"></span></div><div class="dual-input"><input type="range" id="inpStLife" min="10" max="25" step="1" value="15"><input type="text" inputmode="decimal" id="numStLife" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Depr. Years" data-zh="储能折旧年限"></span><span class="pr-val" id="dispStDepr"></span></div><div class="dual-input"><input type="range" id="inpStDepr" min="5" max="15" step="1" value="8"><input type="text" inputmode="decimal" id="numStDepr" step="1" class="num-field"></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Total Capacity" data-zh="→ 储能总容量" data-ja="→ 蓄電総容量"></span><span class="pr-val gold" id="dispStTotalKwh"></span></div></div>
+      </div>
+    </div>
+
 <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
@@ -178,10 +191,6 @@
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage" data-zh="🔋 储能参数" data-ja="🔋 蓄電パラメータ">🔋 储能参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
 
-        <div class="pr" data-tab-group="hy"><div class="pr-label"><span data-en="Storage Size" data-zh="储能装机"></span><span class="pr-val" id="dispHyStCap"></span></div><div class="dual-input"><input type="range" id="inpHyStCap" min="0.05" max="50" step="0.05" value="0.2"><input type="text" inputmode="decimal" id="numHyStCap" step="0.05" class="num-field"></div></div>
-        <div class="pr" data-tab-group="hy"><div class="pr-label"><span data-en="Storage Unit Cost" data-zh="储能单位投资"></span><span class="pr-val" id="dispStUC"></span></div><div class="dual-input"><input type="range" id="inpStUC" min="0.3" max="2.0" step="0.05" value="0.8"><input type="text" inputmode="decimal" id="numStUC" step="0.05" class="num-field"></div></div>
-        <div class="pr" data-tab-group="hy"><div class="pr-label"><span data-en="Storage Life" data-zh="储能运营年限"></span><span class="pr-val" id="dispStLife"></span></div><div class="dual-input"><input type="range" id="inpStLife" min="10" max="25" step="1" value="15"><input type="text" inputmode="decimal" id="numStLife" step="1" class="num-field"></div></div>
-        <div class="pr" data-tab-group="hy"><div class="pr-label"><span data-en="Storage Depr." data-zh="储能折旧年限"></span><span class="pr-val" id="dispStDepr"></span></div><div class="dual-input"><input type="range" id="inpStDepr" min="5" max="15" step="1" value="8"><input type="text" inputmode="decimal" id="numStDepr" step="1" class="num-field"></div></div>
         <div class="pr derived" data-tab-group="hy"><div class="pr-label"><span data-en="→ Storage Total" data-zh="→ 储能总容量" data-ja="→ 蓄電総容量"></span><span class="pr-val gold" id="dispStTotalKwh"></span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDuration"></span></div><div class="dual-input"><input type="range" id="inpDuration" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDuration" step="0.5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="DOD" data-zh="放电深度" data-ja="放電深度"></span><span class="pr-val" id="dispDod"></span></div><div class="dual-input"><input type="range" id="inpDod" min="70" max="95" step="5" value="85"><input type="text" inputmode="decimal" id="numDod" step="5" class="num-field"></div></div>
