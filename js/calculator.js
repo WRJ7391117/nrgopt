@@ -159,7 +159,7 @@ function calcCI(p){
   var repayMethod=p.repayMethod||'equal-principal';
 
   // CAPEX
-  var kWh=cap*1000*dur,TI=kWh*uc,loan=TI*lr,equity=TI-loan;
+  var kWh=cap*1000*dur,TI=kWh*uc/10,loan=TI*lr,equity=TI-loan;
   var dod=p.dod/100,priceEscal=p.priceEscal/100;
   var demandMode=p.demandMode,demandCharge=p.demandCharge,demandReduction=p.demandReduction/100,transCapacity=p.transCapacity;
   var effKWh=kWh*dod;
@@ -181,7 +181,7 @@ function calcCI(p){
   var baseAnnualRev=baseDailyArb*opDays+demandSavings;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
-  var invRep=kWh*irpw;
+  var invRep=kWh*irpw/10;
 
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
@@ -265,7 +265,7 @@ function calcIS(p){
   var annualRev=leaseRev+arbRev+freqRev;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
-  var invRep=kWh*irpw;
+  var invRep=kWh*irpw/10;
 
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
@@ -513,8 +513,8 @@ function update(){
   var l=document.documentElement.lang||'en';
   if(currentTab==='ci'){
     // Update C&I info card
-    var ciCap=val('inpCapacity')||200,ciDur=val('inpDuration')||2;
-    var ciKwh=ciCap*ciDur,ciDays=ival('inpOpDays')||330;
+    var ciCap=val('inpCapacity')||0.2,ciDur=val('inpDuration')||2;
+    var ciKwh=ciCap*1000*ciDur,ciDays=ival('inpOpDays')||330;
     var ciRte=(val('inpRte')||88)/100;
     var ciDaily=ciKwh*ciRte*(val('inpCycles')||2)/1000;
     var ciMw=(val('inpCapacity')||0.2).toFixed(2);var sy=el('ciSysSize');if(sy)sy.textContent=ciMw+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
@@ -540,7 +540,7 @@ function update(){
     var pe=(val('inpPriceEscal')||2.5)/100;
     var dmMode=el('inpDemandMode')?el('inpDemandMode').value:'demand';
     var dmCharge=val('inpDemandCharge')||40,dmRed=(val('inpDemandReduction')||30)/100;
-    var dmSave=dmMode==='demand'?(val('inpCapacity')||200)*dmRed*dmCharge*12/10000:0;
+    var dmSave=dmMode==='demand'?((val('inpCapacity')||0.2)*1000)*dmRed*dmCharge*12/10000:0;
     var tcCost=dmMode==='capacity'?val('inpTransCapacity')||30*12/10000:0;
     var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330)-tcCost/365;
     setText('dispArbitrage','套利'+baseArb.toFixed(1)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1):'')+(dmMode==='capacity'?'-容量'+tcCost.toFixed(1):'')+(' ≈ '+dailyTotal.toFixed(1)+' 万元/天'));
