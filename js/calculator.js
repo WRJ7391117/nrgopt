@@ -34,6 +34,8 @@ function switchTab(tab){
     setSlider('inpDiscount','numDiscount',0,100,8);
     setSlider('inpDod','numDod',70,95,85);
     setSlider('inpPriceEscal','numPriceEscal',0,5,2.5);
+    setSlider('inpDegradY1','numDegradY1',0,3,2.5);
+    setSlider('inpDegrad','numDegrad',0.2,3,1.5);
     setSlider('inpCapacity','numCapacity',50,500,200);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='is'){
@@ -46,6 +48,8 @@ function switchTab(tab){
     setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.01);
     setSlider('inpInsRate','numInsRate',0,0.3,0.12);
     setSlider('inpDiscount','numDiscount',0,100,8);
+    setSlider('inpDegradY1','numDegradY1',0,3,2.5);
+    setSlider('inpDegrad','numDegrad',0.2,3,1.5);
     setSlider('inpCapacity','numCapacity',1,200,50);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='hy'){
@@ -54,6 +58,8 @@ function switchTab(tab){
     setSlider('inpLoanYears','numLoanYears',5,20,15);
     setSlider('inpUnitCost','numUnitCost',1,50,3.7);
     setSlider('inpDiscount','numDiscount',0,100,10);
+    setSlider('inpDegradY1','numDegradY1',0,3,1.0);
+    setSlider('inpDegrad','numDegrad',0.2,1,0.55);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }else if(tab==='pv'){
@@ -67,6 +73,8 @@ function switchTab(tab){
     setSlider('inpMaintFee','numMaintFee',0.01,0.08,0.04);
     setSlider('inpInsRate','numInsRate',0,0.3,0.1);
     setSlider('inpDiscount','numDiscount',0,100,10);
+    setSlider('inpDegradY1','numDegradY1',0,3,1.0);
+    setSlider('inpDegrad','numDegrad',0.2,1,0.55);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
     // PV defaults
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
