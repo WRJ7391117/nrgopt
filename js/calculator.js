@@ -148,7 +148,7 @@ function calcCI(p){
   // CAPEX
   var kWh=cap*dur,TI=kWh*uc,loan=TI*lr,equity=TI-loan;
   var dod=p.dod/100,priceEscal=p.priceEscal/100;
-  var demandCharge=p.demandCharge,demandReduction=p.demandReduction/100;
+  var demandMode=p.demandMode,demandCharge=p.demandCharge,demandReduction=p.demandReduction/100,transCapacity=p.transCapacity;
   var effKWh=kWh*dod;
 
   // TOU arbitrage (逐层填满)
@@ -524,10 +524,13 @@ function update(){
     var effKWh=kWh*dod2;
     var baseArb=effKWh*rte2/1000*cyc*(avgOut-vlP/rte2);
     var pe=(val('inpPriceEscal')||2.5)/100;
+    var dmMode=el('inpDemandMode')?el('inpDemandMode').value:'demand';
     var dmCharge=val('inpDemandCharge')||40,dmRed=(val('inpDemandReduction')||30)/100;
-    var dmSave=(val('inpCapacity')||200)*dmRed*dmCharge*12/10000;
-    var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330);
-    setText('dispArbitrage','套利'+baseArb.toFixed(2)+'+需量'+dmSave.toFixed(1)+' ≈ '+dailyTotal.toFixed(2)+' 万元/天');    var idealThru=kWh*cyc*opD*rte2/1000;
+    var dmSave=dmMode==='demand'?(val('inpCapacity')||200)*dmRed*dmCharge*12/10000:0;
+    var tcCost=dmMode==='capacity'?val('inpTransCapacity')||30*12/10000:0;
+    var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330)-tcCost/365;
+    setText('dispArbitrage','套利'+baseArb.toFixed(1)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1):'')+(dmMode==='capacity'?'-容量'+tcCost.toFixed(1):'')+(' ≈ '+dailyTotal.toFixed(1)+' 万元/天'));
+    var idealThru=kWh*cyc*opD*rte2/1000;
     setText('dispGenPerW',(idealThru/val('inpCapacity')).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
