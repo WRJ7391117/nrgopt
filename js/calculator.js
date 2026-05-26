@@ -16,7 +16,7 @@ function switchTab(tab){
     var show=false;
     if(tab==='pv')show=(g==='pv');
     else if(tab==='ci')show=(g==='ci');
-    else if(tab==='is')show=(g==='is'||g==='ci');
+    else if(tab==='is')show=(g==='is');
     else if(tab==='hy')show=(g==='pv'||g==='ci');
     groups[j].style.display=show?'':'none';
   }
