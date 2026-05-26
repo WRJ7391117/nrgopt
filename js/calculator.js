@@ -17,7 +17,7 @@ function switchTab(tab){
     if(tab==='pv')show=(g==='pv');
     else if(tab==='ci')show=(g==='ci');
     else if(tab==='is')show=(g==='is'||g==='ci');
-    else if(tab==='hy')show=(g==='pv'||g==='ci'||g==='is');
+    else if(tab==='hy')show=(g==='pv'||g==='ci');
     groups[j].style.display=show?'':'none';
   }
   // Set tab-appropriate defaults
