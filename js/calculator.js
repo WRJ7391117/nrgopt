@@ -14,10 +14,10 @@ function switchTab(tab){
   for(var j=0;j<groups.length;j++){
     var g=groups[j].getAttribute('data-tab-group');
     var show=false;
-    if(tab==='pv')show=(g==='pv');
-    else if(tab==='ci')show=(g==='ci');
-    else if(tab==='is')show=(g==='is');
-    else if(tab==='hy')show=(g==='pv'||g==='ci');
+    if(tab==='pv')show=(g==='pv'||g.indexOf(',pv')>=0||g.indexOf('pv,')>=0);
+    else if(tab==='ci')show=(g==='ci'||g.indexOf(',ci')>=0||g.indexOf('ci,')>=0);
+    else if(tab==='is')show=(g==='is'||g.indexOf(',is')>=0||g.indexOf('is,')>=0);
+    else if(tab==='hy')show=(g==='pv'||g==='ci'||g.indexOf(',ci')>=0||g.indexOf('ci,')>=0||g.indexOf(',pv')>=0||g.indexOf('pv,')>=0);
     groups[j].style.display=show?'':'none';
   }
   // Set tab-appropriate defaults
