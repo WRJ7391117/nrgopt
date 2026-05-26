@@ -697,6 +697,9 @@ function update(){
     setText('dispBestAngle',Math.round((tilt-1)*300));
   }
 
+  // Sync storage discount with PV discount
+  var ds=el('inpDiscountSt');if(ds){var dv=el('inpDiscount');if(dv&&parseFloat(ds.value)!==parseFloat(dv.value)){ds.value=dv.value;var ns=el('numDiscountSt');if(ns)ns.value=dv.value;var disp=el('dispDiscountSt');if(disp)disp.textContent=Math.round(parseFloat(dv.value))+'%';}}
+
   if(currentTab==='ci'){R=calcCI(getPCI());}
   else if(currentTab==='is'){R=calcIS(getPIS());}
   else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
@@ -859,6 +862,7 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   bindDual('inpStUC','numStUC','dispStUC',function(v){return v.toFixed(2)+' 元/Wh';});
   bindDual('inpStLife','numStLife','dispStLife',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
   bindDual('inpStDepr','numStDepr','dispStDepr',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
+  bindDual('inpDiscountSt','numDiscountSt','dispDiscountSt',function(v){return Math.round(v)+'%';});
   bindDual('inpSpread','numSpread','dispSpread',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));});
   bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
   bindDual('inpOpDays','numOpDays','dispOpDays',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
