@@ -61,6 +61,7 @@ function switchTab(tab){
     setSlider('inpDegradY1','numDegradY1',0,3,1.0);
     setSlider('inpDegrad','numDegrad',0.2,1,0.55);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
+    setSlider('inpStRatio','numStRatio',5,50,20);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }else if(tab==='pv'){
     // PV defaults
@@ -333,7 +334,7 @@ function calcHybrid(p){
   var idealGen=cap*gkw*100,genY1=idealGen*(1-d1);
   
   // Storage side
-  var stCap=cap*0.2,dur2=dur,kWh2=stCap*dur2;
+  var stRatio=p.stRatio||0.2,stCap=cap*stRatio,dur2=dur,kWh2=stCap*dur2;
   var TI_st=kWh2*(uc*0.3); // storage cost is ~30% of PV unit cost per Wh
   var TI=TI_pv+TI_st;
   var loan=TI*lr,equity=TI-loan;
@@ -495,6 +496,7 @@ function getPHybrid(){
   p.valleyPrice=val('inpValleyPrice')||0.35;p.valleyHours=val('inpValleyHours')||8;
   p.cycles=val('inpCycles')||2;p.opDays=ival('inpOpDays')||330;
   p.rte=val('inpRte')||88;
+  p.stRatio=(val('inpStRatio')||20)/100;
   p.deprYears=ival('inpDeprYears')||8;
   return p;
 }
@@ -574,7 +576,7 @@ function update(){
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
-    var hySt=el('hyStCap');if(hySt)hySt.textContent=Math.round(hyCap*200)+' kW / '+Math.round(hyCap*200*hyDur)+' kWh';
+    var hyRatio=(val('inpStRatio')||20)/100;var hyStKw=hyCap*hyRatio;var hySt=el('hyStCap');if(hySt)hySt.textContent=Math.round(hyStKw)+' kW / '+Math.round(hyStKw*hyDur)+' kWh';
     var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
     var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
     // Metric labels
@@ -712,11 +714,11 @@ function init(){
   function L(){return document.documentElement.lang||'en';}
   function uYr(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));}
   function uPct(v){return Math.round(v)+'%';}function uPct1(v){return v.toFixed(1)+'%';}
-  function uMW(v){var l=L();return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));}
+  function uMW(v){var l=L();var u=(currentTab==='ci')?(' kW'):(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+u;}
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/W':(l==='ja'?' 元/W':' 元/瓦'));});
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();var u=(currentTab==='ci'||currentTab==='is')?' 元/Wh':(l==='en'?' 元/W':' 元/瓦');return v.toFixed(2)+u;});
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpResidual','numResidual','dispResidual',function(v){return Math.round(v)+'%';});
@@ -756,6 +758,7 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
   bindDual('inpOpDays','numOpDays','dispOpDays',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
   bindDual('inpRte','numRte','dispRte',function(v){return Math.round(v)+'%';});
+  bindDual('inpStRatio','numStRatio','dispStRatio',function(v){return Math.round(v)+'%';});
   bindDual('inpDod','numDod','dispDod',function(v){return Math.round(v)+'%';});
   bindDual('inpPriceEscal','numPriceEscal','dispPriceEscal',function(v){var l=L();return v.toFixed(1)+(l==='en'?'%/yr':(l==='ja'?'%/年':'%/年'));});
 
