@@ -32,6 +32,8 @@ function switchTab(tab){
     setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.015);
     setSlider('inpInsRate','numInsRate',0,0.3,0.15);
     setSlider('inpDiscount','numDiscount',0,100,8);
+    setSlider('inpDod','numDod',70,95,85);
+    setSlider('inpPriceEscal','numPriceEscal',0,5,2.5);
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='is'){
     setSlider('inpRunYears','numRunYears',15,30,20);
@@ -744,6 +746,9 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
   bindDual('inpOpDays','numOpDays','dispOpDays',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
   bindDual('inpRte','numRte','dispRte',function(v){return Math.round(v)+'%';});
+  bindDual('inpDod','numDod','dispDod',function(v){return Math.round(v)+'%';});
+  bindDual('inpPriceEscal','numPriceEscal','dispPriceEscal',function(v){var l=L();return v.toFixed(1)+(l==='en'?'%/yr':(l==='ja'?'%/年':'%/年'));});
+
   
   var rs=el('inpRepayMethod');if(rs){rs.addEventListener('change',update);setText('dispRepayMethod',rs.options[rs.selectedIndex].textContent);}
 
