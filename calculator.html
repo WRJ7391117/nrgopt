@@ -132,7 +132,7 @@
 <div class="print-sec">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
-  <!-- Col 1 -->
+  <!-- Col 1: 投资与融资 -->
   <div>
     <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="📐 Scale" data-zh="📐 项目规模" data-ja="📐 規模">📐 项目规模</span><span class="arrow">▶</span></div>
@@ -146,7 +146,19 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Gen Year 1" data-zh="→ 首年发电总量" data-ja="→ 初年度総発電量"></span><span class="pr-val gold" id="dispGenY1Total"></span></div></div>
       </div>
     </div>
+<div class="param-group open">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Repay Method" data-zh="还款方式" data-ja="返済方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal" data-en="Equal Principal" data-zh="等额本金" data-ja="元金均等">等额本金</option><option value="equal-installment" data-en="Equal Installment" data-zh="等额本息" data-ja="元利均等">等额本息</option><option value="bullet" data-en="Interest-only + Bullet" data-zh="先息后本" data-ja="利息のみ+一括">先息后本</option></select></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Col 2: 收入参数 -->
+  <div>
     <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ PV Generation" data-zh="☀ 光伏发电量" data-ja="☀ PV発電量">☀ 光伏发电量</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
@@ -158,8 +170,7 @@
         <div class="pr"><div class="pr-label"><span data-en="Degrad. Annual" data-zh="经年衰减率" data-ja="経年劣化率"></span><span class="pr-val" id="dispDegrad"></span></div><div class="dual-input"><input type="range" id="inpDegrad" min="0.2" max="1" step="0.05" value="0.55"><input type="text" inputmode="decimal" id="numDegrad" step="0.05" class="num-field"></div></div>
       </div>
     </div>
-
-    <div class="param-group open" data-tab-group="ci">
+<div class="param-group open" data-tab-group="ci">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage" data-zh="🔋 储能参数" data-ja="🔋 蓄電パラメータ">🔋 储能参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDuration"></span></div><div class="dual-input"><input type="range" id="inpDuration" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDuration" step="0.5" class="num-field"></div></div>
@@ -180,8 +191,7 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Daily Revenue Est." data-zh="→ 日收入估算" data-ja="→ 推定日収"></span><span class="pr-val gold" id="dispArbitrage"></span></div></div>
       </div>
     </div>
-
-    <div class="param-group open" data-tab-group="is">
+<div class="param-group open" data-tab-group="is">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚡ Indep. Storage" data-zh="⚡ 独立储能参数" data-ja="⚡ 系統用蓄電">⚡ 独立储能参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDurationIs"></span></div><div class="dual-input"><input type="range" id="inpDurationIs" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDurationIs" step="0.5" class="num-field"></div></div>
@@ -196,7 +206,18 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Daily Revenue Est." data-zh="→ 预估日收入" data-ja="→ 推定日収"></span><span class="pr-val gold" id="dispIsDailyRev"></span></div></div>
       </div>
     </div>
+<div class="param-group open" data-tab-group="pv">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💰 Price" data-zh="💰 用电与电价" data-ja="💰 電力価格">💰 用电与电价</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span><span class="pr-val" id="dispSelfUse"></span></div><div class="dual-input"><input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90"><input type="text" inputmode="decimal" id="numSelfUse" step="5" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span><span class="pr-val" id="dispDayPrice"></span></div><div class="dual-input"><input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664"><input type="text" inputmode="decimal" id="numDayPrice" step="0.001" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Grid Price" data-zh="上网结算电价" data-ja="系統連系価格"></span><span class="pr-val" id="dispGridPrice"></span></div><div class="dual-input"><input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3"><input type="text" inputmode="decimal" id="numGridPrice" step="0.001" class="num-field"></div><div class="pr-note" data-en="CfD + market price (2025 reform)" data-zh="市场化交易价+差价结算(136号文)" data-ja="市場価格+差額決済(2025年改革)">市场化交易价+差价结算(136号文)</div></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Col 3: 运营与税务 -->
+  <div>
     <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M" data-zh="🔧 运维成本" data-ja="🔧 運用費">🔧 运维成本</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
@@ -208,30 +229,7 @@
         <div class="pr derived"><div class="pr-label"><span data-en="→ Annual O&M (Year 1)" data-zh="→ 首年运维合计" data-ja="→ 初年度運用費"></span><span class="pr-val gold" id="dispOmTotal"></span></div></div>
       </div>
     </div>
-  </div>
-
-  <!-- Col 2 -->
-  <div>
-    <div class="param-group open">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🏦 Financing" data-zh="🏦 融资条件" data-ja="🏦 融資">🏦 融资条件</span><span class="arrow">▶</span></div>
-      <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.9"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="15"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Repay Method" data-zh="还款方式" data-ja="返済方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal" data-en="Equal Principal" data-zh="等额本金" data-ja="元金均等">等额本金</option><option value="equal-installment" data-en="Equal Installment" data-zh="等额本息" data-ja="元利均等">等额本息</option><option value="bullet" data-en="Interest-only + Bullet" data-zh="先息后本" data-ja="利息のみ+一括">先息后本</option></select></div>
-      </div>
-    </div>
-
-    <div class="param-group open" data-tab-group="pv">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="💰 Price" data-zh="💰 用电与电价" data-ja="💰 電力価格">💰 用电与电价</span><span class="arrow">▶</span></div>
-      <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Self-use Ratio" data-zh="自用比例" data-ja="自家消費率"></span><span class="pr-val" id="dispSelfUse"></span></div><div class="dual-input"><input type="range" id="inpSelfUse" min="30" max="100" step="5" value="90"><input type="text" inputmode="decimal" id="numSelfUse" step="5" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Daytime Price" data-zh="白天用电价" data-ja="昼間電力価格"></span><span class="pr-val" id="dispDayPrice"></span></div><div class="dual-input"><input type="range" id="inpDayPrice" min="0.3" max="1.2" step="0.001" value="0.664"><input type="text" inputmode="decimal" id="numDayPrice" step="0.001" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Grid Price" data-zh="上网结算电价" data-ja="系統連系価格"></span><span class="pr-val" id="dispGridPrice"></span></div><div class="dual-input"><input type="range" id="inpGridPrice" min="0.1" max="0.5" step="0.001" value="0.3"><input type="text" inputmode="decimal" id="numGridPrice" step="0.001" class="num-field"></div><div class="pr-note" data-en="CfD + market price (2025 reform)" data-zh="市场化交易价+差价结算(136号文)" data-ja="市場価格+差額決済(2025年改革)">市场化交易价+差价结算(136号文)</div></div>
-      </div>
-    </div>
-
-    <div class="param-group open">
+<div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🧾 Tax" data-zh="🧾 税务设置" data-ja="🧾 税務">🧾 税务设置</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="VAT Rate" data-zh="增值税率" data-ja="消費税率"></span><span class="pr-val" id="dispVatRate"></span></div><div class="dual-input"><input type="range" id="inpVatRate" min="9" max="17" step="1" value="13"><input type="text" inputmode="decimal" id="numVatRate" step="1" class="num-field"></div></div>
@@ -241,8 +239,7 @@
         <div class="pr-note" data-en="Y1-3: 0% / Y4-6: 12.5% / Y7+: 25% (default)" data-zh="默认: 前3年0% / 中3年12.5% / 之后25%" data-ja="初期3年0%·中期3年12.5%·以降25%">默认: 前3年0% / 中3年12.5% / 之后25%</div>
       </div>
     </div>
-
-    <div class="param-group open">
+<div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚙️ Replacement" data-zh="⚙️ 设备更换" data-ja="⚙️ 機器交換">⚙️ 设备更换</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr" data-tab-group="pv"><div class="pr-label"><span data-en="Inverter Replace Cost" data-zh="逆变器更换成本" data-ja="インバータ交換費"></span><span class="pr-val" id="dispInvReplace"></span></div><div class="dual-input"><input type="range" id="inpInvReplace" min="0" max="0.5" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numInvReplace" step="0.01" class="num-field"></div></div>
@@ -254,8 +251,6 @@
   </div>
 
 </div></div>
-
-
 <!-- PART 3: CHART -->
 <div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
