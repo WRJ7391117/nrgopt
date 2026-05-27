@@ -664,6 +664,8 @@ function update(){
   setText('resGenTotal',fm(R.totalGen));
   var genUnit=currentTab==='ci'?' 万度电':' 万度电';
   setText('dispGenY1Total',fm(R.genY1)+genUnit);
+  var cap=val('inpCapacity')||0,uc=val('inpUnitCost')||0;
+  setText('dispPvTotalInv',(cap*uc*100).toFixed(1));
 
   var tb=el('cfTableBody');if(!tb)return;
   tb.innerHTML='';
