@@ -551,7 +551,7 @@ function getPCI(){
     loanRatio:(val('inpLoanRatio')||70)/100,loanRate:(val('inpLoanRate')||3.9)/100,
     loanYears:ival('inpLoanYears')||15,repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
     degradY1:(val('inpDegradY1')||2)/100,degrad:(val('inpDegrad')||1.5)/100,
-    deprYears:ival('inpStDepr')||8,residual:(val('inpResidual')||5)/100,
+    deprYears:ival('inpStDepr')||8,residual:(val('inpStResidual')||5)/100,
     mgmtFee:val('inpMgmtFee')||0.01,mgmtEscal:(val('inpMgmtEscal')||3)/100,
     maintFee:val('inpMaintFee')||0.015,maintEscal:(val('inpMaintEscal')||1)/100,
     insRate:val('inpInsRate')||0.15,
@@ -574,7 +574,7 @@ function getPIS(){
     loanRatio:(val('inpLoanRatio')||70)/100,loanRate:(val('inpLoanRate')||3.9)/100,
     loanYears:ival('inpLoanYears')||15,repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
     degradY1:(val('inpDegradY1')||2)/100,degrad:(val('inpDegrad')||1.5)/100,
-    deprYears:ival('inpStDepr')||10,residual:(val('inpResidual')||5)/100,
+    deprYears:ival('inpStDepr')||10,residual:(val('inpStResidual')||5)/100,
     mgmtFee:val('inpMgmtFee')||0.01,mgmtEscal:(val('inpMgmtEscal')||3)/100,
     maintFee:val('inpMaintFee')||0.015,maintEscal:(val('inpMaintEscal')||1)/100,
     insRate:val('inpInsRate')||0.15,
@@ -874,6 +874,7 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   bindDual('inpHyStCap','numHyStCap','dispHyStCap2',uMW);
   bindDual('inpStUC','numStUC','dispStUC',function(v){return v.toFixed(2)+' 元/Wh';});
   bindDual('inpStLife','numStLife','dispStLife',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
+  bindDual('inpStResidual','numStResidual','dispStResidual',function(v){return Math.round(v)+'%';});
   bindDual('inpStDepr','numStDepr','dispStDepr',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
   bindDual('inpHyDur','numHyDur','dispHyDur',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
   bindDual('inpDiscountSt','numDiscountSt','dispDiscountSt',function(v){return Math.round(v)+'%';});
