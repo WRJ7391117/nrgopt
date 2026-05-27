@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <div class="param-group open" data-tab-group="hy">
+    <div class="param-group open" data-tab-group="ci,is,hy">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage System" data-zh="🔋 储能系统" data-ja="🔋 蓄電システム">🔋 储能系统</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Capacity" data-zh="储能装机容量"></span><span class="pr-val" id="dispHyStCap2"></span></div><div class="dual-input"><input type="range" id="inpHyStCap" min="0.05" max="50" step="0.05" value="0.2"><input type="text" inputmode="decimal" id="numHyStCap" step="0.05" class="num-field"></div></div>
@@ -190,10 +190,6 @@
 <div class="param-group open" data-tab-group="ci">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔋 Storage" data-zh="🔋 储能参数" data-ja="🔋 蓄電パラメータ">🔋 储能参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="CI Capacity" data-zh="储能装机" data-ja="蓄電容量"></span><span class="pr-val" id="dispCICap"></span></div><div class="dual-input"><input type="range" id="inpCICap" min="0.01" max="10" step="0.01" value="0.2"><input type="text" inputmode="decimal" id="numCICap" step="0.01" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="CI Unit Cost" data-zh="储能单位投资" data-ja="蓄電単価"></span><span class="pr-val" id="dispCIUC"></span></div><div class="dual-input"><input type="range" id="inpCIUC" min="0.3" max="3.0" step="0.05" value="0.8"><input type="text" inputmode="decimal" id="numCIUC" step="0.05" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="CI Life" data-zh="储能运营年限" data-ja="蓄電運転年数"></span><span class="pr-val" id="dispCILife"></span></div><div class="dual-input"><input type="range" id="inpCILife" min="10" max="30" step="1" value="20"><input type="text" inputmode="decimal" id="numCILife" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="CI Depr." data-zh="储能折旧年限" data-ja="蓄電償却年数"></span><span class="pr-val" id="dispCIDepr"></span></div><div class="dual-input"><input type="range" id="inpCIDepr" min="5" max="15" step="1" value="8"><input type="text" inputmode="decimal" id="numCIDepr" step="1" class="num-field"></div></div>
 
         <div class="pr derived" data-tab-group="hy"><div class="pr-label"><span data-en="→ Storage Total" data-zh="→ 储能总容量" data-ja="→ 蓄電総容量"></span><span class="pr-val gold" id="dispStTotalKwh"></span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDuration"></span></div><div class="dual-input"><input type="range" id="inpDuration" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDuration" step="0.5" class="num-field"></div></div>
@@ -217,10 +213,6 @@
 <div class="param-group open" data-tab-group="is">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="⚡ Indep. Storage" data-zh="⚡ 独立储能参数" data-ja="⚡ 系統用蓄電">⚡ 独立储能参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="IS Capacity" data-zh="储能装机" data-ja="蓄電容量"></span><span class="pr-val" id="dispISCap"></span></div><div class="dual-input"><input type="range" id="inpISCap" min="1" max="500" step="5" value="50"><input type="text" inputmode="decimal" id="numISCap" step="5" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="IS Unit Cost" data-zh="储能单位投资" data-ja="蓄電単価"></span><span class="pr-val" id="dispISUC"></span></div><div class="dual-input"><input type="range" id="inpISUC" min="0.3" max="2.0" step="0.05" value="0.9"><input type="text" inputmode="decimal" id="numISUC" step="0.05" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="IS Life" data-zh="储能运营年限" data-ja="蓄電運転年数"></span><span class="pr-val" id="dispISLife"></span></div><div class="dual-input"><input type="range" id="inpISLife" min="10" max="30" step="1" value="20"><input type="text" inputmode="decimal" id="numISLife" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="IS Depr." data-zh="储能折旧年限" data-ja="蓄電償却年数"></span><span class="pr-val" id="dispISDepr"></span></div><div class="dual-input"><input type="range" id="inpISDepr" min="5" max="15" step="1" value="10"><input type="text" inputmode="decimal" id="numISDepr" step="1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDurationIs"></span></div><div class="dual-input"><input type="range" id="inpDurationIs" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDurationIs" step="0.5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Lease Price" data-zh="容量租赁单价" data-ja="容量リース単価"></span><span class="pr-val" id="dispLeasePrice"></span></div><div class="dual-input"><input type="range" id="inpLeasePrice" min="100" max="500" step="10" value="300"><input type="text" inputmode="decimal" id="numLeasePrice" step="10" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Lease Rate" data-zh="租赁率" data-ja="リース率"></span><span class="pr-val" id="dispLeaseRate"></span></div><div class="dual-input"><input type="range" id="inpLeaseRate" min="50" max="100" step="5" value="85"><input type="text" inputmode="decimal" id="numLeaseRate" step="5" class="num-field"></div></div>
