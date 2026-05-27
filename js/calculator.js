@@ -38,8 +38,6 @@ function switchTab(tab){
     setSlider('inpDegrad','numDegrad',0.2,3,1.5);
     setSlider('inpCapacity','numCapacity',0.001,1000,0.2);
     // Rename 光伏 labels to 系统 labels for CI tab
-    var pvHdr=document.querySelector('[data-en*="PV System"]');if(pvHdr){pvHdr.setAttribute('data-zh','🔋 系统参数');pvHdr.textContent='🔋 系统参数';}
-    var pvLabels=document.querySelectorAll('[data-en*="PV "]');for(var k=0;k<pvLabels.length;k++){var el=pvLabels[k],zh=el.getAttribute('data-zh');if(zh&&zh.indexOf('光伏')===0)el.setAttribute('data-zh',zh.replace('光伏','系统'));}
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='is'){
     setSlider('inpRunYears','numRunYears',15,30,20);
@@ -55,8 +53,6 @@ function switchTab(tab){
     setSlider('inpDegrad','numDegrad',0.2,3,1.5);
     setSlider('inpCapacity','numCapacity',1,200,50);
     // Rename 光伏 labels back to 光伏 for IS tab (or rename to 系统)
-    var pvHdr2=document.querySelector('[data-en*="PV System"]');if(pvHdr2){pvHdr2.setAttribute('data-zh','🔋 系统参数');pvHdr2.textContent='🔋 系统参数';}
-    var pvLabels2=document.querySelectorAll('[data-en*="PV "]');for(var k2=0;k2<pvLabels2.length;k2++){var el2=pvLabels2[k2],zh2=el2.getAttribute('data-zh');if(zh2&&zh2.indexOf('光伏')===0)el2.setAttribute('data-zh',zh2.replace('光伏','系统'));}
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='hy'){
     setSlider('inpRunYears','numRunYears',15,30,25);
@@ -74,8 +70,6 @@ function switchTab(tab){
     setSlider('inpBatYear','numBatYear',8,15,10);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
     // Restore 光伏 labels for PV tab
-    var pvHdr3=document.querySelector('[data-en*="PV System"]');if(pvHdr3){pvHdr3.setAttribute('data-zh','☀ 光伏系统');pvHdr3.textContent='☀ 光伏系统';}
-    var pvLabels3=document.querySelectorAll('[data-en*="PV "]');for(var k3=0;k3<pvLabels3.length;k3++){var el3=pvLabels3[k3],zh3=el3.getAttribute('data-zh');if(zh3&&zh3.indexOf('系统')===0&&zh3.indexOf('光伏')<0)el3.setAttribute('data-zh',zh3.replace('系统','光伏'));}
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }else if(tab==='pv'){
     // PV defaults
@@ -92,8 +86,6 @@ function switchTab(tab){
     setSlider('inpDegrad','numDegrad',0.2,1,0.55);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
     // Restore 光伏 labels for PV tab
-    var pvHdr3=document.querySelector('[data-en*="PV System"]');if(pvHdr3){pvHdr3.setAttribute('data-zh','☀ 光伏系统');pvHdr3.textContent='☀ 光伏系统';}
-    var pvLabels3=document.querySelectorAll('[data-en*="PV "]');for(var k3=0;k3<pvLabels3.length;k3++){var el3=pvLabels3[k3],zh3=el3.getAttribute('data-zh');if(zh3&&zh3.indexOf('系统')===0&&zh3.indexOf('光伏')<0)el3.setAttribute('data-zh',zh3.replace('系统','光伏'));}
     // PV defaults
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }
