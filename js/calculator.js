@@ -666,6 +666,9 @@ function update(){
   setText('dispGenY1Total',fm(R.genY1)+genUnit);
   var cap=val('inpCapacity')||0,uc=val('inpUnitCost')||0;
   setText('dispPvTotalInv',(cap*uc*100).toFixed(1));
+  var stCap=val('inpHyStCap')||0,stUc=val('inpStUC')||0;
+  var stDur=val('inpDuration')||val('inpDurationIs')||val('inpHyDur')||2;
+  setText('dispStTotalInv',(stCap*stDur*stUc*100).toFixed(1));
 
   var tb=el('cfTableBody');if(!tb)return;
   tb.innerHTML='';
