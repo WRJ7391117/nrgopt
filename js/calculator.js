@@ -23,10 +23,15 @@ function switchTab(tab){
   // Set tab-appropriate defaults
   if(tab==='ci'){
     // C&I storage defaults: 20yr life, 8yr depr, higher insurance, battery replacement Y10
-    setSlider('inpRunYears','numRunYears',15,30,20);
-    setSlider('inpDeprYears','numDeprYears',5,15,8);
+    
+    
+    setSlider('inpStLife','numStLife',10,30,20);
+    setSlider('inpStDepr','numStDepr',5,15,8);
+    setSlider('inpStUC','numStUC',0.3,2.0,0.8);
+    setSlider('inpHyStCap','numHyStCap',0.05,50,0.2);
+    setSlider('inpHyDur','numHyDur',1,6,2);
     setSlider('inpLoanYears','numLoanYears',5,15,10);
-    setSlider('inpUnitCost','numUnitCost',0.3,5.0,0.8);
+    
     setSlider('inpBatReplace','numBatReplace',0,0.6,0.3);
     setSlider('inpBatYear','numBatYear',8,15,10);
     setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.015);
@@ -36,14 +41,19 @@ function switchTab(tab){
     setSlider('inpPriceEscal','numPriceEscal',0,5,2.5);
     setSlider('inpDegradY1','numDegradY1',0,3,2.5);
     setSlider('inpDegrad','numDegrad',0.2,3,1.5);
-    setSlider('inpCapacity','numCapacity',0.001,1000,0.2);
+    
     // Rename 光伏 labels to 系统 labels for CI tab
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='is'){
-    setSlider('inpRunYears','numRunYears',15,30,20);
-    setSlider('inpDeprYears','numDeprYears',5,15,10);
+    
+    
+    setSlider('inpStLife','numStLife',10,30,20);
+    setSlider('inpStDepr','numStDepr',5,15,10);
+    setSlider('inpStUC','numStUC',0.3,2.0,0.9);
+    setSlider('inpHyStCap','numHyStCap',1,500,50);
+    setSlider('inpHyDur','numHyDur',1,6,2);
     setSlider('inpLoanYears','numLoanYears',5,15,12);
-    setSlider('inpUnitCost','numUnitCost',0.5,3.0,0.9);
+    
     setSlider('inpBatReplace','numBatReplace',0,0.6,0.35);
     setSlider('inpBatYear','numBatYear',8,15,12);
     setSlider('inpMaintFee','numMaintFee',0.005,0.05,0.01);
@@ -51,7 +61,7 @@ function switchTab(tab){
     setSlider('inpDiscount','numDiscount',0,100,8);
     setSlider('inpDegradY1','numDegradY1',0,3,2.5);
     setSlider('inpDegrad','numDegrad',0.2,3,1.5);
-    setSlider('inpCapacity','numCapacity',1,200,50);
+    
     // Rename 光伏 labels back to 光伏 for IS tab (or rename to 系统)
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='hy'){
@@ -66,6 +76,7 @@ function switchTab(tab){
     setSlider('inpStUC','numStUC',0.3,2.0,0.8);
     setSlider('inpStLife','numStLife',10,25,15);
     setSlider('inpStDepr','numStDepr',5,15,8);
+    setSlider('inpHyDur','numHyDur',1,6,2);
     setSlider('inpBatReplace','numBatReplace',0,0.6,0.3);
     setSlider('inpBatYear','numBatYear',8,15,10);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
@@ -866,6 +877,7 @@ bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return
   bindDual('inpStUC','numStUC','dispStUC',function(v){return v.toFixed(2)+' 元/Wh';});
   bindDual('inpStLife','numStLife','dispStLife',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
   bindDual('inpStDepr','numStDepr','dispStDepr',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
+  bindDual('inpHyDur','numHyDur','dispHyDur',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
   bindDual('inpDiscountSt','numDiscountSt','dispDiscountSt',function(v){return Math.round(v)+'%';});
   bindDual('inpSpread','numSpread','dispSpread',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));});
   bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
