@@ -713,10 +713,12 @@ function update(){
   // Update storage total capacity display
   var stMw=val('inpHyStCap')||0.2;var stDur=val('inpHyDur')||2;var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(stMw*stDur).toFixed(1)+' MWh';
 
-  if(currentTab==='ci'){R=calcCI(getPCI());}
-  else if(currentTab==='is'){R=calcIS(getPIS());}
-  else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
-  else{R=calc(getP());}
+  try{
+    if(currentTab==='ci'){R=calcCI(getPCI());}
+    else if(currentTab==='is'){R=calcIS(getPIS());}
+    else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
+    else{R=calc(getP());}
+  }catch(e){R=null;}
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
