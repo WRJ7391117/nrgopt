@@ -85,7 +85,7 @@ function switchTab(tab){
     setSlider('inpOpDays','numOpDays',250,365,330);
     setSlider('inpBatReplace','numBatReplace',0,0.6,0.3);
     setSlider('inpBatYear','numBatYear',8,15,10);
-    setSlider('inpCapacity','numCapacity',0.1,10,1);
+    setSlider('inpCapacity','numCapacity',0.01,1000,1);
     // Restore 光伏 labels for PV tab
     // Ensure both replacement year sliders trigger update
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
@@ -102,7 +102,7 @@ function switchTab(tab){
     setSlider('inpDiscount','numDiscount',0,100,10);
     setSlider('inpDegradY1','numDegradY1',0,3,1.0);
     setSlider('inpDegrad','numDegrad',0.2,1,0.55);
-    setSlider('inpCapacity','numCapacity',0.1,10,1);
+    setSlider('inpCapacity','numCapacity',0.01,1000,1);
     // Restore 光伏 labels for PV tab
     // PV defaults
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
