@@ -669,6 +669,8 @@ function update(){
   var stCap=val('inpHyStCap')||0,stUc=val('inpStUC')||0;
   var stDur=val('inpDuration')||val('inpDurationIs')||val('inpHyDur')||2;
   setText('dispStTotalInv',(stCap*stDur*stUc*100).toFixed(1));
+  var totalEquip=cap*uc*100 + stCap*stDur*stUc*100;
+  setText('dispTotalEquipInv',totalEquip.toFixed(1));
 
   var tb=el('cfTableBody');if(!tb)return;
   tb.innerHTML='';
