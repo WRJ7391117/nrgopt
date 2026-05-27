@@ -77,6 +77,10 @@ function switchTab(tab){
     setSlider('inpStLife','numStLife',10,25,15);
     setSlider('inpStDepr','numStDepr',5,15,8);
     setSlider('inpHyDur','numHyDur',1,6,2);
+    setSlider('inpDuration','numDuration',1,6,2);
+    setSlider('inpRte','numRte',80,95,88);
+    setSlider('inpCycles','numCycles',0.5,3,2);
+    setSlider('inpOpDays','numOpDays',250,365,330);
     setSlider('inpBatReplace','numBatReplace',0,0.6,0.3);
     setSlider('inpBatYear','numBatYear',8,15,10);
     setSlider('inpCapacity','numCapacity',0.1,10,1);
@@ -714,6 +718,8 @@ function update(){
 
   // Sync storage discount with PV discount
   var ds=el('inpDiscountSt');if(ds){var dv=el('inpDiscount');if(dv&&parseFloat(ds.value)!==parseFloat(dv.value)){ds.value=dv.value;var ns=el('numDiscountSt');if(ns)ns.value=dv.value;var disp=el('dispDiscountSt');if(disp)disp.textContent=Math.round(parseFloat(dv.value))+'%';}}
+  // Update storage total capacity display
+  var stMw=val('inpHyStCap')||0.2;var stDur=val('inpHyDur')||2;var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(stMw*stDur).toFixed(1)+' MWh';
 
   if(currentTab==='ci'){R=calcCI(getPCI());}
   else if(currentTab==='is'){R=calcIS(getPIS());}
