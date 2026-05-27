@@ -618,14 +618,14 @@ function update(){
     var ciKwh=ciCap*1000*ciDur,ciDays=ival('inpOpDays')||330;
     var ciRte=(val('inpRte')||88)/100;
     var ciDaily=ciKwh*ciRte*(val('inpCycles')||2)/1000;
-    var ciMw=(val('inpCapacity')||0.2).toFixed(2);var sy=el('ciSysSize');if(sy)sy.textContent=ciMw+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
+    var ciMw=(val('inpHyStCap')||0.2).toFixed(2);var sy=el('ciSysSize');if(sy)sy.textContent=ciMw+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
     var dd=el('ciDailyDis');if(dd)dd.textContent=ciDaily.toFixed(1)+' 万kWh';
     var od=el('ciOpDays');if(od)od.textContent=ciDays+' 天';
     // Update metric labels
     var g1=el('resGenY1');if(g1&&g1.parentElement){var bl=g1.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
     var gt=el('resGenTotal');if(gt&&gt.parentElement){var bl2=gt.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
     // C&I storage display values
-    var dur=val('inpDuration')||2,kWh=val('inpCapacity')*1000*dur;
+    var dur=val('inpDuration')||2,kWh=val('inpHyStCap')*1000*dur;
     var rte2=(val('inpRte')||88)/100;
     var spP=val('inpSpPrice')||1.2,spH=val('inpSpHours')||2;
     var pkP=val('inpPeakPrice')||1.0,pkH=val('inpPeakHours')||4;
@@ -646,7 +646,7 @@ function update(){
     var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330)-tcCost/365;
     setText('dispArbitrage','套利'+baseArb.toFixed(1)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1):'')+(dmMode==='capacity'?'-容量'+tcCost.toFixed(1):'')+(' ≈ '+dailyTotal.toFixed(1)+' 万元/天'));
     var idealThru=kWh*cyc*opD*rte2/1000;
-    setText('dispGenPerW',(idealThru/val('inpCapacity')).toFixed(2)+' 万kWh/kW');
+    setText('dispGenPerW',(idealThru/val('inpHyStCap')).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
     setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
