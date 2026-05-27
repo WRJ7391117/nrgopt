@@ -641,7 +641,7 @@ function update(){
     var pe=(val('inpPriceEscal')||2.5)/100;
     var dmMode=el('inpDemandMode')?el('inpDemandMode').value:'demand';
     var dmCharge=val('inpDemandCharge')||40,dmRed=(val('inpDemandReduction')||30)/100;
-    var dmSave=dmMode==='demand'?((val('inpCapacity')||0.2)*1000)*dmRed*dmCharge*12/10000:0;
+    var dmSave=dmMode==='demand'?((val('inpHyStCap')||0.2)*1000)*dmRed*dmCharge*12/10000:0;
     var tcCost=dmMode==='capacity'?val('inpTransCapacity')||30*12/10000:0;
     var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330)-tcCost/365;
     setText('dispArbitrage','套利'+baseArb.toFixed(1)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1):'')+(dmMode==='capacity'?'-容量'+tcCost.toFixed(1):'')+(' ≈ '+dailyTotal.toFixed(1)+' 万元/天'));
@@ -651,14 +651,6 @@ function update(){
     var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
     setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
     setText('dispBestAngle','');
-    // HY daily revenue estimate
-    var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
-    var hyExcess=hyGenY1*(1-(val('inpSelfUse')||90)/100);
-    var hyStKwh=hyStMw*1000*hyDur;
-    var hyMaxDay=hyStKwh*(val('inpRte')||88)/100*(val('inpCycles')||2)/10000;
-    var hyActDay=Math.min(hyExcess/365,hyMaxDay);
-    setText('dispSunHours',Math.round(hyExcess));
-    setText('dispArbitrage','余电'+hyExcess.toFixed(1)+'万kWh 储能消纳≈'+hyActDay.toFixed(1)+'万/天');
   }else if(currentTab==='is'){
     // IS info card
     var isCap=val('inpCapacity')||50,isDur=val('inpDurationIs')||2;
