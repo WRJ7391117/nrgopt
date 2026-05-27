@@ -649,6 +649,7 @@ function update(){
   el('resIrrEq').style.color='#38bdf8';
   var npvTxt=R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString();
   setText('resNpv',npvTxt);
+  setText('resDiscount',Math.round(val('inpDiscount'))+'%');
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
   setText('resRoi',R.roi.toFixed(1)+'%');
   setText('resRoe',R.roe.toFixed(1)+'%');
