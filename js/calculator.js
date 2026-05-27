@@ -356,7 +356,7 @@ function calcHybrid(p){
   
   // Storage side
   var stCap=p.hyStCap||0.2,dur2=dur,kWh2=stCap*1000*dur2; // stCap MW→kW×h=kWh
-  var TI_st=kWh2*(uc*0.3); // storage cost is ~30% of PV unit cost per Wh
+    var stUC=p.stUC||0.8,stDegrad=da*2.5; var TI_st=kWh2*stUC/10; // kWh * 元/Wh / 10 = 万元
   var TI=TI_pv+TI_st;
   var loan=TI*lr,equity=TI-loan;
 
@@ -385,13 +385,13 @@ function calcHybrid(p){
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var pvRev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
-    var stRev=arbRev*Math.pow(1-da*2,y-1)/(1-d1); // storage degrades faster
+      var stRev=arbRev*Math.pow(1-stDegrad,y-1)/(1-d1); // storage degrades ~2.5x faster
     var rev=pvRev+stRev;
     var outputVat=rev*vr;
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-    var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1);
+      var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1)+stCap*1000*mgmt*Math.pow(1+me,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -751,6 +751,30 @@ window.switchLang=function(lang){
 
 var regionMap={tibet:1900,nw:1600,nc:1400,ec:1350,sc:1100,sw:1000};
 window.setRegionPreset=function(val){if(val==='custom')return;var irr=regionMap[val];if(!irr)return;var s=el('inpIrradiance'),n=el('numIrradiance');if(s)s.value=irr;if(n)n.value=irr;refreshDisplays();update();};
+
+var provinceData={
+  zhejiang:{spPrice:1.35,spHours:2,peakPrice:1.08,peakHours:4,flatPrice:0.63,flatHours:10,valleyPrice:0.33,valleyHours:8,demandCharge:40,label:"浙江(工商业1-10kV)"},
+  guangdong:{spPrice:1.48,spHours:2,peakPrice:1.15,peakHours:4,flatPrice:0.68,flatHours:10,valleyPrice:0.29,valleyHours:8,demandCharge:42,label:"广东珠三角(1-10kV)"},
+  jiangsu:{spPrice:1.28,spHours:2,peakPrice:1.05,peakHours:4,flatPrice:0.61,flatHours:10,valleyPrice:0.32,valleyHours:8,demandCharge:40,label:"江苏(1-10kV)"},
+  shandong:{spPrice:1.18,spHours:2,peakPrice:0.98,peakHours:4,flatPrice:0.57,flatHours:10,valleyPrice:0.30,valleyHours:8,demandCharge:38,label:"山东(1-10kV)"},
+  beijing:{spPrice:1.32,spHours:2,peakPrice:1.05,peakHours:4,flatPrice:0.61,flatHours:10,valleyPrice:0.33,valleyHours:8,demandCharge:42,label:"北京(1-10kV)"},
+  shanghai:{spPrice:1.38,spHours:2,peakPrice:1.12,peakHours:4,flatPrice:0.64,flatHours:10,valleyPrice:0.35,valleyHours:8,demandCharge:42,label:"上海(1-10kV)"},
+  hunan:{spPrice:1.25,spHours:2,peakPrice:1.02,peakHours:4,flatPrice:0.60,flatHours:10,valleyPrice:0.32,valleyHours:8,demandCharge:36,label:"湖南(1-10kV)"},
+  hubei:{spPrice:1.22,spHours:2,peakPrice:0.98,peakHours:4,flatPrice:0.58,flatHours:10,valleyPrice:0.31,valleyHours:8,demandCharge:38,label:"湖北(1-10kV)"}
+};
+window.applyProvincePreset=function(val){
+  if(!val||!provinceData[val])return;
+  var d=provinceData[val];
+  var sets={
+    inpSpPrice:d.spPrice,inpSpHours:d.spHours,
+    inpPeakPrice:d.peakPrice,inpPeakHours:d.peakHours,
+    inpFlatPrice:d.flatPrice,inpFlatHours:d.flatHours,
+    inpValleyPrice:d.valleyPrice,inpValleyHours:d.valleyHours,
+    inpDemandCharge:d.demandCharge
+  };
+  for(var id in sets){var e=el(id);if(e)e.value=sets[id];}
+  refreshDisplays();update();
+};
 
 function init(){
   function L(){return document.documentElement.lang||'en';}
