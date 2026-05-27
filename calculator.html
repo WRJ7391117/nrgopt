@@ -53,9 +53,41 @@
       <button class="loc-tab" onclick="switchLocTab('gps',this)">📍 GPS 定位</button>
     </div>
     <div class="loc-tab-panel" id="tabAddress">
-      <input type="text" id="locAddress" placeholder="城市名或经纬度 如: 31.23, 121.47" class="loc-input" style="flex:1">
-      <button type="button" onclick="autoFillFromAddress()" class="loc-btn">查询</button>
-      <span id="locStatus" class="loc-status"></span>
+      <div class="loc-latlon-row">
+        <div class="loc-field-unit">
+          <span class="loc-field-label">纬度</span>
+          <input type="text" id="latDeg" placeholder="31" class="loc-input loc-dms" inputmode="numeric">
+          <span class="loc-unit">°</span>
+          <input type="text" id="latMin" placeholder="14" class="loc-input loc-dms" inputmode="numeric">
+          <span class="loc-unit">′</span>
+          <input type="text" id="latSec" placeholder="12.0" class="loc-input loc-dms" inputmode="decimal">
+          <span class="loc-unit">″</span>
+          <select id="latSign" class="loc-sign-select">
+            <option value="N">N</option>
+            <option value="S">S</option>
+          </select>
+        </div>
+        <div class="loc-field-unit">
+          <span class="loc-field-label">经度</span>
+          <input type="text" id="lonDeg" placeholder="121" class="loc-input loc-dms" inputmode="numeric">
+          <span class="loc-unit">°</span>
+          <input type="text" id="lonMin" placeholder="28" class="loc-input loc-dms" inputmode="numeric">
+          <span class="loc-unit">′</span>
+          <input type="text" id="lonSec" placeholder="16.1" class="loc-input loc-dms" inputmode="decimal">
+          <span class="loc-unit">″</span>
+          <select id="lonSign" class="loc-sign-select">
+            <option value="E">E</option>
+            <option value="W">W</option>
+          </select>
+        </div>
+        <button type="button" onclick="autoFillFromAddress()" class="loc-btn">查询</button>
+        <span id="locStatus" class="loc-status"></span>
+      </div>
+      <div class="loc-city-row">
+        <span class="loc-field-label">或城市名</span>
+        <input type="text" id="locCityName" placeholder="上海、北京..." class="loc-input" style="flex:1;min-width:100px;max-width:200px">
+        <button type="button" onclick="autoFillFromCity()" class="loc-btn">搜索</button>
+      </div>
     </div>
     <div class="loc-tab-panel" id="tabGPS" style="display:none">
       <button type="button" onclick="autoFillFromGPS()" class="loc-btn">📍 获取我的当前位置</button>

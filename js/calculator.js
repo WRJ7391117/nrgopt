@@ -863,24 +863,45 @@ window.switchLocTab=function(type,btn){
 
 // ── Auto-fill ──
 window.autoFillFromAddress=function(){
-  var addr=el('locAddress').value.trim(),st=el('locStatus');
-  if(!addr){st.textContent='请先输入地址';return;}
-  // Direct lat,lon input
-  var m=addr.match(/(-?\d+\.?\d*)\s*[,，\s]\s*(-?\d+\.?\d*)/);
-  if(m){
-    var lat=parseFloat(m[1]),lon=parseFloat(m[2]);
-    el('locCoord').textContent=fmtCoord(lat,lon);
-  }
-  var url=m?'/api/solar-data?lat='+parseFloat(m[1])+'&lon='+parseFloat(m[2]):'/api/solar-data?address='+encodeURIComponent(addr);
+  var st=el('locStatus');
+  var latD=parseFloat(el('latDeg').value),latM=parseFloat(el('latMin').value),latS=parseFloat(el('latSec').value);
+  var lonD=parseFloat(el('lonDeg').value),lonM=parseFloat(el('lonMin').value),lonS=parseFloat(el('lonSec').value);
+  var latSign=el('latSign').value,lonSign=el('lonSign').value;
+  if(isNaN(latD)||isNaN(latM)||isNaN(latS)||isNaN(lonD)||isNaN(lonM)||isNaN(lonS)){st.textContent='请填写完整的度分秒';return;}
+  if(latD<0||latD>90){st.textContent='纬度度数 0~90';return;}
+  if(latM<0||latM>=60||latS<0||latS>=60){st.textContent='纬度分数(0~59) 秒数(0~59)';return;}
+  if(lonD<0||lonD>180){st.textContent='经度度数 0~180';return;}
+  if(lonM<0||lonM>=60||lonS<0||lonS>=60){st.textContent='经度分数(0~59) 秒数(0~59)';return;}
+  var lat=latD+latM/60+latS/3600;
+  var lon=lonD+lonM/60+lonS/3600;
+  if(latSign==='S')lat=-lat;
+  if(lonSign==='W')lon=-lon;
+  el('locCoord').textContent=fmtCoord(lat,lon);
   st.textContent='查询中...';
   var controller=new AbortController();
   setTimeout(function(){controller.abort();},15000);
-  fetch(url,{signal:controller.signal}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(d){
-    if(!d.ok){st.textContent=(d.error||'查询失败')+' 请尝试输入经纬度或使用GPS定位';if(m)solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
+  fetch('/api/solar-data?lat='+lat+'&lon='+lon,{signal:controller.signal}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+  }).then(function(d){
+    if(!d.ok){st.textContent=(d.error||'查询失败')+' 已使用离线估算';solarFallback(lat,lon);return;}
+    applySolarParams(d);st.textContent='✓ 已获取辐照数据';
+  }).catch(function(e){
+    st.textContent='网络查询失败，已使用离线估算';solarFallback(lat,lon);
+  });
+};
+window.autoFillFromCity=function(){
+  var addr=el('locCityName').value.trim(),st=el('locStatus');
+  if(!addr){st.textContent='请先输入城市名';return;}
+  st.textContent='查询中...';
+  var controller=new AbortController();
+  setTimeout(function(){controller.abort();},15000);
+  fetch('/api/solar-data?address='+encodeURIComponent(addr),{signal:controller.signal}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+  }).then(function(d){
+    if(!d.ok){st.textContent=(d.error||'查询失败')+' 请尝试直接输入经纬度';return;}
     applySolarParams(d);
   }).catch(function(e){
-    if(m){solarFallback(parseFloat(m[1]),parseFloat(m[2]));return;}
-    st.textContent='网络错误, 请输入经纬度如 31.23,121.47 或使用GPS定位';
+    st.textContent='网络查询失败，请直接输入经纬度或使用GPS定位';
   });
 };
 window.autoFillFromGPS=function(){
@@ -896,8 +917,15 @@ window.autoFillFromGPS=function(){
   );
 };
 function activeStatus(){return el('tabGPS').style.display==='flex'?el('locStatusGPS'):el('locStatus');}
+function dms(val){var d=Math.floor(val),m=Math.floor((val-d)*60),s=((val-d)*60-m)*60;return[d,m,parseFloat(s.toFixed(1))];}
 function fillFromLatLon(lat,lon){
-  var st=activeStatus();st.textContent='查询中... ('+lat.toFixed(2)+', '+lon.toFixed(2)+')';
+  var st=activeStatus();st.textContent='查询中... ('+lat.toFixed(4)+', '+lon.toFixed(4)+')';
+  var latA=Math.abs(lat),lonA=Math.abs(lon);
+  var ld=dms(latA),lod=dms(lonA);
+  el('latDeg').value=ld[0];el('latMin').value=ld[1];el('latSec').value=ld[2];
+  el('lonDeg').value=lod[0];el('lonMin').value=lod[1];el('lonSec').value=lod[2];
+  el('latSign').value=lat>=0?'N':'S';
+  el('lonSign').value=lon>=0?'E':'W';
   fetch('/api/solar-data?lat='+lat+'&lon='+lon)
     .then(function(r){return r.json();})
     .then(function(d){
