@@ -665,12 +665,12 @@ function update(){
   var genUnit=currentTab==='ci'?' 万度电':' 万度电';
   setText('dispGenY1Total',fm(R.genY1)+genUnit);
   var cap=val('inpCapacity')||0,uc=val('inpUnitCost')||0;
-  setText('dispPvTotalInv',(cap*uc*100).toFixed(1));
+  setText('dispPvTotalInv',fmtWan(cap*uc*100));
   var stCap=val('inpHyStCap')||0,stUc=val('inpStUC')||0;
   var stDur=val('inpDuration')||val('inpDurationIs')||val('inpHyDur')||2;
-  setText('dispStTotalInv',(stCap*stDur*stUc*100).toFixed(1));
+  setText('dispStTotalInv',fmtWan(stCap*stDur*stUc*100));
   var totalEquip=cap*uc*100 + stCap*stDur*stUc*100;
-  setText('dispTotalEquipInv',totalEquip.toFixed(1));
+  setText('dispTotalEquipInv',fmtWan(totalEquip));
 
   var tb=el('cfTableBody');if(!tb)return;
   tb.innerHTML='';
@@ -790,6 +790,7 @@ function init(){
   function uPct(v){return Math.round(v)+'%';}function uPct1(v){return v.toFixed(1)+'%';}
   function uMW(v){var l=L();return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));}
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
+  function fmtWan(v){return Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+' 万元';}
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
   bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' 元/W':(l==='ja'?' 元/W':' 元/瓦'));});
