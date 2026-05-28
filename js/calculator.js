@@ -428,6 +428,7 @@ function el(id){return document.getElementById(id);}
 function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
+function fmtWan(v){return Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+' 万元';}
 var _infoCardData=null;
 function syncInfoCard(){
   if(!_infoCardData)return;
@@ -790,7 +791,7 @@ function init(){
   function uPct(v){return Math.round(v)+'%';}function uPct1(v){return v.toFixed(1)+'%';}
   function uMW(v){var l=L();return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));}
   function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
-  function fmtWan(v){return Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+' 万元';}
+
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
   bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' 元/W':(l==='ja'?' 元/W':' 元/瓦'));});
