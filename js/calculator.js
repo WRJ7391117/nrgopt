@@ -198,7 +198,7 @@ function calcCI(p){
   var baseDailyArb=effKWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte);
 
   // Demand charge savings
-  var peakReduction=cap*demandReduction,demandSavings=peakReduction*demandCharge*12/10000;
+  var peakReduction=cap*1000*demandReduction,demandSavings=peakReduction*demandCharge*12/10000;
 
   // Battery degradation: calendar + cycle-based
   var totalCycles=cycles*opDays*ry,cycleLife=6000;
@@ -831,7 +831,6 @@ bindDual('inpDurationIs','numDurationIs','dispDurationIs',function(v){var l=L();
       bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
 bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
   bindDual('inpHyStCap','numHyStCap','dispHyStCap',uMW);
-  bindDual('inpHyStCap','numHyStCap','dispHyStCap2',uMW);
   bindDual('inpStUC','numStUC','dispStUC',function(v){return v.toFixed(2)+' 元/Wh';});
   bindDual('inpStLife','numStLife','dispStLife',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
   bindDual('inpStResidual','numStResidual','dispStResidual',function(v){return Math.round(v)+'%';});
