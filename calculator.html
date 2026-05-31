@@ -198,15 +198,14 @@
     <div class="band-card"><div class="band-label" data-en="10yr Total: Investment+Tax" data-zh="方案B 10年总支出">方案B 10年总支出</div><div class="band-value" id="resTotalCost">—</div><div class="band-sub" data-en="investment + remaining tax" data-zh="投资+剩余碳税">投资+剩余碳税</div></div>
     <div class="band-card" style="border:2px solid #10b981"><div class="band-label" data-en="10yr Net Savings" data-zh="10年净节省">10年净节省</div><div class="band-value" id="resTotalRev" style="color:#10b981">—</div><div class="band-sub" data-en="Option A - Option B" data-zh="方案A - 方案B">方案A - 方案B</div></div>
   </div>
-  <div class="print-sec">五、逐年比较</div>
-</div><!-- PART 2: PARAMETERS -->
-<div class="print-sec">五、测算参数</div>
+  <div class="print-sec" data-tab-group="carbon">五、逐年对比明细 (万元)</div>
+</div><div class="print-sec" data-tab-group="pv,ci,is,hy">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
   <!-- Col 1: 投资与融资 -->
   <div>
 
-    <div class="col-header"><span data-en="💵 Investment & Financing" data-zh="💵 投资与融资" data-ja="💵 投資と融資">💵 投资与融资</span></div>    <div class="param-group open" data-tab-group="pv">
+    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="💵 Investment & Financing" data-zh="💵 投资与融资" data-ja="💵 投資と融資">💵 投资与融资</span></div>    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ PV System" data-zh="☀ 光伏系统" data-ja="☀ PVシステム">☀ 光伏系统</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Capacity" data-zh="光伏装机容量" data-ja="設備容量"></span><span class="pr-val" id="dispCapacity"></span></div><div class="dual-input"><input type="range" id="inpCapacity" min="0.01" max="1000" step="0.01" value="1"><input type="text" inputmode="decimal" id="numCapacity" step="0.01" class="num-field"></div></div>
@@ -251,7 +250,7 @@
   <div>
     <div class="hy-section-label" data-tab-group="hy"><span>—— ☀ 光伏系统 ——</span></div>
 
-    <div class="col-header"><span data-en="📈 Revenue" data-zh="📈 收入参数" data-ja="📈 収入">📈 收入参数</span></div>    <div class="param-group open" data-tab-group="pv">
+    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="📈 Revenue" data-zh="📈 收入参数" data-ja="📈 収入">📈 收入参数</span></div>    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ PV Generation" data-zh="☀ 光伏发电量" data-ja="☀ PV発電量">☀ 光伏发电量</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span><span class="pr-val" id="dispIrradiance"></span></div><div class="dual-input"><input type="range" id="inpIrradiance" min="800" max="2200" step="1" value="1350"><input type="text" inputmode="decimal" id="numIrradiance" step="1" class="num-field"></div></div>
@@ -338,7 +337,7 @@
   <!-- Col 3: 运营与税务 -->
   <div>
 
-    <div class="col-header"><span data-en="🔧 Ops & Tax" data-zh="🔧 运营与税务" data-ja="🔧 運用と税務">🔧 运营与税务</span></div>    <div class="param-group open">
+    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="🔧 Ops & Tax" data-zh="🔧 运营与税务" data-ja="🔧 運用と税務">🔧 运营与税务</span></div>    <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M" data-zh="🔧 运维成本" data-ja="🔧 運用費">🔧 运维成本</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Mgmt Fee" data-zh="管理费率" data-ja="管理費率"></span><span class="pr-val" id="dispMgmtFee"></span></div><div class="dual-input"><input type="range" id="inpMgmtFee" min="0" max="0.03" step="0.001" value="0.01"><input type="text" inputmode="decimal" id="numMgmtFee" step="0.001" class="num-field"></div></div>
@@ -372,6 +371,7 @@
 
 </div></div>
 <!-- PART 3: CHART -->
+<div data-tab-group="pv,ci,is,hy,carbon">
 <div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
   <div class="chart-card">
@@ -381,7 +381,7 @@
 </div>
 
 <!-- PART 4: TABLE -->
-<div class="print-sec">七、现金流明细</div>
+<div class="print-sec" data-tab-group="pv,ci,is,hy,carbon">七、现金流明细</div>
 <div class="table-band">
   <div class="table-card">
     <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 CF明細（万元）">📋 现金流明细（万元）</h3>
