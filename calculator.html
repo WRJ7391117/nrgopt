@@ -33,10 +33,11 @@
 <section class="calc-hero" id="calcMain"><div class="container"><h1>新能源项目 <span class="hl">投资测算</span></h1><p class="hero-sub" data-en="PV · Storage · Hybrid — real-time IRR, NPV, and cash flow" data-zh="光伏 · 独立储能 · 工商业储能 · 光储一体化" data-ja="太陽光 · 蓄電 · ハイブリッド">光伏 · 独立储能 · 工商业储能 · 光储一体化</p></div></section>
 
 <div class="tab-bar">
-  <button class="tab-btn active" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏" data-ja="太陽光">光伏</span></button>
+  <button class="tab-btn active" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏">光伏</span></button>
   <button class="tab-btn" data-tab="ci" onclick="switchTab('ci')"><span class="tab-icon">🏭</span> <span data-en="C&I Storage" data-zh="工商业储能" data-ja="産業用蓄電">工商业储能</span></button>
   <button class="tab-btn" data-tab="hy" onclick="switchTab('hy')"><span class="tab-icon">🔗</span> <span data-en="PV+Storage" data-zh="光储一体化" data-ja="PV+蓄電">光储一体化</span></button>
-  <button class="tab-btn" data-tab="is" onclick="switchTab('is')"><span class="tab-icon">🔋</span> <span data-en="Indep. Storage" data-zh="独立储能" data-ja="系統用蓄電">独立储能</span></button>
+  <button class="tab-btn" data-tab="is" onclick="switchTab('is')"><span class="tab-icon">🔋</span> <span data-en="Indep. Storage" data-zh="独立储能">独立储能</span></button>
+  <button class="tab-btn" data-tab="carbon" onclick="switchTab('carbon')"><span class="tab-icon">🌍</span> <span data-en="Carbon" data-zh="碳合规">碳合规</span></button>
 </div>
 
 <div class="print-title">NrgOpt 项目测算报告</div>
@@ -120,6 +121,15 @@
     </div>
   </div>
   <div data-tab-group="hy" style="display:none">
+  <div data-tab-group="carbon" style="display:none">
+    <div class="loc-section-label">企业用电概况</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>所在省份</b> <span id="cbProvince" class="loc-val">浙江</span></span>
+      <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>预估年碳排放</b> <span id="cbTotalEmissions" class="loc-val">—</span></span>
+    </div>
+  </div>
     <div class="loc-section-label">项目概况</div>
     <div class="loc-results">
       <span class="loc-res-item"><b>光伏装机</b> <span id="hyPvCap" class="loc-val">1 MW</span></span>
@@ -271,6 +281,30 @@
       </div>
     </div>
   </div>
+<div class="param-group open" data-tab-group="carbon">
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Compliance" data-zh="🌍 碳合规参数">🌍 碳合规参数</span><span class="arrow">▶</span></div>
+      <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
+          <select id="inpCbProvince" class="repay-select" onchange="update()">
+            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option><option value="beijing">北京</option><option value="shanghai">上海</option><option value="hunan">湖南</option><option value="hubei">湖北</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="henan">河南</option><option value="hebei">河北</option><option value="sichuan">四川</option><option value="other">其他/全国平均</option>
+          </select>
+        </div>
+        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
+          <select id="inpCbIndustry" class="repay-select" onchange="update()">
+            <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
+            <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
+            <option value="chemical" data-en="Chemicals / Fertiliser" data-zh="化工/化肥">化工/化肥</option>
+            <option value="battery" data-en="Battery" data-zh="电池">电池</option>
+            <option value="machinery" data-en="Machinery & Parts (CBAM 2028)" data-zh="机械/零部件 (CBAM 2028)">机械/零部件</option>
+            <option value="other" selected data-en="Other Manufacturing" data-zh="其他制造">其他制造</option>
+          </select>
+        </div>
+        <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
+        <div class="pr"><div class="pr-label"><span data-en="EU Carbon Price" data-zh="EU 碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span data-en="€/tCO₂" data-zh="欧元/吨">欧元/吨</span></div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Carbon Emissions" data-zh="→ 预估年碳排放量"></span><span class="pr-val gold" id="dispCbAnnualEmissions"></span></div></div>
+      </div>
+    </div>
 
   <!-- Col 3: 运营与税务 -->
   <div>

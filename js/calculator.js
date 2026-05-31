@@ -18,6 +18,7 @@ function switchTab(tab){
     else if(tab==='ci')show=(g==='ci'||g.indexOf(',ci')>=0||g.indexOf('ci,')>=0);
     else if(tab==='is')show=(g==='is'||g.indexOf(',is')>=0||g.indexOf('is,')>=0);
     else if(tab==='hy')show=(g==='hy'||g==='pv'||g==='ci'||g.indexOf(',ci')>=0||g.indexOf('ci,')>=0||g.indexOf(',pv')>=0||g.indexOf('pv,')>=0);
+    else if(tab==='carbon')show=(g==='carbon')
     groups[j].style.display=show?'':'none';
   }
   // Set tab-appropriate defaults
@@ -171,6 +172,93 @@ function calc(p){
   var totalRev=0,totalCost=0,totalProfit=0,totalVat=0,totalGen=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;totalGen+=rows[i].gen;}
   return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/(TI-loan)*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
+
+
+function calcCarbon(p){
+  // Grid emission factors by province (tCO₂/MWh) - based on national grid avg ~0.5703
+  var gridFactors={
+    zhejiang:0.52, jiangsu:0.54, guangdong:0.51, shandong:0.58,
+    beijing:0.48, shanghai:0.50, hunan:0.56, hubei:0.48,
+    anhui:0.57, fujian:0.44, henan:0.58, hebei:0.62,
+    sichuan:0.33, other:0.5703
+  };
+  var usage=p.usage; // 万kWh
+  var province=p.province;
+  var gridFactor=gridFactors[province]||0.5703;
+  var greenPct=p.greenPct/100;
+  var industry=p.industry;
+  var euCarbonPrice=p.euCarbonPrice||80;
+
+  // Effective emission factor after green power deduction
+  var effFactor=gridFactor*(1-greenPct);
+  // Total emissions (tCO₂) = 万kWh × 10 × tCO₂/MWh
+  var totalEmissions=usage*10*effFactor;
+
+  // CBAM coverage factor by industry
+  var cbamFactor=0; // 0=not yet covered
+  if(industry==='steel')cbamFactor=1;
+  else if(industry==='aluminium')cbamFactor=1;
+  else if(industry==='chemical')cbamFactor=0.8;
+  else if(industry==='battery')cbamFactor=0.5; // Battery Regulation
+  else if(industry==='machinery')cbamFactor=0.3; // CBAM 2028 expansion
+  else cbamFactor=0;
+
+  // CBAM carbon cost (万元) = tCO₂ × €/t × exchange rate / 10000
+  var cnyPerEuro=7.8; // approximate CNY/EUR
+  var cbamCost=totalEmissions*cbamFactor*euCarbonPrice*cnyPerEuro/10000;
+
+  // EU threshold: ~90 kgCO₂/kWh for battery, for other industries use avg grid
+  var euThresholdFactor=0.4; // EU average grid factor target ~0.4 tCO₂/MWh
+  // Green power needed to meet EU threshold
+  var targetGreenPct=Math.max(0,1-euThresholdFactor/gridFactor);
+  var gapGreenPct=Math.max(0,targetGreenPct-greenPct);
+
+  // PV+storage recommendation: 1MW PV ~ 100万kWh/yr, 1MWh storage ~ needs per dur
+  var pvCapMW=usage*gapGreenPct/100; // MW of PV needed
+  var stCapMWh=pvCapMW*1.5; // 1.5x storage ratio typical
+  var pvCost=pvCapMW*370; // 370万元/MW ~ 3.7元/W
+  var stCost=stCapMWh*80; // 80万元/MWh ~ 0.8元/Wh
+  var totalCost=pvCost+stCost;
+  var carbonTaxReduction=cbamCost*cbamFactor;
+
+  // Simple PV IRR estimate (all-equity, simplified)
+  var pvGenY1=pvCapMW*110; // 万kWh = MW × 110万kWh/MW
+  var pvRevY1=pvGenY1*0.6; // 万元 = 万kWh × 0.6元/kWh (self-use price)
+  var pvProfitY1=pvRevY1-pvCost*0.02; // after O&M
+  var payback=pvCost>0?pvCost/pvProfitY1:0;
+
+  return {
+    gridFactor:gridFactor,
+    effFactor:effFactor,
+    totalEmissions:totalEmissions,
+    cbamCost:cbamCost,
+    cbamFactor:cbamFactor,
+    cbamCoverage:cbamFactor,
+    targetGreenPct:targetGreenPct*100,
+    gapGreenPct:gapGreenPct*100,
+    pvCapMW:pvCapMW,
+    stCapMWh:stCapMWh,
+    pvCost:pvCost,
+    stCost:stCost,
+    totalCost:totalCost,
+    pvGenY1:pvGenY1,
+    pvRevY1:pvRevY1,
+    payback:payback,
+    carbonTaxReduction:carbonTaxReduction,
+    euThresholdFactor:euThresholdFactor
+  };
+}
+
+function getPCarbon(){
+  return {
+    province:el('inpCbProvince')?el('inpCbProvince').value:'zhejiang',
+    usage:val('inpCbUsage')||500,
+    industry:el('inpCbIndustry')?el('inpCbIndustry').value:'other',
+    greenPct:val('inpCbGreenPct')||0,
+    euCarbonPrice:val('inpCbCarbonPrice')||80
+  };
+}
+
 
 
 function calcCI(p){
@@ -598,6 +686,21 @@ function update(){
     var g1i=el('resGenY1');if(g1i&&g1i.parentElement){var bl=g1i.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
     var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
   }else if(currentTab==='hy'){
+  }else if(currentTab==='carbon'){
+    // Carbon compliance info card
+    var cp=el('inpCbProvince')?el('inpCbProvince').value:'zhejiang';
+    var cu=val('inpCbUsage')||500;
+    var provNames={'zhejiang':'浙江','jiangsu':'江苏','guangdong':'广东','shandong':'山东','beijing':'北京','shanghai':'上海','hunan':'湖南','hubei':'湖北','anhui':'安徽','fujian':'福建','henan':'河南','hebei':'河北','sichuan':'四川','other':'其他'};
+    var pn=el('cbProvince');if(pn)pn.textContent=provNames[cp]||cp;
+    var ub=el('cbUsage');if(ub)ub.textContent=cu.toFixed(0)+' 万kWh';
+    // Recalc and display info card
+    var cbCalc=calcCarbon(getPCarbon());
+    var gf=el('cbGridFactor');if(gf)gf.textContent=cbCalc.gridFactor.toFixed(3)+' tCO₂/MWh';
+    var te=el('cbTotalEmissions');if(te)te.textContent=Math.round(cbCalc.totalEmissions).toLocaleString()+' 吨/年';
+    // Metric labels
+    var g1c=el('resGenY1');if(g1c&&g1c.parentElement){var bl=g1c.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Carbon Emissions');bl.setAttribute('data-zh','年碳排放');bl.textContent='年碳排放';}}
+    var gtc=el('resGenTotal');if(gtc&&gtc.parentElement){var bl2=gtc.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','CBAM Cost');bl2.setAttribute('data-zh','碳关税成本');bl2.textContent='碳关税成本';}}
+
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
@@ -641,6 +744,7 @@ function update(){
     if(currentTab==='ci'){R=calcCI(getPCI());}
     else if(currentTab==='is'){R=calcIS(getPIS());}
     else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
+    else if(currentTab==='carbon'){R=calcCarbon(getPCarbon());}
     else{R=calc(getP());}
   }catch(e){R=null;}
   if(!R)return;
@@ -828,6 +932,9 @@ bindDual('inpDurationIs','numDurationIs','dispDurationIs',function(v){var l=L();
   bindDual('inpCyclesIs','numCyclesIs','dispCyclesIs',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
   bindDual('inpOpDaysIs','numOpDaysIs','dispOpDaysIs',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
   bindDual('inpRteIs','numRteIs','dispRteIs',function(v){return Math.round(v)+'%';});
+  bindDual('inpCbUsage','numCbUsage','dispCbUsage',function(v){var l=document.documentElement.lang;return Math.round(v)+(l=='en'?' 10k kWh':' 万kWh');});
+  bindDual('inpCbGreenPct','numCbGreenPct','dispCbGreenPct',function(v){return Math.round(v)+'%';});
+  bindDual('inpCbCarbonPrice','numCbCarbonPrice','dispCbCarbonPrice',function(v){return '€'+Math.round(v);});
       bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
 bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
   bindDual('inpHyStCap','numHyStCap','dispHyStCap',uMW);
