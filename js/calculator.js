@@ -748,6 +748,33 @@ function update(){
     else{R=calc(getP());}
   }catch(e){R=null;}
   if(!R)return;
+
+  // Carbon tab has different return structure
+  if(currentTab==='carbon'){
+    setText('resIrrFull',R.cbamCost.toFixed(0)+'万');
+    setText('resIrrEq','-');
+    el('resIrrEq').style.color='#94a3b8';
+    setText('resNpv',(R.totalCost-R.carbonTaxReduction*10).toFixed(0));
+    setText('resPayback',R.payback?R.payback.toFixed(1):'-');
+    setText('resRoi',(R.carbonTaxReduction*25/R.totalCost*100).toFixed(1)+'%');
+    setText('resRoe','-');setText('resRoa','-');
+    setText('resTotalInv',R.totalCost.toFixed(0));
+    setText('resLoan','-');
+    setText('resTotalRev',(R.carbonTaxReduction*25).toFixed(0));
+    setText('resTotalCost',(R.totalCost).toFixed(0));
+    setText('resTotalProfit','-');
+    setText('resTotalVat',R.cbamCost.toFixed(0));
+    setText('resGenY1',Math.round(R.totalEmissions).toLocaleString());
+    setText('resGenTotal',(R.gapGreenPct.toFixed(1))+'%');
+    setText('dispGenY1Total','');
+    setText('dispPvTotalInv',(R.pvCost.toFixed(0))+'万');
+    setText('dispStTotalInv',(R.stCost.toFixed(0))+'万');
+    setText('dispTotalEquipInv',(R.totalCost.toFixed(0))+'万');
+    var tb=el('cfTableBody');if(tb)tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-dim)">碳合规测算结果：建议配 '+(R.pvCapMW*1000).toFixed(0)+'kW 光伏 + '+R.stCapMWh.toFixed(1)+'MWh 储能，总投资 '+R.totalCost.toFixed(0)+' 万元，预计回收期 '+R.payback.toFixed(1)+' 年。</tr>';
+    drawChart([{yr:1,cf:R.totalCost*-1},{yr:2,cf:R.pvRevY1},{yr:3,cf:R.pvRevY1*1.03},{yr:4,cf:R.pvRevY1*1.06},{yr:5,cf:R.pvRevY1*1.09},{yr:6,cf:R.pvRevY1*1.12},{yr:7,cf:R.pvRevY1*1.15},{yr:8,cf:R.pvRevY1*1.18}]);
+    return;
+  }
+
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
