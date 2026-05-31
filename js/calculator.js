@@ -175,7 +175,7 @@ function calc(p){
 
 
 function calcCarbon(p){
-  // Grid emission factors by province (tCO₂/MWh) - based on national grid avg ~0.5703
+  // Grid emission factors by province (tCO₂/MWh, 2024 data)
   var gridFactors={
     zhejiang:0.52, jiangsu:0.54, guangdong:0.51, shandong:0.58,
     beijing:0.48, shanghai:0.50, hunan:0.56, hubei:0.48,
@@ -188,68 +188,75 @@ function calcCarbon(p){
   var greenPct=p.greenPct/100;
   var industry=p.industry;
   var euCarbonPrice=p.euCarbonPrice||80;
+  var cnyPerEuro=7.8;
 
-  // Effective emission factor after green power deduction
-  var effFactor=gridFactor*(1-greenPct);
-  // Total emissions (tCO₂) = 万kWh × 10 × tCO₂/MWh
-  var totalEmissions=usage*10*effFactor;
+  // Current carbon footprint
+  var effFactor=gridFactor*(1-greenPct); // effective tCO₂/万kWh
+  var totalEmissions=usage*10*effFactor; // tCO₂ (万kWh × 10 × tCO₂/MWh)
 
-  // CBAM coverage factor by industry
-  var cbamFactor=0; // 0=not yet covered
-  if(industry==='steel')cbamFactor=1;
-  else if(industry==='aluminium')cbamFactor=1;
+  // CBAM coverage factor
+  var cbamFactor=0;
+  if(industry==='steel'||industry==='aluminium')cbamFactor=1;
   else if(industry==='chemical')cbamFactor=0.8;
-  else if(industry==='battery')cbamFactor=0.5; // Battery Regulation
-  else if(industry==='machinery')cbamFactor=0.3; // CBAM 2028 expansion
+  else if(industry==='battery')cbamFactor=0.5;
+  else if(industry==='machinery')cbamFactor=0.3;
   else cbamFactor=0;
 
-  // CBAM carbon cost (万元) = tCO₂ × €/t × exchange rate / 10000
-  var cnyPerEuro=7.8; // approximate CNY/EUR
-  var cbamCost=totalEmissions*cbamFactor*euCarbonPrice*cnyPerEuro/10000;
+  // === Option A: Do nothing, pay carbon tax ===
+  var annualCarbonTax = totalEmissions * cbamFactor * euCarbonPrice * cnyPerEuro / 10000; // 万元/年
+  var total10yrTax = annualCarbonTax * 10; // 10年累计碳税
 
-  // EU threshold: ~90 kgCO₂/kWh for battery, for other industries use avg grid
-  var euThresholdFactor=0.4; // EU average grid factor target ~0.4 tCO₂/MWh
-  // Green power needed to meet EU threshold
-  var targetGreenPct=Math.max(0,1-euThresholdFactor/gridFactor);
-  var gapGreenPct=Math.max(0,targetGreenPct-greenPct);
+  // === Option B: Invest in PV+Storage ===
+  var euThreshold = 0.4; // target tCO₂/MWh
+  var targetGreenPct = Math.max(0, 1 - euThreshold / gridFactor);
+  var greenGap = Math.max(0, targetGreenPct - greenPct);
 
-  // PV+storage recommendation: 1MW PV ~ 100万kWh/yr, 1MWh storage ~ needs per dur
-  var pvCapMW=usage*gapGreenPct/100; // MW of PV needed
-  var stCapMWh=pvCapMW*1.5; // 1.5x storage ratio typical
-  var pvCost=pvCapMW*370; // 370万元/MW ~ 3.7元/W
-  var stCost=stCapMWh*80; // 80万元/MWh ~ 0.8元/Wh
-  var totalCost=pvCost+stCost;
-  var carbonTaxReduction=cbamCost*cbamFactor;
+  // Recommended system
+  var pvCapMW = usage * greenGap / 100; // MW
+  var stCapMWh = pvCapMW * 1.5; // MWh
+  var pvCost = pvCapMW * 370; // 万元
+  var stCost = stCapMWh * 80; // 万元
+  var totalInvestment = pvCost + stCost;
 
-  // Simple PV IRR estimate (all-equity, simplified)
-  var pvGenY1=pvCapMW*110; // 万kWh = MW × 110万kWh/MW
-  var pvRevY1=pvGenY1*0.6; // 万元 = 万kWh × 0.6元/kWh (self-use price)
-  var pvProfitY1=pvRevY1-pvCost*0.02; // after O&M
-  var payback=pvCost>0?pvCost/pvProfitY1:0;
+  // New carbon footprint after green power
+  var newGreenPct = Math.min(1, greenPct + greenGap);
+  var newEffFactor = gridFactor * (1 - newGreenPct);
+  var newEmissions = usage * 10 * newEffFactor;
+  var newAnnualCarbonTax = newEmissions * cbamFactor * euCarbonPrice * cnyPerEuro / 10000;
+
+  // Savings
+  var annualSaving = annualCarbonTax - newAnnualCarbonTax; // 万元/年
+  var payback = totalInvestment > 0 ? totalInvestment / annualSaving : 0;
+  
+  // After payback, the remaining years are pure savings
+  var remainingYears = Math.max(0, 10 - payback);
+  var tenYearTotalB = totalInvestment + newAnnualCarbonTax * 10; // total cost of option B over 10 years
+  var tenYearNetSavings = total10yrTax - tenYearTotalB; // option A - option B
 
   return {
-    gridFactor:gridFactor,
-    effFactor:effFactor,
-    totalEmissions:totalEmissions,
-    cbamCost:cbamCost,
-    cbamFactor:cbamFactor,
-    cbamCoverage:cbamFactor,
-    targetGreenPct:targetGreenPct*100,
-    gapGreenPct:gapGreenPct*100,
-    pvCapMW:pvCapMW,
-    stCapMWh:stCapMWh,
-    pvCost:pvCost,
-    stCost:stCost,
-    totalCost:totalCost,
-    pvGenY1:pvGenY1,
-    pvRevY1:pvRevY1,
-    payback:payback,
-    carbonTaxReduction:carbonTaxReduction,
-    euThresholdFactor:euThresholdFactor
+    // Baseline
+    gridFactor: gridFactor,
+    totalEmissions: totalEmissions,
+    annualCarbonTax: annualCarbonTax,
+    cbamCoverage: (cbamFactor * 100).toFixed(0)+'%',
+    // Option A
+    optionA: total10yrTax,
+    // Option B
+    totalInvestment: totalInvestment,
+    pvCapMW: pvCapMW,
+    stCapMWh: stCapMWh,
+    pvCost: pvCost,
+    stCost: stCost,
+    systemDesc: (pvCapMW*1000 > 0 ? Math.round(pvCapMW*1000)+'kW光伏' : '') + (stCapMWh > 0 ? ' + ' + stCapMWh.toFixed(1)+'MWh储能' : '') || '无需投资',
+    newAnnualCarbonTax: newAnnualCarbonTax,
+    annualSaving: annualSaving,
+    payback: payback,
+    tenYearTotalB: tenYearTotalB,
+    tenYearNetSavings: tenYearNetSavings,
+    greenGap: greenGap * 100,
+    newGreenPct: newGreenPct * 100
   };
-}
-
-function getPCarbon(){
+}function getPCarbon(){
   return {
     province:el('inpCbProvince')?el('inpCbProvince').value:'zhejiang',
     usage:val('inpCbUsage')||500,
@@ -687,20 +694,16 @@ function update(){
     var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
   }else if(currentTab==='hy'){
   }else if(currentTab==='carbon'){
-    // Carbon compliance info card
+    // Carbon compliance display
     var cp=el('inpCbProvince')?el('inpCbProvince').value:'zhejiang';
-    var cu=val('inpCbUsage')||500;
     var provNames={'zhejiang':'浙江','jiangsu':'江苏','guangdong':'广东','shandong':'山东','beijing':'北京','shanghai':'上海','hunan':'湖南','hubei':'湖北','anhui':'安徽','fujian':'福建','henan':'河南','hebei':'河北','sichuan':'四川','other':'其他'};
     var pn=el('cbProvince');if(pn)pn.textContent=provNames[cp]||cp;
+    var cu=val('inpCbUsage')||500;
     var ub=el('cbUsage');if(ub)ub.textContent=cu.toFixed(0)+' 万kWh';
-    // Recalc and display info card
-    var cbCalc=calcCarbon(getPCarbon());
-    var gf=el('cbGridFactor');if(gf)gf.textContent=cbCalc.gridFactor.toFixed(3)+' tCO₂/MWh';
-    var te=el('cbTotalEmissions');if(te)te.textContent=Math.round(cbCalc.totalEmissions).toLocaleString()+' 吨/年';
-    // Metric labels
-    var g1c=el('resGenY1');if(g1c&&g1c.parentElement){var bl=g1c.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Carbon Emissions');bl.setAttribute('data-zh','年碳排放');bl.textContent='年碳排放';}}
-    var gtc=el('resGenTotal');if(gtc&&gtc.parentElement){var bl2=gtc.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','CBAM Cost');bl2.setAttribute('data-zh','碳关税成本');bl2.textContent='碳关税成本';}}
-
+    
+    var indNames={'steel':'钢铁','aluminium':'铝','chemical':'化工/化肥','battery':'电池','machinery':'机械/零部件','other':'其他制造'};
+    var ci=el('inpCbIndustry')?el('inpCbIndustry').value:'other';
+    var cn=el('cbIndustryName');if(cn)cn.textContent=indNames[ci]||ci;
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
@@ -751,31 +754,61 @@ function update(){
 
   // Carbon tab has different return structure
   if(currentTab==='carbon'){
-    setText('resIrrFull',R.cbamCost.toFixed(0)+'万');
-    setText('resIrrEq','-');
-    el('resIrrEq').style.color='#94a3b8';
-    setText('resNpv',(R.totalCost-R.carbonTaxReduction*10).toFixed(0));
-    setText('resPayback',R.payback?R.payback.toFixed(1):'-');
-    setText('resRoi',(R.carbonTaxReduction*25/R.totalCost*100).toFixed(1)+'%');
-    setText('resRoe','-');setText('resRoa','-');
-    setText('resTotalInv',R.totalCost.toFixed(0));
-    setText('resLoan','-');
-    setText('resTotalRev',(R.carbonTaxReduction*25).toFixed(0));
-    setText('resTotalCost',(R.totalCost).toFixed(0));
-    setText('resTotalProfit','-');
-    setText('resTotalVat',R.cbamCost.toFixed(0));
-    setText('resGenY1',Math.round(R.totalEmissions).toLocaleString());
-    setText('resGenTotal',(R.gapGreenPct.toFixed(1))+'%');
+    // Baseline
+    setText('resIrrFull',R.gridFactor.toFixed(3));
+    setText('resPayback',Math.round(R.totalEmissions).toLocaleString());
+    setText('resRoi',R.annualCarbonTax.toFixed(1));
+    setText('resRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
+    
+    // Option A
+    setText('resTotalVat',R.annualCarbonTax.toFixed(1));
+    setText('resNpv',R.optionA.toFixed(0));
+    
+    // Option B
+    setText('resTotalInv',R.totalInvestment.toFixed(0));
+    setText('resLoan',R.systemDesc);
+    setText('resTotalProfit',R.annualSaving.toFixed(1)+'万');
+    setText('resTotalCost',R.tenYearTotalB.toFixed(0));
+    setText('resTotalRev',R.tenYearNetSavings.toFixed(0));
+    if(R.tenYearNetSavings>0){el('resTotalRev').style.color='#10b981';}
+    else{el('resTotalRev').style.color='#ef4444';}
+    setText('resGenY1','');
+    setText('resGenTotal','');
     setText('dispGenY1Total','');
-    setText('dispPvTotalInv',(R.pvCost.toFixed(0))+'万');
-    setText('dispStTotalInv',(R.stCost.toFixed(0))+'万');
-    setText('dispTotalEquipInv',(R.totalCost.toFixed(0))+'万');
-    var tb=el('cfTableBody');if(tb)tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-dim)">碳合规测算结果：建议配 '+(R.pvCapMW*1000).toFixed(0)+'kW 光伏 + '+R.stCapMWh.toFixed(1)+'MWh 储能，总投资 '+R.totalCost.toFixed(0)+' 万元，预计回收期 '+R.payback.toFixed(1)+' 年。</tr>';
-    drawChart([{yr:1,cf:R.totalCost*-1},{yr:2,cf:R.pvRevY1},{yr:3,cf:R.pvRevY1*1.03},{yr:4,cf:R.pvRevY1*1.06},{yr:5,cf:R.pvRevY1*1.09},{yr:6,cf:R.pvRevY1*1.12},{yr:7,cf:R.pvRevY1*1.15},{yr:8,cf:R.pvRevY1*1.18}]);
+    
+    var tb=el('cfTableBody');if(tb){
+      var rows=[
+        {yr:1,a:R.annualCarbonTax,b:R.totalInvestment,bt:R.newAnnualCarbonTax},
+        {yr:2,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:3,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:4,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:5,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:6,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:7,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:8,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:9,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:10,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax}
+      ];
+      var sumA=0,sumB=0;
+      for(var i=0;i<rows.length;i++){
+        var r=rows[i];
+        var yrCostA=r.a,yrCostB=r.b+r.bt;
+        sumA+=yrCostA;sumB+=yrCostB;
+        tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.a.toFixed(1)+'</td><td>'+r.bt.toFixed(1)+'</td><td>'+(r.b>0?r.b.toFixed(0):'0')+'</td><td>'+yrCostB.toFixed(1)+'</td><td>'+(r.b>0?'投资年':'')+'</td><td>'+sumA.toFixed(0)+'</td><td>'+sumB.toFixed(0)+'</td></tr>';
+      }
+      // Total row
+      var totalSavings=sumA-sumB;
+      tb.innerHTML+='<tr style="font-weight:700;border-top:2px solid var(--accent)"><td>合计</td><td>'+sumA.toFixed(0)+'</td><td>'+sumB.toFixed(0)+'</td><td></td><td></td><td></td><td></td><td>净节省:'+totalSavings.toFixed(0)+'万</td></tr>';
+    }
+    // Simplified chart: investment year 1, then savings
+    var chartYrs=[];
+    for(var i=1;i<=10;i++){
+      var cost=i===1?R.totalInvestment+R.newAnnualCarbonTax:R.newAnnualCarbonTax;
+      chartYrs.push({yr:i,cf:cost*-1});
+    }
+    drawChart(chartYrs);
     return;
-  }
-
-  var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
+  }  var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
   el('resIrrEq').style.color='#38bdf8';

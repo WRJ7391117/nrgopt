@@ -122,12 +122,12 @@
   </div>
   <div data-tab-group="hy" style="display:none">
   <div data-tab-group="carbon" style="display:none">
-    <div class="loc-section-label">企业用电概况</div>
+    <div class="loc-section-label">基础信息</div>
     <div class="loc-results">
       <span class="loc-res-item"><b>所在省份</b> <span id="cbProvince" class="loc-val">浙江</span></span>
       <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
       <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
-      <span class="loc-res-item"><b>预估年碳排放</b> <span id="cbTotalEmissions" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>行业</b> <span id="cbIndustryName" class="loc-val">—</span></span>
     </div>
   </div>
     <div class="loc-section-label">项目概况</div>
@@ -141,6 +141,7 @@
 </div>
 </div>
 
+<div data-tab-group="pv,ci,is,hy">
 <!-- PART 1 -->
 <div class="print-sec">二、核心指标</div>
 <div class="metric-band row4">
@@ -170,7 +171,35 @@
   <div class="band-card"><div class="band-label" data-en="Total Profit" data-zh="总利润" data-ja="総利益">总利润</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub" data-en="Revenue-Cost-Surcharge-Tax" data-zh="总收入-总成本-税金及附加-所得税" data-ja="収入-費用-付加税-所得税">总收入-总成本-税金及附加-所得税</div></div>
 </div>
 
-<!-- PART 2: PARAMETERS -->
+</div><div data-tab-group="carbon">
+  <div class="print-sec">二、碳排放基线</div>
+  <div class="metric-band row3">
+    <div class="band-card"><div class="band-label" data-en="Grid Factor" data-zh="电网排放因子">电网排放因子</div><div class="band-value" id="resIrrFull">—</div><div class="band-sub" data-en="tCO₂/万kWh" data-zh="吨CO₂/万kWh">吨CO₂/万kWh</div></div>
+    <div class="band-card"><div class="band-label" data-en="Annual Carbon Emissions" data-zh="年碳排放总量">年碳排放总量</div><div class="band-value" id="resPayback">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
+    <div class="band-card"><div class="band-label" data-en="Annual CBAM Cost" data-zh="年碳关税成本">年碳关税成本</div><div class="band-value" id="resRoi" style="color:#ef4444">—</div><div class="band-sub" data-en="at current EU price" data-zh="按当前欧盟碳价">按当前欧盟碳价</div></div>
+  </div>
+
+  <div class="print-sec">三、方案对比</div>
+  <div class="col-header" style="margin-bottom:12px;margin-top:8px;margin-left:24px"><span data-en="Option A: Pay CBAM (No Action)" data-zh="方案A：不做投资 → 每年交碳关税">⚠️ 方案A：不做投资，每年交碳关税</span></div>
+  <div class="metric-band row2" style="margin-bottom:12px">
+    <div class="band-card" style="border:1.5px solid #ef4444"><div class="band-label" data-en="Annual Carbon Tax" data-zh="每年需交碳关税">每年需交碳关税</div><div class="band-value" id="resTotalVat" style="color:#ef4444">—</div><div class="band-sub" data-en="10k CNY/year" data-zh="万元/年">万元/年</div></div>
+    <div class="band-card"><div class="band-label" data-en="10-Year Total Cost" data-zh="10年累计碳税">10年累计碳税</div><div class="band-value" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
+  </div>
+  <div class="col-header" style="margin-bottom:12px;margin-left:24px"><span data-en="Option B: Invest in Solar + Storage" data-zh="方案B：投资光伏+储能减排">✅ 方案B：投资光储，降低碳税</span></div>
+  <div class="metric-band row2" style="margin-bottom:12px">
+    <div class="band-card" style="border:1.5px solid #38bdf8"><div class="band-label" data-en="PV+Storage Investment" data-zh="光储方案总投资">光储方案总投资</div><div class="band-value" id="resTotalInv" style="color:#38bdf8">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
+    <div class="band-card"><div class="band-label" data-en="Recommended System" data-zh="推荐配置">推荐配置</div><div class="band-value" id="resLoan" style="font-size:1rem">—</div><div class="band-sub" data-en="PV + Storage capacity" data-zh="光伏+储能容量">光伏+储能容量</div></div>
+  </div>
+
+  <div class="print-sec">四、对比结论</div>
+  <div class="metric-band row4">
+    <div class="band-card" style="border:2px solid var(--gold)"><div class="band-label" data-en="Payback" data-zh="投资回收期">投资回收期</div><div class="band-value" id="resRoe" style="color:var(--gold)">—</div><div class="band-sub" data-en="years" data-zh="年">年</div></div>
+    <div class="band-card"><div class="band-label" data-en="Annual Saving" data-zh="每年节省碳税">每年节省碳税</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub" data-en="vs paying CBAM" data-zh="相比不做投资">相比不做投资</div></div>
+    <div class="band-card"><div class="band-label" data-en="10yr Total: Investment+Tax" data-zh="方案B 10年总支出">方案B 10年总支出</div><div class="band-value" id="resTotalCost">—</div><div class="band-sub" data-en="investment + remaining tax" data-zh="投资+剩余碳税">投资+剩余碳税</div></div>
+    <div class="band-card" style="border:2px solid #10b981"><div class="band-label" data-en="10yr Net Savings" data-zh="10年净节省">10年净节省</div><div class="band-value" id="resTotalRev" style="color:#10b981">—</div><div class="band-sub" data-en="Option A - Option B" data-zh="方案A - 方案B">方案A - 方案B</div></div>
+  </div>
+  <div class="print-sec">五、逐年比较</div>
+</div><!-- PART 2: PARAMETERS -->
 <div class="print-sec">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
@@ -356,7 +385,7 @@
 <div class="table-band">
   <div class="table-card">
     <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 CF明細（万元）">📋 现金流明细（万元）</h3>
-    <table><thead><tr><th data-en="Yr" data-zh="年" data-ja="年">年</th><th data-en="Gen" data-zh="发电量" data-ja="発電量">发电量</th><th data-en="Rev" data-zh="收入" data-ja="収入">收入</th><th data-en="Cost" data-zh="成本" data-ja="コスト">成本</th><th data-en="Tax" data-zh="所得税" data-ja="税金">所得税</th><th data-en="Profit" data-zh="净利" data-ja="純利益">净利</th><th>CF</th><th data-en="Cum" data-zh="累计" data-ja="累計">累计</th></tr></thead><tbody id="cfTableBody"></tbody></table>
+    <table><thead id="cfTableHead"><tr data-tab-group="pv,ci,is,hy"><th data-en="Yr" data-zh="年">年</th><th data-en="Gen" data-zh="发电量">发电量</th><th data-en="Rev" data-zh="收入">收入</th><th data-en="Cost" data-zh="成本">成本</th><th data-en="Tax" data-zh="所得税">所得税</th><th data-en="Profit" data-zh="净利">净利</th><th>CF</th><th data-en="Cum" data-zh="累计">累计</th></tr><tr data-tab-group="carbon"><th>年</th><th>方案A碳税(万)</th><th>方案B剩余碳税(万)</th><th>方案B投资(万)</th><th>方案B年支出(万)</th><th>说明</th><th>方案A累计(万)</th><th>方案B累计(万)</th></tr></thead><tbody id="cfTableBody"></tbody></table>
   </div>
 </div>
 
