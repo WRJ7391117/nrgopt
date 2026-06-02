@@ -124,6 +124,9 @@
   <div data-tab-group="carbon" style="display:none">
     <div class="loc-section-label">测算模式</div>
     <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
+      <button id="btnModeCBAM" style="padding:7px 16px;border-radius:6px 0 0 6px;border:1.5px solid var(--accent);background:var(--accent);color:var(--btn-primary-text);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:600" onclick="setCarbonMode('cbam')">CBAM</button>
+      <button id="btnModeCCER" style="padding:7px 16px;border-radius:0 6px 6px 0;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:500" onclick="setCarbonMode('ccer')">CCER</button>
+      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:8px" id="cbModeDesc">CBAM：按欧盟碳边境调节机制估算碳关税</span>
     </div>
     <div class="loc-section-label" style="margin-top:10px">项目参数</div>
     <div class="loc-results">
