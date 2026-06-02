@@ -949,6 +949,25 @@ window.applyProvincePreset=function(val){
   refreshDisplays();update();
 };
 
+window.setCarbonMode=function(mode){
+  window._carbonMode=mode;
+  var btnC=el('btnModeCBAM'),btnS=el('btnModeCCER'),row=el('cbProductEmissionRow'),unit=el('cbUsageUnit'),desc=el('cbModeDesc');
+  if(mode==='cbam'){
+    if(btnC){btnC.style.background='var(--accent)';btnC.style.color='var(--btn-primary-text)';}
+    if(btnS){btnS.style.background='transparent';btnS.style.color='var(--accent)';}
+    if(row)row.style.display='';
+    if(unit)unit.innerHTML='<span data-en="10k tonnes" data-zh="万吨">万吨</span>';
+    if(desc)desc.textContent='CBAM：按欧盟碳边境调节机制估算碳关税（直接+间接排放）';
+  }else{
+    if(btnC){btnC.style.background='transparent';btnC.style.color='var(--accent)';}
+    if(btnS){btnS.style.background='var(--accent)';btnS.style.color='var(--btn-primary-text)';}
+    if(row)row.style.display='none';
+    if(unit)unit.innerHTML='<span data-en="10k kWh" data-zh="万kWh">万kWh</span>';
+    if(desc)desc.textContent='CCER：按中国区域电网基准线排放因子（OM）估算碳排放成本';
+  }
+  update();
+};
+
 function init(){
   function L(){return document.documentElement.lang||'en';}
   function uYr(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));}
