@@ -177,10 +177,22 @@ function calc(p){
 function calcCarbon(p){
   // Grid emission factors by province (tCO₂/MWh, 2024 data)
   var gridFactors={
-    zhejiang:0.52, jiangsu:0.54, guangdong:0.51, shandong:0.58,
-    beijing:0.48, shanghai:0.50, hunan:0.56, hubei:0.48,
-    anhui:0.57, fujian:0.44, henan:0.58, hebei:0.62,
-    sichuan:0.33, other:0.5703
+    // 华北
+    beijing:0.48, tianjin:0.55, hebei:0.62, shanxi:0.60, neimenggu:0.55,
+    // 东北
+    liaoning:0.58, jilin:0.54, heilongjiang:0.57,
+    // 华东
+    shanghai:0.50, jiangsu:0.54, zhejiang:0.52, anhui:0.57, fujian:0.44, jiangxi:0.55, shandong:0.58,
+    // 华中
+    henan:0.58, hubei:0.48, hunan:0.56,
+    // 西南
+    sichuan:0.33, chongqing:0.55, guizhou:0.52, yunnan:0.35, xizang:0.25,
+    // 西北
+    shaanxi:0.56, gansu:0.38, qinghai:0.25, ningxia:0.55, xinjiang:0.55,
+    // 华南
+    guangdong:0.51, guangxi:0.48, hainan:0.47,
+    // 全国平均
+    other:0.5703
   };
   var usage=p.usage; // 万kWh
   var province=p.province;
