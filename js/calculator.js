@@ -951,6 +951,25 @@ var provinceData={
   hubei:{spPrice:1.22,spHours:2,peakPrice:0.98,peakHours:4,flatPrice:0.58,flatHours:10,valleyPrice:0.31,valleyHours:8,demandCharge:38,label:"湖北(1-10kV)"}
 };
 window.applyProvincePreset=function(val){
+
+window.setCarbonMode=function(mode){
+  window._carbonMode=mode;
+  var btnC=el('btnModeCBAM'),btnS=el('btnModeCCER'),row=el('cbProductEmissionRow'),unit=el('cbUsageUnit'),desc=el('cbModeDesc');
+  if(mode==='cbam'){
+    btnC.style.background='var(--accent)';btnC.style.color='var(--btn-primary-text)';
+    btnS.style.background='transparent';btnS.style.color='var(--accent)';
+    if(row)row.style.display='';
+    if(unit)unit.innerHTML='<span data-en="10k tonnes" data-zh="万吨">万吨</span>';
+    if(desc)desc.textContent='CBAM：按欧盟碳边境调节机制估算产品嵌入碳排放的碳关税成本（直接+间接排放）。默认为每吨产品嵌入排放 ~2.0 tCO₂e。';
+  }else{
+    btnC.style.background='transparent';btnC.style.color='var(--accent)';
+    btnS.style.background='var(--accent)';btnS.style.color='var(--btn-primary-text)';
+    if(row)row.style.display='none';
+    if(unit)unit.innerHTML='<span data-en="10k kWh" data-zh="万kWh">万kWh</span>';
+    if(desc)desc.textContent='CCER：按中国区域电网基准线排放因子（OM）和企业电力消耗量估算碳排放成本。适用于国内碳市场碳配额估算。';
+  }
+  update();
+};
   if(!val||!provinceData[val])return;
   var d=provinceData[val];
   var sets={

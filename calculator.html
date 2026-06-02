@@ -312,6 +312,13 @@
 <div class="param-group open" data-tab-group="carbon">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
+        <div class="pr"><div class="pr-label"><span data-en="Calculation Mode" data-zh="测算模式"></span></div>
+          <div class="dual-input" style="grid-template-columns:1fr 1fr">
+            <button id="btnModeCBAM" style="padding:6px 10px;border-radius:6px 0 0 6px;border:1.5px solid var(--accent);background:var(--accent);color:var(--btn-primary-text);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:600" onclick="setCarbonMode('cbam')">🇪🇺 CBAM 碳关税</button>
+            <button id="btnModeCCER" style="padding:6px 10px;border-radius:0 6px 6px 0;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:0.78rem;font-family:inherit" onclick="setCarbonMode('ccer')">🇨🇳 CCER 碳市场</button>
+          </div>
+          <div class="pr-sub" style="margin-top:4px"><span id="cbModeDesc">CBAM：按欧盟碳边境调节机制估算产品嵌入碳排放的碳关税成本（直接+间接排放）</span></div>
+        </div>
         <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
           <select id="inpCbProvince" class="repay-select" onchange="update()">
             <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option>
@@ -325,7 +332,8 @@
             <option value="other">全国平均</option>
           </select>
         </div>
-        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
+        <div class="pr" id="cbProductEmissionRow" style="display:none"><div class="pr-label"><span data-en="Product Emissions Intensity" data-zh="产品碳排放强度"></span><span class="pr-val" id="dispCbProdEmission"></span></div><div class="dual-input"><input type="range" id="inpCbProdEmission" min="0.5" max="5.0" step="0.1" value="2.0"><input type="text" inputmode="decimal" id="numCbProdEmission" step="0.1" class="num-field"></div><div class="pr-sub" data-en="tCO₂e / tonne product" data-zh="吨CO₂e / 吨产品（含默认值加价10%）">吨CO₂e / 吨产品</div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Annual Output / Usage" data-zh="年用电量 / 年产量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub" id="cbUsageUnit"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
           <select id="inpCbIndustry" class="repay-select" onchange="update()">
             <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
@@ -340,7 +348,6 @@
         <div class="pr"><div class="pr-label"><span data-en="EU Carbon Price" data-zh="EU 碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span data-en="€/tCO₂" data-zh="欧元/吨">欧元/吨</span></div></div>
         <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Carbon Emissions" data-zh="→ 预估年碳排放量"></span><span class="pr-val gold" id="dispCbAnnualEmissions"></span></div></div>
       </div>
-    </div>
 
   <!-- Col 3: 运营与税务 -->
   <div>
