@@ -131,20 +131,17 @@
   </div>
   <div data-tab-group="carbon" style="display:none">
     <div class="loc-section-label">测算模式</div>
-    <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px">
-            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option>
-            <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
-            <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-            <optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
-            <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-            <optgroup label="西南"><option value="sichuan">四川</option><option value="chongqing">重庆</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
-            <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-            <optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
-            <option value="other">全国平均</option>
-          </select></span>
-      <span class="loc-res-item"><b>测算模式</b> <span id="cbModeLabel" class="loc-val">CBAM</span></span>
+    <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
+      <button id="btnModeCBAM" style="padding:7px 16px;border-radius:6px 0 0 6px;border:1.5px solid var(--accent);background:var(--accent);color:var(--btn-primary-text);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:600" onclick="setCarbonMode('cbam')">🇪🇺 CBAM</button>
+      <button id="btnModeCCER" style="padding:7px 16px;border-radius:0 6px 6px 0;border:1.5px solid var(--accent);background:var(--bg);color:var(--accent);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:500" onclick="setCarbonMode('ccer')">🇨🇳 CCER</button>
+      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:8px" id="cbModeDesc">CBAM：按欧盟碳边境调节机制估算碳关税（直接+间接排放）</span>
+    </div>
+    <div class="loc-section-label" style="margin-top:10px">项目参数</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>所在省份</b> <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()"><option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="beijing">北京</option><option value="shanghai">上海</option><option value="hubei">湖北</option><option value="hunan">湖南</option><option value="sichuan">四川</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="xinjiang">新疆</option><option value="xizang">西藏</option><option value="other">全国平均</option></select></span>
       <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
       <span class="loc-res-item"><b>行业</b> <span id="cbIndustryName" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
     </div>
   </div>
   </div>
