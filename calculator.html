@@ -318,13 +318,12 @@
 <div class="param-group open" data-tab-group="carbon">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
-        
-<div class="pr" style="display:none"><div class="pr-label"><span data-en="Calculation Mode" data-zh="测算模式">测算模式</span></div>
-          <div class="dual-input" style="grid-template-columns:1fr 1fr">
-            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option>
+        <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
+          <select id="inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
+            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option>
             <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
             <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-            <optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+            <optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option></optgroup>
             <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
             <optgroup label="西南"><option value="sichuan">四川</option><option value="chongqing">重庆</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
             <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
@@ -332,8 +331,7 @@
             <option value="other">全国平均</option>
           </select>
         </div>
-        <div class="pr" id="cbProductEmissionRow" style="display:none"><div class="pr-label"><span data-en="Product Emissions Intensity" data-zh="产品碳排放强度"></span><span class="pr-val" id="dispCbProdEmission"></span></div><div class="dual-input"><input type="range" id="inpCbProdEmission" min="0.5" max="5.0" step="0.1" value="2.0"><input type="text" inputmode="decimal" id="numCbProdEmission" step="0.1" class="num-field"></div><div class="pr-sub" data-en="tCO₂e / tonne product" data-zh="吨CO₂e / 吨产品（含默认值加价10%）">吨CO₂e / 吨产品</div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Annual Output / Usage" data-zh="年用电量 / 年产量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub" id="cbUsageUnit"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
+<div class="pr"><div class="pr-label"><span data-en="Annual Output / Usage" data-zh="年用电量 / 年产量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub" id="cbUsageUnit"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
           <select id="inpCbIndustry" class="repay-select" onchange="update()">
             <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
