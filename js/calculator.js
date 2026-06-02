@@ -1,7 +1,7 @@
 /* NrgOpt Project Calculator v5 */
 'use strict';
 
-var currentTab='carbon';
+var currentTab='pv';
 
 function switchTab(tab){
   currentTab=tab;
@@ -175,27 +175,12 @@ function calc(p){
 
 
 function calcCarbon(p){
-  // 电网排放因子 (tCO₂/MWh)
-  // 数据来源：国家气候战略中心《2024年减排项目中国区域电网二氧化碳基准线排放因子》(2026年1月发布)
-  // 覆盖七大区域电网，各省份按所在区域取对应值
-  // 注：此为CCER碳减排核算官方数据，高于全国供电平均排放因子(0.5703)，因包含火电调峰等边际效应
+  // Grid emission factors by province (tCO₂/MWh, 2024 data)
   var gridFactors={
-    // 华北区域电网 (OM:1.0585, BM:0.9066)
-    beijing:1.0585, tianjin:1.0585, hebei:1.0585, shanxi:1.0585, neimenggu:1.0585,
-    // 东北区域电网 (OM:1.1983, BM:0.8108)
-    liaoning:1.1983, jilin:1.1983, heilongjiang:1.1983,
-    // 华东区域电网 (OM:0.9411, BM:0.7869)
-    shanghai:0.9411, jiangsu:0.9411, zhejiang:0.9411, anhui:0.9411, fujian:0.9411, jiangxi:0.9411, shandong:0.9411,
-    // 华中区域电网 (OM:1.2526, BM:0.6363)
-    henan:1.2526, hubei:1.2526, hunan:1.2526, jiangxi_hz:1.2526, sichuan_hz:1.2526, chongqing:1.2526,
-    // 西北区域电网 (OM:1.0329, BM:0.6491)
-    shaanxi:1.0329, gansu:1.0329, qinghai:1.0329, ningxia:1.0329, xinjiang:1.0329,
-    // 南方区域电网 (OM:0.9853, BM:0.5714)
-    guangdong:0.9853, guangxi:0.9853, yunnan:0.9853, guizhou:0.9853, hainan:0.9853,
-    // 四川/西藏按华中电网取值
-    sichuan:1.2526, xizang:1.2526,
-    // 全国供电平均排放因子（生态环境部2024年发布，用于企业碳核算）
-    other:0.5703
+    zhejiang:0.52, jiangsu:0.54, guangdong:0.51, shandong:0.58,
+    beijing:0.48, shanghai:0.50, hunan:0.56, hubei:0.48,
+    anhui:0.57, fujian:0.44, henan:0.58, hebei:0.62,
+    sichuan:0.33, other:0.5703
   };
   var usage=p.usage; // 万kWh
   var province=p.province;
@@ -709,35 +694,29 @@ function update(){
     var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
   }else if(currentTab==='hy'){
   }else if(currentTab==='carbon'){
-    // Carbon display – info card
+    // Carbon compliance display
     var cp=el('inpCbProvince')?el('inpCbProvince').value:'zhejiang';
-    var small=el('inpCbProvinceSmall');if(small)small.value=cp;
+    var provNames={'zhejiang':'浙江','jiangsu':'江苏','guangdong':'广东','shandong':'山东','beijing':'北京','shanghai':'上海','hunan':'湖南','hubei':'湖北','anhui':'安徽','fujian':'福建','henan':'河南','hebei':'河北','sichuan':'四川','other':'其他'};
+    var pn=el('cbProvince');if(pn)pn.textContent=provNames[cp]||cp;
     var cu=val('inpCbUsage')||500;
     var ub=el('cbUsage');if(ub)ub.textContent=cu.toFixed(0)+' 万kWh';
-    // Show grid factor for current mode
-    var cbCalc=calcCarbon(getPCarbon());
-    var gf=el('cbGridFactor');if(gf)gf.textContent=cbCalc.gridFactor.toFixed(4)+' tCO₂/MWh';
-    var pn=el('cbProvince');if(pn){
-      var provNames={'zhejiang':'浙江','jiangsu':'江苏','guangdong':'广东','shandong':'山东','beijing':'北京','shanghai':'上海','hunan':'湖南','hubei':'湖北','anhui':'安徽','fujian':'福建','henan':'河南','hebei':'河北','sichuan':'四川','chongqing':'重庆','yunnan':'云南','gansu':'甘肃','qinghai':'青海','xinjiang':'新疆','xizang':'西藏','tianjin':'天津','shanxi':'山西','neimenggu':'内蒙古','liaoning':'辽宁','jilin':'吉林','heilongjiang':'黑龙江','jiangxi':'江西','guizhou':'贵州','shaanxi':'陕西','ningxia':'宁夏','guangxi':'广西','hainan':'海南','other':'全国'};
-      pn.textContent=provNames[cp]||cp;
-    }
-    var indNames={'steel':'钢铁','aluminium':'铝','chemical':'化工/化肥','battery':'电池','machinery':'机械/零部件','other':'一般制造'};
+    
+    var indNames={'steel':'钢铁','aluminium':'铝','chemical':'化工/化肥','battery':'电池','machinery':'机械/零部件','other':'其他制造'};
     var ci=el('inpCbIndustry')?el('inpCbIndustry').value:'other';
     var cn=el('cbIndustryName');if(cn)cn.textContent=indNames[ci]||ci;
-    setText('dispBestAngle','');
-  }else if(currentTab==='hy'){
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
-    var hyStMw=val('inpHyStCap')||0.2;
+    var hyStMw=val('inpHyStCap')||0.2;var hyStKw=hyStMw*1000;
     var hyStIL=el('dispHyStCapInline');if(hyStIL)hyStIL.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
-    var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(hyStMw*hyDur).toFixed(1)+' MWh';
-    var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
+    var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(hyStMw*(val('inpDuration')||2)).toFixed(1)+' MWh';var hySt=el('hyStCap');if(hySt)hySt.textContent=hyStMw.toFixed(2)+' MW / '+(hyStMw*hyDur).toFixed(1)+' MWh';
     var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
     var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
-    var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.textContent='首年总发电量';}}
-    var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.textContent='运营期总发电量';}}
+    // Metric labels
+    var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
+    var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
     setText('dispBestAngle','');
+    // HY daily revenue estimate
     var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
     var hyExcess=hyGenY1*(1-(val('inpSelfUse')||90)/100);
     var hyStKwh=hyStMw*1000*hyDur;
@@ -776,23 +755,23 @@ function update(){
   // Carbon tab has different return structure
   if(currentTab==='carbon'){
     // Baseline
-    setText('cbIrrFull',R.gridFactor.toFixed(3));
-    setText('cbPayback',Math.round(R.totalEmissions).toLocaleString());
-    setText('cbRoi',R.annualCarbonTax.toFixed(1));
-    setText('cbRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
-
+    setText('resIrrFull',R.gridFactor.toFixed(3));
+    setText('resPayback',Math.round(R.totalEmissions).toLocaleString());
+    setText('resRoi',R.annualCarbonTax.toFixed(1));
+    setText('resRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
+    
     // Option A
-    setText('cbTotalVat',R.annualCarbonTax.toFixed(1));
-    setText('cbNpv',R.optionA.toFixed(0));
-
+    setText('resTotalVat',R.annualCarbonTax.toFixed(1));
+    setText('resNpv',R.optionA.toFixed(0));
+    
     // Option B
-    setText('cbTotalInv',R.totalInvestment.toFixed(0));
-    setText('cbLoan',R.systemDesc);
-    setText('cbTotalProfit',R.annualSaving.toFixed(1)+'万');
-    setText('cbTotalCost',R.tenYearTotalB.toFixed(0));
-    setText('cbTotalRev',R.tenYearNetSavings.toFixed(0));
-    if(R.tenYearNetSavings>0){el('cbTotalRev').style.color='#10b981';}
-    else{el('cbTotalRev').style.color='#ef4444';}
+    setText('resTotalInv',R.totalInvestment.toFixed(0));
+    setText('resLoan',R.systemDesc);
+    setText('resTotalProfit',R.annualSaving.toFixed(1)+'万');
+    setText('resTotalCost',R.tenYearTotalB.toFixed(0));
+    setText('resTotalRev',R.tenYearNetSavings.toFixed(0));
+    if(R.tenYearNetSavings>0){el('resTotalRev').style.color='#10b981';}
+    else{el('resTotalRev').style.color='#ef4444';}
     setText('resGenY1','');
     setText('resGenTotal','');
     setText('dispGenY1Total','');
@@ -958,28 +937,17 @@ var provinceData={
 };
 window.applyProvincePreset=function(val){
   if(!val||!provinceData[val])return;
+  var d=provinceData[val];
+  var sets={
+    inpSpPrice:d.spPrice,inpSpHours:d.spHours,
+    inpPeakPrice:d.peakPrice,inpPeakHours:d.peakHours,
+    inpFlatPrice:d.flatPrice,inpFlatHours:d.flatHours,
+    inpValleyPrice:d.valleyPrice,inpValleyHours:d.valleyHours,
+    inpDemandCharge:d.demandCharge
+  };
+  for(var id in sets){var e=el(id);if(e)e.value=sets[id];}
   refreshDisplays();update();
 };
-
-window.setCarbonMode=function(mode){
-  window._carbonMode=mode;
-  var btnC=el('btnModeCBAM'),btnS=el('btnModeCCER'),row=el('cbProductEmissionRow'),unit=el('cbUsageUnit'),desc=el('cbModeDesc');
-  if(mode==='cbam'){
-    if(btnC){btnC.style.background='var(--accent)';btnC.style.color='var(--btn-primary-text)';}
-    if(btnS){btnS.style.background='transparent';btnS.style.color='var(--accent)';}
-    if(row)row.style.display='';
-    if(unit)unit.innerHTML='<span data-en="10k tonnes" data-zh="万吨">万吨</span>';
-    if(desc)desc.textContent='CBAM：按欧盟碳边境调节机制估算产品嵌入碳排放的碳关税成本（直接+间接排放）。默认为每吨产品嵌入排放 ~2.0 tCO₂e。';
-  }else{
-    if(btnC){btnC.style.background='transparent';btnC.style.color='var(--accent)';}
-    if(btnS){btnS.style.background='var(--accent)';btnS.style.color='var(--btn-primary-text)';}
-    if(row)row.style.display='none';
-    if(unit)unit.innerHTML='<span data-en="10k kWh" data-zh="万kWh">万kWh</span>';
-    if(desc)desc.textContent='CCER：按中国区域电网基准线排放因子（OM）和企业电力消耗量估算碳排放成本。适用于国内碳市场碳配额估算。';
-  }
-  update();
-};
-  refreshDisplays();update();
 
 function init(){
   function L(){return document.documentElement.lang||'en';}
