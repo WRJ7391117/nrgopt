@@ -758,23 +758,23 @@ function update(){
   // Carbon tab has different return structure
   if(currentTab==='carbon'){
     // Baseline
-    setText('resIrrFull',R.gridFactor.toFixed(3));
-    setText('resPayback',Math.round(R.totalEmissions).toLocaleString());
-    setText('resRoi',R.annualCarbonTax.toFixed(1));
-    setText('resRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
+    setText('cbIrrFull',R.gridFactor.toFixed(3));
+    setText('cbPayback',Math.round(R.totalEmissions).toLocaleString());
+    setText('cbRoi',R.annualCarbonTax.toFixed(1));
+    setText('cbRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
     
     // Option A
-    setText('resTotalVat',R.annualCarbonTax.toFixed(1));
-    setText('resNpv',R.optionA.toFixed(0));
+    setText('cbTotalVat',R.annualCarbonTax.toFixed(1));
+    setText('cbNpv',R.optionA.toFixed(0));
     
     // Option B
-    setText('resTotalInv',R.totalInvestment.toFixed(0));
-    setText('resLoan',R.systemDesc);
-    setText('resTotalProfit',R.annualSaving.toFixed(1)+'万');
-    setText('resTotalCost',R.tenYearTotalB.toFixed(0));
-    setText('resTotalRev',R.tenYearNetSavings.toFixed(0));
-    if(R.tenYearNetSavings>0){el('resTotalRev').style.color='#10b981';}
-    else{el('resTotalRev').style.color='#ef4444';}
+    setText('cbTotalInv',R.totalInvestment.toFixed(0));
+    setText('cbLoan',R.systemDesc);
+    setText('cbTotalProfit',R.annualSaving.toFixed(1)+'万');
+    setText('cbTotalCost',R.tenYearTotalB.toFixed(0));
+    setText('cbTotalRev',R.tenYearNetSavings.toFixed(0));
+    if(R.tenYearNetSavings>0){el('cbTotalRev').style.color='#10b981';}
+    else{el('cbTotalRev').style.color='#ef4444';}
     setText('resGenY1','');
     setText('resGenTotal','');
     setText('dispGenY1Total','');
