@@ -63,7 +63,16 @@
           <span class="loc-unit">′</span>
           <input type="text" id="latSec" placeholder="12.0" class="loc-input loc-dms" inputmode="decimal">
           <span class="loc-unit">″</span>
-          <select id="latSign" class="loc-sign-select">
+          <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>latSign" class="loc-sign-select">
             <option value="N">N</option>
             <option value="S">S</option>
           </select>
@@ -76,7 +85,16 @@
           <span class="loc-unit">′</span>
           <input type="text" id="lonSec" placeholder="16.1" class="loc-input loc-dms" inputmode="decimal">
           <span class="loc-unit">″</span>
-          <select id="lonSign" class="loc-sign-select">
+          <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>lonSign" class="loc-sign-select">
             <option value="E">E</option>
             <option value="W">W</option>
           </select>
@@ -138,7 +156,25 @@
     </div>
     <div class="loc-section-label" style="margin-top:10px">项目参数</div>
     <div class="loc-results">
-      <span class="loc-res-item"><b>所在省份</b> <select id="inpCbProvinceSmall<select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+      <span class="loc-res-item"><b>所在省份</b> <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpCbProvinceSmall<select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
 <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option>
 <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
 <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
@@ -257,7 +293,16 @@
         <div class="pr"><div class="pr-label"><span data-en="Loan Ratio" data-zh="贷款比例" data-ja="融資比率"></span><span class="pr-val" id="dispLoanRatio"></span></div><div class="dual-input"><input type="range" id="inpLoanRatio" min="0" max="90" step="5" value="70"><input type="text" inputmode="decimal" id="numLoanRatio" step="5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Loan Rate" data-zh="贷款利率" data-ja="貸付金利"></span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.0"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Loan Term" data-zh="贷款年限" data-ja="融資期間"></span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="10"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Repay Method" data-zh="还款方式" data-ja="返済方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal" data-en="Equal Principal" data-zh="等额本金" data-ja="元金均等">等额本金</option><option value="equal-installment" data-en="Equal Installment" data-zh="等额本息" data-ja="元利均等">等额本息</option><option value="bullet" data-en="Interest-only + Bullet" data-zh="先息后本" data-ja="利息のみ+一括">先息后本</option></select></div>
+        <div class="pr"><div class="pr-label"><span data-en="Repay Method" data-zh="还款方式" data-ja="返済方式"></span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal" data-en="Equal Principal" data-zh="等额本金" data-ja="元金均等">等额本金</option><option value="equal-installment" data-en="Equal Installment" data-zh="等额本息" data-ja="元利均等">等额本息</option><option value="bullet" data-en="Interest-only + Bullet" data-zh="先息后本" data-ja="利息のみ+一括">先息后本</option></select></div>
       </div>
     </div>
   </div>
@@ -286,13 +331,31 @@
         <div class="pr"><div class="pr-label"><span data-en="Duration" data-zh="充放电时长" data-ja="充放電時間"></span><span class="pr-val" id="dispDuration"></span></div><div class="dual-input"><input type="range" id="inpDuration" min="1" max="6" step="0.5" value="2"><input type="text" inputmode="decimal" id="numDuration" step="0.5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="DOD" data-zh="放电深度" data-ja="放電深度"></span><span class="pr-val" id="dispDod"></span></div><div class="dual-input"><input type="range" id="inpDod" min="70" max="95" step="5" value="85"><input type="text" inputmode="decimal" id="numDod" step="5" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Price Escalation" data-zh="电价年涨幅" data-ja="電気料金上昇率"></span><span class="pr-val" id="dispPriceEscal"></span></div><div class="dual-input"><input type="range" id="inpPriceEscal" min="0" max="5" step="0.5" value="2.5"><input type="text" inputmode="decimal" id="numPriceEscal" step="0.5" class="num-field"></div><div class="pr-note" data-en="Annual TOU price growth" data-zh="分时电价年均增长" data-ja="時間帯別料金年上昇率">分时电价年均增长</div></div>
-<div class="pr-note" style="margin-bottom:4px;font-weight:600;color:var(--text)"><span data-en="⚡ TOU Price & Schedule" data-zh="⚡ 分时电价与时段" data-ja="⚡ 時間帯別料金">⚡ 分时电价与时段</span> <select id="provincePreset" onchange="applyProvincePreset(this.value)" style="margin-left:8px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.72rem;font-family:inherit;cursor:pointer"><option value="">全国通用</option><option value="zhejiang">浙江</option><option value="guangdong">广东(珠三角五市)</option><option value="jiangsu">江苏</option><option value="shandong">山东</option><option value="beijing">北京</option><option value="shanghai">上海</option><option value="hunan">湖南</option><option value="hubei">湖北</option></select></div>
+<div class="pr-note" style="margin-bottom:4px;font-weight:600;color:var(--text)"><span data-en="⚡ TOU Price & Schedule" data-zh="⚡ 分时电价与时段" data-ja="⚡ 時間帯別料金">⚡ 分时电价与时段</span> <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>provincePreset" onchange="applyProvincePreset(this.value)" style="margin-left:8px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.72rem;font-family:inherit;cursor:pointer"><option value="">全国通用</option><option value="zhejiang">浙江</option><option value="guangdong">广东(珠三角五市)</option><option value="jiangsu">江苏</option><option value="shandong">山东</option><option value="beijing">北京</option><option value="shanghai">上海</option><option value="hunan">湖南</option><option value="hubei">湖北</option></select></div>
         <div class="tou-row"><span class="tou-label" style="color:#ef4444">尖峰</span><input type="text" id="inpSpTime" class="tou-time" value="10:00-11:00,14:00-15:00" onchange="update()" placeholder="如: 10-11,14-15"><input type="text" inputmode="decimal" id="inpSpPrice" class="tou-price" value="1.20" onchange="update()"><span class="tou-unit">元/kWh</span><input type="text" inputmode="decimal" id="inpSpHours" class="tou-hour" value="2" onchange="update()"><span class="tou-unit">h</span></div>
         <div class="tou-row"><span class="tou-label" style="color:#f59e0b">高峰</span><input type="text" id="inpPeakTime" class="tou-time" value="08:00-10:00,18:00-20:00" onchange="update()" placeholder="如: 8-10,18-20"><input type="text" inputmode="decimal" id="inpPeakPrice" class="tou-price" value="1.05" onchange="update()"><span class="tou-unit">元/kWh</span><input type="text" inputmode="decimal" id="inpPeakHours" class="tou-hour" value="4" onchange="update()"><span class="tou-unit">h</span></div>
         <div class="tou-row"><span class="tou-label" style="color:#10b981">平段</span><input type="text" id="inpFlatTime" class="tou-time" value="06:00-08:00,11:00-14:00,15:00-18:00,20:00-22:00" onchange="update()" placeholder="如: 6-8,11-14,15-18,20-22"><input type="text" inputmode="decimal" id="inpFlatPrice" class="tou-price" value="0.60" onchange="update()"><span class="tou-unit">元/kWh</span><input type="text" inputmode="decimal" id="inpFlatHours" class="tou-hour" value="10" onchange="update()"><span class="tou-unit">h</span></div>
         <div class="tou-row"><span class="tou-label" style="color:#3b82f6">谷段</span><input type="text" id="inpValleyTime" class="tou-time" value="22:00-06:00" onchange="update()" placeholder="如: 22-6"><input type="text" inputmode="decimal" id="inpValleyPrice" class="tou-price" value="0.35" onchange="update()"><span class="tou-unit">元/kWh</span><input type="text" inputmode="decimal" id="inpValleyHours" class="tou-hour" value="8" onchange="update()"><span class="tou-unit">h</span></div>
         <div class="pr-note" style="margin-bottom:4px;font-weight:600;color:var(--text)"><span data-en="🔌 Demand Charge" data-zh="🔌 需量管理" data-ja="🔌 デマンド管理">🔌 需量管理</span></div>
-        <div class="tou-row"><span class="tou-label" style="color:#f97316">计费方式</span><select id="inpDemandMode" class="repay-select" style="flex:1" onchange="update()"><option value="demand" data-en="Max Demand" data-zh="按最大需量" data-ja="最大需要電力">按最大需量</option><option value="capacity" data-en="Transformer Capacity" data-zh="按变压器容量" data-ja="変圧器容量">按变压器容量</option></select></div>
+        <div class="tou-row"><span class="tou-label" style="color:#f97316">计费方式</span><select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpDemandMode" class="repay-select" style="flex:1" onchange="update()"><option value="demand" data-en="Max Demand" data-zh="按最大需量" data-ja="最大需要電力">按最大需量</option><option value="capacity" data-en="Transformer Capacity" data-zh="按变压器容量" data-ja="変圧器容量">按变压器容量</option></select></div>
         <div class="tou-row"><span class="tou-label" style="color:#f97316">需量电费</span><input type="text" inputmode="decimal" id="inpDemandCharge" class="tou-price" value="40" onchange="update()"><span class="tou-unit"> 元/kW·月 &nbsp;</span><input type="text" inputmode="decimal" id="inpDemandReduction" class="tou-hour" value="30" onchange="update()"><span class="tou-unit"> %削减</span></div>
         <div class="tou-row" id="capacityRow" style="display:none"><span class="tou-label" style="color:#f97316">容量单价</span><input type="text" inputmode="decimal" id="inpTransCapacity" class="tou-price" value="30" onchange="update()"><span class="tou-unit"> 元/kVA·月</span></div>
         <div class="pr"><div class="pr-label"><span data-en="Cycles / Day" data-zh="每日充放次数" data-ja="1日サイクル数"></span><span class="pr-val" id="dispCycles"></span></div><div class="dual-input"><input type="range" id="inpCycles" min="0.5" max="3" step="0.5" value="2"><input type="text" inputmode="decimal" id="numCycles" step="0.5" class="num-field"></div></div>
@@ -329,21 +392,38 @@
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
-          <select id="inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
-            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option>
+          <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
             <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
             <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-            <optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option></optgroup>
+            <optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
             <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-            <optgroup label="西南"><option value="sichuan">四川</option><option value="chongqing">重庆</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+            <optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+            <optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
             <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-            <optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
             <option value="other">全国平均</option>
           </select>
         </div>
 <div class="pr"><div class="pr-label"><span data-en="Annual Output / Usage" data-zh="年用电量 / 年产量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub" id="cbUsageUnit"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
-          <select id="inpCbIndustry" class="repay-select" onchange="update()">
+          <select id="inpCbProvinceSmall" style="padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
+<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+<optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+<optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+<optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+<option value="other">全国平均</option>
+</select>inpCbIndustry" class="repay-select" onchange="update()">
             <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
             <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
             <option value="chemical" data-en="Chemicals / Fertiliser" data-zh="化工/化肥">化工/化肥</option>
