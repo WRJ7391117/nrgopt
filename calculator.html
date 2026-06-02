@@ -328,8 +328,15 @@
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
-          <select id="inpCbProvince" class="repay-select" onchange="update()">
-            <option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option><option value="beijing">北京</option><option value="shanghai">上海</option><option value="hunan">湖南</option><option value="hubei">湖北</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="henan">河南</option><option value="hebei">河北</option><option value="sichuan">四川</option><option value="other">其他/全国平均</option>
+          <select id="inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
+            <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
+            <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
+            <optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
+            <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
+            <optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
+            <optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
+            <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
+            <option value="other">全国平均</option>
           </select>
         </div>
         <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
