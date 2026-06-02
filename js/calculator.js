@@ -175,23 +175,26 @@ function calc(p){
 
 
 function calcCarbon(p){
-  // Grid emission factors by province (tCO₂/MWh, 2024 data)
+  // 电网排放因子 (tCO₂/MWh)
+  // 数据来源：国家气候战略中心《2024年减排项目中国区域电网二氧化碳基准线排放因子》(2026年1月发布)
+  // 覆盖七大区域电网，各省份按所在区域取对应值
+  // 注：此为CCER碳减排核算官方数据，高于全国供电平均排放因子(0.5703)，因包含火电调峰等边际效应
   var gridFactors={
-    // 华北
-    beijing:0.48, tianjin:0.55, hebei:0.62, shanxi:0.60, neimenggu:0.55,
-    // 东北
-    liaoning:0.58, jilin:0.54, heilongjiang:0.57,
-    // 华东
-    shanghai:0.50, jiangsu:0.54, zhejiang:0.52, anhui:0.57, fujian:0.44, jiangxi:0.55, shandong:0.58,
-    // 华中
-    henan:0.58, hubei:0.48, hunan:0.56,
-    // 西南
-    sichuan:0.33, chongqing:0.55, guizhou:0.52, yunnan:0.35, xizang:0.25,
-    // 西北
-    shaanxi:0.56, gansu:0.38, qinghai:0.25, ningxia:0.55, xinjiang:0.55,
-    // 华南
-    guangdong:0.51, guangxi:0.48, hainan:0.47,
-    // 全国平均
+    // 华北区域电网 (OM:1.0585, BM:0.9066)
+    beijing:1.0585, tianjin:1.0585, hebei:1.0585, shanxi:1.0585, neimenggu:1.0585,
+    // 东北区域电网 (OM:1.1983, BM:0.8108)
+    liaoning:1.1983, jilin:1.1983, heilongjiang:1.1983,
+    // 华东区域电网 (OM:0.9411, BM:0.7869)
+    shanghai:0.9411, jiangsu:0.9411, zhejiang:0.9411, anhui:0.9411, fujian:0.9411, jiangxi:0.9411, shandong:0.9411,
+    // 华中区域电网 (OM:1.2526, BM:0.6363)
+    henan:1.2526, hubei:1.2526, hunan:1.2526, jiangxi_hz:1.2526, sichuan_hz:1.2526, chongqing:1.2526,
+    // 西北区域电网 (OM:1.0329, BM:0.6491)
+    shaanxi:1.0329, gansu:1.0329, qinghai:1.0329, ningxia:1.0329, xinjiang:1.0329,
+    // 南方区域电网 (OM:0.9853, BM:0.5714)
+    guangdong:0.9853, guangxi:0.9853, yunnan:0.9853, guizhou:0.9853, hainan:0.9853,
+    // 四川/西藏按华中电网取值
+    sichuan:1.2526, xizang:1.2526,
+    // 全国供电平均排放因子（生态环境部2024年发布，用于企业碳核算）
     other:0.5703
   };
   var usage=p.usage; // 万kWh
