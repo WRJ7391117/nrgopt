@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NRGOpt 测算 — 光伏·储能·碳合规</title>
-<meta name="description" content="NRGOpt 新能源项目投资测算与碳成本工具 – 光伏/储能/光储一体化 IRR 与现金流分析">
+<title>NRGOpt 测算 — 光伏·储能·碳管理</title>
+<meta name="description" content="NRGOpt 新能源项目投资测算与碳管理工具 – 光伏/储能/光储一体化 IRR 与现金流分析">
 <meta property="og:title" content="NrgOpt PV Project Calculator">
 <link rel="canonical" href="https://nrgopt.com/calculator">
 <link rel="stylesheet" href="css/style.css">
@@ -33,11 +33,11 @@
 <section class="calc-hero" id="calcMain"><div class="container"><h1>新能源项目 <span class="hl">投资测算</span></h1><p class="hero-sub" data-en="PV · Storage · Hybrid — real-time IRR, NPV, and cash flow" data-zh="光伏 · 独立储能 · 工商业储能 · 光储一体化" data-ja="太陽光 · 蓄電 · ハイブリッド">光伏 · 独立储能 · 工商业储能 · 光储一体化</p></div></section>
 
 <div class="tab-bar">
-  <button class="tab-btn active" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏">光伏</span></button>
+  <button class="tab-btn" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏">光伏</span></button>
   <button class="tab-btn" data-tab="ci" onclick="switchTab('ci')"><span class="tab-icon">🏭</span> <span data-en="C&I Storage" data-zh="工商业储能" data-ja="産業用蓄電">工商业储能</span></button>
   <button class="tab-btn" data-tab="hy" onclick="switchTab('hy')"><span class="tab-icon">🔗</span> <span data-en="PV+Storage" data-zh="光储一体化" data-ja="PV+蓄電">光储一体化</span></button>
   <button class="tab-btn" data-tab="is" onclick="switchTab('is')"><span class="tab-icon">🔋</span> <span data-en="Indep. Storage" data-zh="独立储能">独立储能</span></button>
-  <button class="tab-btn" data-tab="carbon" onclick="switchTab('carbon')"><span class="tab-icon">🌍</span> <span data-en="Carbon" data-zh="碳成本">碳成本</span></button>
+  <button class="tab-btn active" data-tab="carbon" onclick="switchTab('carbon')"><span class="tab-icon">🌍</span> <span data-en="Carbon" data-zh="碳管理">碳管理</span></button>
 </div>
 
 <div class="print-title">NrgOpt 项目测算报告</div>
@@ -310,7 +310,7 @@
     </div>
   </div>
 <div class="param-group open" data-tab-group="carbon">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳成本参数">🌍 碳成本参数</span><span class="arrow">▶</span></div>
+      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
           <select id="inpCbProvince" class="repay-select" onchange="update()">
@@ -389,9 +389,9 @@
   </div>
 </div>
 
-<p class="calc-disclaimer" data-en="⚠️ Estimates only. Carbon compliance tool v2. Data sources: EU ETS auction price, NDRC grid factors, industry market prices." data-zh="⚠️ 碳成本测算 V2。数据来源：EU ETS拍卖价、国家发改委电网排放因子、行业市场价。仅供参考。">⚠️ 碳成本测算 V2。数据来源：EU ETS拍卖价、国家发改委电网排放因子、行业市场价。仅供参考。</p>
+<p class="calc-disclaimer" data-en="⚠️ Estimates only. Carbon compliance tool v2. Data sources: EU ETS auction price, NDRC grid factors, industry market prices." data-zh="⚠️ 碳管理测算 V2。数据来源：EU ETS拍卖价、国家发改委电网排放因子、行业市场价。仅供参考。">⚠️ 碳管理测算 V2。数据来源：EU ETS拍卖价、国家发改委电网排放因子、行业市场价。仅供参考。</p>
 
-<!-- ═══════════ CTA: 碳成本转化入口 ═══════════ -->
+<!-- ═══════════ CTA: 碳管理转化入口 ═══════════ -->
 <div data-tab-group="carbon" style="margin:0 auto 40px;max-width:700px;padding:0 24px">
   <div style="background:var(--surface);border:2px solid var(--accent);border-radius:14px;padding:28px 32px;text-align:center;box-shadow:0 4px 20px rgba(56,189,248,0.1)">
     <div style="font-size:2rem;margin-bottom:10px;">📋</div>
@@ -399,11 +399,11 @@
     <p style="font-size:0.9rem;color:var(--text-dim);margin-bottom:18px;line-height:1.6">
       我可以帮你：<br>
       ■ 对接中国最靠谱的光伏/储能供应商<br>
-      ■ 出具完整的碳成本方案和成本核算<br>
+      ■ 出具完整的碳管理方案和成本核算<br>
       ■ 协助完成绿电直连或零碳园区入驻
     </p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a href="mailto:7391117@qq.com?subject=碳成本方案咨询" style="display:inline-block;padding:12px 28px;border-radius:24px;background:var(--accent);color:var(--btn-primary-text);text-decoration:none;font-weight:600;font-size:0.95rem">📧 发送邮件</a>
+      <a href="mailto:7391117@qq.com?subject=碳管理方案咨询" style="display:inline-block;padding:12px 28px;border-radius:24px;background:var(--accent);color:var(--btn-primary-text);text-decoration:none;font-weight:600;font-size:0.95rem">📧 发送邮件</a>
       <span style="display:inline-block;padding:12px 24px;border-radius:24px;border:1.5px solid var(--accent);color:var(--accent);font-weight:500;font-size:0.88rem;background:transparent">WeChat: 13916897518</span>
     </div>
   </div>

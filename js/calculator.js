@@ -1,7 +1,7 @@
 /* NrgOpt Project Calculator v5 */
 'use strict';
 
-var currentTab='pv';
+var currentTab='carbon';
 
 function switchTab(tab){
   currentTab=tab;
