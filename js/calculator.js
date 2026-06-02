@@ -952,6 +952,16 @@ var provinceData={
 };
 window.applyProvincePreset=function(val){
 
+  var d=provinceData[val];
+  var sets={
+    inpSpPrice:d.spPrice,inpSpHours:d.spHours,
+    inpPeakPrice:d.peakPrice,inpPeakHours:d.peakHours,
+    inpFlatPrice:d.flatPrice,inpFlatHours:d.flatHours,
+    inpValleyPrice:d.valleyPrice,inpValleyHours:d.valleyHours,
+    inpDemandCharge:d.demandCharge
+  };
+  for(var id in sets){var e=el(id);if(e)e.value=sets[id];}
+  refreshDisplays();update();
 window.setCarbonMode=function(mode){
   window._carbonMode=mode;
   var btnC=el('btnModeCBAM'),btnS=el('btnModeCCER'),row=el('cbProductEmissionRow'),unit=el('cbUsageUnit'),desc=el('cbModeDesc');
@@ -970,7 +980,6 @@ window.setCarbonMode=function(mode){
   }
   update();
 };
-  if(!val||!provinceData[val])return;
   var d=provinceData[val];
   var sets={
     inpSpPrice:d.spPrice,inpSpHours:d.spHours,
