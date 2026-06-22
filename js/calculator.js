@@ -203,11 +203,29 @@ function calcCarbon(p){
   // === Coverage factors by mode ===
   var coverageFactors;
   if(mode==='ccer'){
-    // 中国碳市场覆盖行业
-    coverageFactors={steel:1,aluminium:1,chemical:0.6,battery:0.3,machinery:0,other:0};
+    // 中国碳市场覆盖行业（已纳入 + 即将纳入）
+    coverageFactors={
+      // 首批纳入（电力 2021, 钢铁/水泥/铝 2024-25）
+      power:1,steel:1,cement:1,aluminium:1,
+      // 2026-28 扩围预期——按用电强度概算覆盖率
+      petrochemical:0.7,chemical:0.6,nonferrous:0.5,paper:0.4,
+      fertiliser:0.6,glass:0.5,hydrogen:0.8,
+      // 间接覆盖——取决于基准线方法和合规门槛
+      machinery:0.2,battery:0.2,electronics:0.15,aviation:0.3,food:0.1,textile:0.1,pharma:0.1,
+      other:0
+    };
   }else{
-    // CBAM覆盖行业（含2028扩围预期）
-    coverageFactors={steel:1,aluminium:1,chemical:0.8,battery:0.5,machinery:0.3,other:0};
+    // CBAM覆盖行业（当前过渡期+2028正式期扩围）
+    coverageFactors={
+      // CBAM 当前覆盖（钢铁、铝、水泥、化肥、氢、电力）
+      steel:1,aluminium:1,cement:1,fertiliser:1,hydrogen:1,power:1,
+      // 2028 正式期扩围预期
+      chemical:0.8,machinery:0.5,battery:0.4,paper:0.3,glass:0.3,
+      // 间接影响
+      petrochemical:0.5,nonferrous:0.3,electronics:0.15,
+      aviation:0.2,food:0.05,textile:0.05,pharma:0.1,
+      other:0
+    };
   }
   var cbamFactor=coverageFactors[industry]||0;
 

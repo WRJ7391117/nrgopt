@@ -153,12 +153,33 @@
       <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
       <span class="loc-res-item"><b>行业</b>
             <select id="inpCbIndustrySmall" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbIndustry').value=this.value;update()">
-              <option value="steel">钢铁</option>
-              <option value="aluminium">铝</option>
-              <option value="chemical">化工/化肥</option>
-              <option value="battery">电池</option>
-              <option value="machinery">机械/零部件</option>
-              <option value="other" selected>其他制造</option>
+              <optgroup label="CBAM 当前覆盖">
+                <option value="steel">钢铁</option>
+                <option value="aluminium">铝</option>
+                <option value="cement">水泥</option>
+                <option value="fertiliser">化肥</option>
+                <option value="hydrogen">氢</option>
+                <option value="power">电力</option>
+              </optgroup>
+              <optgroup label="CBAM 2028 扩围预期">
+                <option value="machinery">机械/零部件</option>
+                <option value="battery">电池</option>
+                <option value="chemical">化工/石化</option>
+                <option value="glass">玻璃/陶瓷</option>
+                <option value="paper">造纸</option>
+              </optgroup>
+              <optgroup label="国内碳市场覆盖">
+                <option value="petrochemical">石化</option>
+                <option value="nonferrous">有色（铝以外）</option>
+                <option value="aviation">航空</option>
+                <option value="electronics">电子/半导体</option>
+              </optgroup>
+              <optgroup label="其他">
+                <option value="food">食品饮料</option>
+                <option value="textile">纺织</option>
+                <option value="pharma">制药</option>
+                <option value="other" selected>其他制造</option>
+              </optgroup>
             </select>
           </span>
           <span class="loc-res-item"><b>绿电占比</b>
@@ -355,12 +376,33 @@
         <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
           <select id="inpCbIndustry" class="repay-select" onchange="update()">
-            <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
-            <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
-            <option value="chemical" data-en="Chemicals / Fertiliser" data-zh="化工/化肥">化工/化肥</option>
-            <option value="battery" data-en="Battery" data-zh="电池">电池</option>
-            <option value="machinery" data-en="Machinery & Parts (CBAM 2028)" data-zh="机械/零部件 (CBAM 2028)">机械/零部件</option>
-            <option value="other" selected data-en="Other Manufacturing" data-zh="其他制造">其他制造</option>
+            <optgroup label="CBAM 当前覆盖">
+              <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
+              <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
+              <option value="cement" data-en="Cement" data-zh="水泥">水泥</option>
+              <option value="fertiliser" data-en="Fertiliser" data-zh="化肥">化肥</option>
+              <option value="hydrogen" data-en="Hydrogen" data-zh="氢">氢</option>
+              <option value="power" data-en="Power Generation" data-zh="电力">电力</option>
+            </optgroup>
+            <optgroup label="CBAM 2028 扩围预期">
+              <option value="machinery" data-en="Machinery & Parts (CBAM 2028)" data-zh="机械/零部件">机械/零部件</option>
+              <option value="battery" data-en="Battery" data-zh="电池">电池</option>
+              <option value="chemical" data-en="Chemicals / Petrochemical" data-zh="化工/石化">化工/石化</option>
+              <option value="glass" data-en="Glass & Ceramics" data-zh="玻璃/陶瓷">玻璃/陶瓷</option>
+              <option value="paper" data-en="Pulp & Paper" data-zh="造纸">造纸</option>
+            </optgroup>
+            <optgroup label="国内碳市场覆盖">
+              <option value="petrochemical" data-en="Petrochemical" data-zh="石化">石化</option>
+              <option value="nonferrous" data-en="Non-ferrous Metals" data-zh="有色（铝以外）">有色（铝以外）</option>
+              <option value="aviation" data-en="Aviation" data-zh="航空">航空</option>
+              <option value="electronics" data-en="Electronics / Semiconductor" data-zh="电子/半导体">电子/半导体</option>
+            </optgroup>
+            <optgroup label="其他">
+              <option value="food" data-en="Food & Beverage" data-zh="食品饮料">食品饮料</option>
+              <option value="textile" data-en="Textile" data-zh="纺织">纺织</option>
+              <option value="pharma" data-en="Pharmaceutical" data-zh="制药">制药</option>
+              <option value="other" selected data-en="Other Manufacturing" data-zh="其他制造">其他制造</option>
+            </optgroup>
           </select>
         </div>
         <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
