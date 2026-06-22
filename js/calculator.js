@@ -808,8 +808,13 @@ function update(){
     var gfEl=el('inpCbGridFactorSmall');
     if(gfEl){
       var provFactors={beijing:1.0585,tianjin:1.0585,hebei:1.0585,shanxi:1.0585,neimenggu:1.0585,liaoning:1.1983,jilin:1.1983,heilongjiang:1.1983,shanghai:0.9411,jiangsu:0.9411,zhejiang:0.9411,anhui:0.9411,fujian:0.9411,jiangxi:0.9411,shandong:0.9411,henan:1.2526,hubei:1.2526,hunan:1.2526,sichuan:1.2526,chongqing:1.2526,xizang:1.2526,shaanxi:1.0329,gansu:1.0329,qinghai:1.0329,ningxia:1.0329,xinjiang:1.0329,guangdong:0.9853,guangxi:0.9853,yunnan:0.9853,guizhou:0.9853,hainan:0.9853,other:0.5703};
-      gfEl.placeholder=provFactors[cp]||0.5703;
+      var newGf=provFactors[cp]||0.5703;
+      if(!gfEl.value||gfEl.value==gfEl._lastProvVal)gfEl.value=newGf.toFixed(4);
+      gfEl._lastProvVal=gfEl.value;
     }
+    // Sync usage — 顶部输入框 <= 底部滑条
+    var usEl=el('inpCbUsageSmall');
+    if(usEl&&usEl.value!=cu.toFixed(0))usEl.value=cu.toFixed(0);
 
     // Option A
     setText('cbTotalVat',R.annualCarbonTax.toFixed(1));

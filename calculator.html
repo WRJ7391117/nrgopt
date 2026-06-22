@@ -153,7 +153,7 @@
 <option value="other">全国平均</option></select>
       </span>
       <span class="loc-res-item"><b>年用电量</b>
-            <input type="number" id="inpCbUsageSmall" min="10" max="999999" step="10" value="500" style="width:88px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="el('inpCbUsage').value=this.value;el('numCbUsage').value=this.value;update()">
+            <input type="number" id="inpCbUsageSmall" min="10" max="999999" step="10" value="500" style="width:88px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="el('inpCbUsage').value=this.value;el('numCbUsage').value=this.value;update()" oninput="var e=el('cbUsage');if(e)e.textContent=this.value+' 万kWh'">
             <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">万kWh</span>
           </span>
       <span class="loc-res-item"><b>行业</b>
@@ -381,7 +381,7 @@
             <option value="other">全国平均</option>
           </select>
         </div>
-        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="50" max="10000" step="10" value="500"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="10" max="100000" step="10" value="500" oninput="var s=el('inpCbUsageSmall');if(s)s.value=this.value"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
         <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
           <select id="inpCbIndustry" class="repay-select" onchange="update()">
             <optgroup label="CBAM 当前覆盖">
@@ -413,7 +413,7 @@
             </optgroup>
           </select>
         </div>
-        <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0" oninput="var s=el('inpCbGreenPctSmall');if(s){s.value=this.value;var d=el('cbGreenSmallVal');if(d)d.textContent=this.value+'%'}"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
         <div class="pr"><div class="pr-label"><span data-en="Carbon Price" data-zh="碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span id="cbCarbonPriceUnit">欧元/吨</span></div></div>
         <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Carbon Emissions" data-zh="→ 预估年碳排放量"></span><span class="pr-val gold" id="dispCbAnnualEmissions"></span></div></div>
       </div>
