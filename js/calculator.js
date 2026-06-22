@@ -714,10 +714,6 @@ function update(){
     var pn=el('cbProvince');if(pn)pn.textContent=provNames[cp]||cp;
     var cu=val('inpCbUsage')||500;
     var ub=el('cbUsage');if(ub)ub.textContent=cu.toFixed(0)+' 万kWh';
-    
-    var indNames={'steel':'钢铁','aluminium':'铝','chemical':'化工/化肥','battery':'电池','machinery':'机械/零部件','other':'其他制造'};
-    var ci=el('inpCbIndustry')?el('inpCbIndustry').value:'other';
-    var cn=el('cbIndustryName');if(cn)cn.textContent=indNames[ci]||ci;
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
@@ -781,7 +777,10 @@ function update(){
       var sub=annualLabel.parentElement.querySelector('.band-sub');
       if(sub){sub.textContent=cmode==='ccer'?'按中国碳价':'按当前欧盟碳价';}
     }
-    
+    // Sync small green pct slider display
+    var gv=el('inpCbGreenPctSmall');var gd=el('cbGreenSmallVal');
+    if(gv&&gd)gd.textContent=gv.value+'%';
+
     // Option A
     setText('cbTotalVat',R.annualCarbonTax.toFixed(1));
     setText('cbNpv',R.optionA.toFixed(0));
