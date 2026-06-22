@@ -152,49 +152,10 @@
 <optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
 <option value="other">全国平均</option></select>
       </span>
-      <span class="loc-res-item"><b>年用电量</b>
-            <input type="number" id="inpCbUsageSmall" min="10" max="999999" step="10" value="500" style="width:88px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="el('inpCbUsage').value=this.value;el('numCbUsage').value=this.value;update()" oninput="var e=el('cbUsage');if(e)e.textContent=this.value+' 万kWh'">
-            <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">万kWh</span>
-          </span>
-      <span class="loc-res-item"><b>行业</b>
-            <select id="inpCbIndustrySmall" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbIndustry').value=this.value;update()">
-              <optgroup label="CBAM 当前覆盖">
-                <option value="steel">钢铁</option>
-                <option value="aluminium">铝</option>
-                <option value="cement">水泥</option>
-                <option value="fertiliser">化肥</option>
-                <option value="hydrogen">氢</option>
-                <option value="power">电力</option>
-              </optgroup>
-              <optgroup label="CBAM 2028 扩围预期">
-                <option value="machinery">机械/零部件</option>
-                <option value="battery">电池</option>
-                <option value="chemical">化工/石化</option>
-                <option value="glass">玻璃/陶瓷</option>
-                <option value="paper">造纸</option>
-              </optgroup>
-              <optgroup label="国内碳市场覆盖">
-                <option value="petrochemical">石化</option>
-                <option value="nonferrous">有色（铝以外）</option>
-                <option value="aviation">航空</option>
-                <option value="electronics">电子/半导体</option>
-              </optgroup>
-              <optgroup label="其他">
-                <option value="food">食品饮料</option>
-                <option value="textile">纺织</option>
-                <option value="pharma">制药</option>
-                <option value="other" selected>其他制造</option>
-              </optgroup>
-            </select>
-          </span>
-          <span class="loc-res-item"><b>绿电占比</b>
-            <input type="range" id="inpCbGreenPctSmall" min="0" max="100" step="5" value="0" style="width:80px;vertical-align:middle;cursor:pointer" oninput="el('inpCbGreenPct').value=this.value;el('numCbGreenPct').value=this.value;el('cbGreenSmallVal').textContent=this.value+'%';update()">
-            <span id="cbGreenSmallVal" style="font-size:0.75rem;color:var(--accent);font-weight:600;margin-left:4px">0%</span>
-          </span>
-          <span class="loc-res-item"><b>电网排放因子</b>
-            <input type="number" id="inpCbGridFactorSmall" min="0.3" max="2.0" step="0.0001" value="0.9411" style="width:82px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="update()">
-            <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">tCO₂/MWh</span>
-          </span>
+                <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
+          <span class="loc-res-item"><b>行业</b> <span id="cbIndustryName" class="loc-val">—</span></span>
+          <span class="loc-res-item"><b>绿电占比</b> <span id="cbGreenPctDisplay" class="loc-val">—</span></span>
+          <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
     </div>
   </div>
 

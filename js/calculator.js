@@ -738,6 +738,12 @@ function update(){
     var pn=el('cbProvince');if(pn)pn.textContent=provNames[cp]||cp;
     var cu=val('inpCbUsage')||500;
     var ub=el('cbUsage');if(ub)ub.textContent=cu.toFixed(0)+' 万kWh';
+    var indNames={'steel':'钢铁','aluminium':'铝','cement':'水泥','fertiliser':'化肥','hydrogen':'氢','power':'电力','machinery':'机械/零部件','battery':'电池','chemical':'化工/石化','glass':'玻璃/陶瓷','paper':'造纸','petrochemical':'石化','nonferrous':'有色（铝以外）','aviation':'航空','electronics':'电子/半导体','food':'食品饮料','textile':'纺织','pharma':'制药','other':'其他制造'};
+    var ci=el('inpCbIndustry')?el('inpCbIndustry').value:'other';
+    var cn=el('cbIndustryName');if(cn)cn.textContent=indNames[ci]||ci;
+    var gp=val('inpCbGreenPct')||0;
+    var gd=el('cbGreenPctDisplay');if(gd)gd.textContent=gp+'%';
+    var gf=el('cbGridFactor');if(gf)gf.textContent=R.gridFactor.toFixed(3);
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
     var hyPv=el('hyPvCap');if(hyPv)hyPv.textContent=hyCap.toFixed(2)+' MW';
@@ -807,20 +813,6 @@ function update(){
       var sub=annualLabel.parentElement.querySelector('.band-sub');
       if(sub){sub.textContent=cmode==='ccer'?'按中国碳价':'按当前欧盟碳价';}
     }
-    // Sync small green pct slider display
-    var gv=el('inpCbGreenPctSmall');var gd=el('cbGreenSmallVal');
-    if(gv&&gd)gd.textContent=gv.value+'%';
-    // Sync grid factor display — fill inline input with province default
-    var gfEl=el('inpCbGridFactorSmall');
-    if(gfEl){
-      var provFactors={beijing:1.0585,tianjin:1.0585,hebei:1.0585,shanxi:1.0585,neimenggu:1.0585,liaoning:1.1983,jilin:1.1983,heilongjiang:1.1983,shanghai:0.9411,jiangsu:0.9411,zhejiang:0.9411,anhui:0.9411,fujian:0.9411,jiangxi:0.9411,shandong:0.9411,henan:1.2526,hubei:1.2526,hunan:1.2526,sichuan:1.2526,chongqing:1.2526,xizang:1.2526,shaanxi:1.0329,gansu:1.0329,qinghai:1.0329,ningxia:1.0329,xinjiang:1.0329,guangdong:0.9853,guangxi:0.9853,yunnan:0.9853,guizhou:0.9853,hainan:0.9853,other:0.5703};
-      var newGf=provFactors[cp]||0.5703;
-      if(!gfEl.value||gfEl.value==gfEl._lastProvVal)gfEl.value=newGf.toFixed(4);
-      gfEl._lastProvVal=gfEl.value;
-    }
-    // Sync usage — 顶部输入框 <= 底部滑条
-    var usEl=el('inpCbUsageSmall');
-    if(usEl&&usEl.value!=cu.toFixed(0))usEl.value=cu.toFixed(0);
 
     // Option A
     setText('cbTotalVat',R.annualCarbonTax.toFixed(1));
