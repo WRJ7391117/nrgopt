@@ -794,6 +794,12 @@ function update(){
     setText('cbPayback',Math.round(R.totalEmissions).toLocaleString());
     setText('cbRoi',R.annualCarbonTax.toFixed(1));
     setText('cbRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
+    // Current carbon price
+    var cbPriceEl=el('cbCarbonPrice');
+    if(cbPriceEl){
+      var priceVal=val('inpCbCarbonPrice')||(cmode==='ccer'?90:80);
+      cbPriceEl.textContent=(cmode==='ccer'?'¥':'€')+priceVal;
+    }
 
     // Update mode-specific labels
     var priceLabelName=cmode==='ccer'?'中国碳市场价':('EU碳价 €'+val('inpCbCarbonPrice'));
