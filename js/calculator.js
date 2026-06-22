@@ -188,7 +188,9 @@ function calcCarbon(p){
   };
   var usage=p.usage; // 万kWh
   var province=p.province;
-  var gridFactor=gridFactors[province]||0.5703;
+  // Use manual grid factor if user edited it (and it differs from the current province default)
+  var gridFactorPrev=gridFactors[province]||0.5703;
+  var gridFactor=p.manualGridFactor&&p.manualGridFactor>0?p.manualGridFactor:gridFactorPrev;
   var greenPct=p.greenPct/100;
   var industry=p.industry;
 
@@ -287,6 +289,9 @@ function calcCarbon(p){
   };
 }function getPCarbon(){
   var mode=window._carbonMode||'cbam';
+  // Use inline edited grid factor if present and custom
+  var gfEl=el('inpCbGridFactorSmall');
+  var manualGf=gfEl?parseFloat(gfEl.value):0;
   return {
     mode:mode,
     province:el('inpCbProvince')?el('inpCbProvince').value:'zhejiang',
@@ -294,7 +299,8 @@ function calcCarbon(p){
     industry:el('inpCbIndustry')?el('inpCbIndustry').value:'other',
     greenPct:val('inpCbGreenPct')||0,
     carbonPrice:val('inpCbCarbonPrice')||(mode==='ccer'?90:80),
-    cnyPerEuro:7.2
+    cnyPerEuro:7.2,
+    manualGridFactor:manualGf
   };
 }
 
@@ -798,6 +804,12 @@ function update(){
     // Sync small green pct slider display
     var gv=el('inpCbGreenPctSmall');var gd=el('cbGreenSmallVal');
     if(gv&&gd)gd.textContent=gv.value+'%';
+    // Sync grid factor display — fill inline input with province default
+    var gfEl=el('inpCbGridFactorSmall');
+    if(gfEl){
+      var provFactors={beijing:1.0585,tianjin:1.0585,hebei:1.0585,shanxi:1.0585,neimenggu:1.0585,liaoning:1.1983,jilin:1.1983,heilongjiang:1.1983,shanghai:0.9411,jiangsu:0.9411,zhejiang:0.9411,anhui:0.9411,fujian:0.9411,jiangxi:0.9411,shandong:0.9411,henan:1.2526,hubei:1.2526,hunan:1.2526,sichuan:1.2526,chongqing:1.2526,xizang:1.2526,shaanxi:1.0329,gansu:1.0329,qinghai:1.0329,ningxia:1.0329,xinjiang:1.0329,guangdong:0.9853,guangxi:0.9853,yunnan:0.9853,guizhou:0.9853,hainan:0.9853,other:0.5703};
+      gfEl.placeholder=provFactors[cp]||0.5703;
+    }
 
     // Option A
     setText('cbTotalVat',R.annualCarbonTax.toFixed(1));

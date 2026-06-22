@@ -150,7 +150,10 @@
 <optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
 <option value="other">全国平均</option></select>
       </span>
-      <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>年用电量</b>
+            <input type="number" id="inpCbUsageSmall" min="10" max="999999" step="10" value="500" style="width:88px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="el('inpCbUsage').value=this.value;el('numCbUsage').value=this.value;update()">
+            <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">万kWh</span>
+          </span>
       <span class="loc-res-item"><b>行业</b>
             <select id="inpCbIndustrySmall" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbIndustry').value=this.value;update()">
               <optgroup label="CBAM 当前覆盖">
@@ -186,7 +189,10 @@
             <input type="range" id="inpCbGreenPctSmall" min="0" max="100" step="5" value="0" style="width:80px;vertical-align:middle;cursor:pointer" oninput="el('inpCbGreenPct').value=this.value;el('numCbGreenPct').value=this.value;el('cbGreenSmallVal').textContent=this.value+'%';update()">
             <span id="cbGreenSmallVal" style="font-size:0.75rem;color:var(--accent);font-weight:600;margin-left:4px">0%</span>
           </span>
-          <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
+          <span class="loc-res-item"><b>电网排放因子</b>
+            <input type="number" id="inpCbGridFactorSmall" min="0.3" max="2.0" step="0.0001" value="0.9411" style="width:82px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="update()">
+            <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">tCO₂/MWh</span>
+          </span>
     </div>
   </div>
 
