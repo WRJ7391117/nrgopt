@@ -130,11 +130,15 @@
     </div>
   </div>
   <div data-tab-group="carbon" style="display:none">
-    <div class="loc-section-label">测算模式</div>
+    <div class="loc-section-label">碳机制</div>
     <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
-      <button id="btnModeCBAM" style="padding:7px 16px;border-radius:6px 0 0 6px;border:1.5px solid var(--accent);background:var(--accent);color:var(--btn-primary-text);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:600" onclick="setCarbonMode('cbam')">CBAM</button>
-      <button id="btnModeCCER" style="padding:7px 16px;border-radius:0 6px 6px 0;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:500" onclick="setCarbonMode('ccer')">CCER</button>
-      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:8px" id="cbModeDesc">CBAM：按欧盟碳边境调节机制估算碳关税</span>
+      <span class="loc-res-item"><b>选择碳定价机制</b>
+        <select id="inpCarbonMechanism" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="setCarbonMechanism(this.value);update()">
+          <option value="eu" selected>EU ETS / CBAM — 欧盟</option>
+          <option value="china">中国全国碳市场 — CEA配额</option>
+        </select>
+      </span>
+      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:4px" id="cbModeDesc">按欧盟CBAM估算——产品在清单内即全额缴纳</span>
     </div>
     <div class="loc-section-label" style="margin-top:10px">项目参数</div>
     <div class="loc-results">
@@ -193,6 +197,7 @@
   <div class="print-sec">二、碳排放基线</div>
   <div class="metric-band row4">
     <div class="band-card"><div class="band-label" data-en="Carbon Price" data-zh="当前碳价">当前碳价</div><div class="band-value" id="cbCarbonPrice" style="color:var(--gold)">—</div><div class="band-sub" data-en="€ or ¥/tCO₂" data-zh="€/吨 或 ¥/吨">€/吨 或 ¥/吨</div></div>
+    <div class="band-card"><div class="band-label" data-en="Coverage" data-zh="覆盖范围">覆盖范围</div><div class="band-value" id="cbCoverageNote" style="font-size:0.75rem;line-height:1.3">—</div><div class="band-sub" data-en="coverage of carbon policy" data-zh="碳政策覆盖说明">碳政策覆盖说明</div></div>
     <div class="band-card"><div class="band-label" data-en="Grid Factor" data-zh="电网排放因子">电网排放因子</div><div class="band-value" id="cbIrrFull">—</div><div class="band-sub" data-en="tCO₂/MWh" data-zh="吨CO₂/MWh">吨CO₂/MWh</div></div>
     <div class="band-card"><div class="band-label" data-en="Annual Carbon Emissions" data-zh="年碳排放总量">年碳排放总量</div><div class="band-value" id="cbPayback">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
     <div class="band-card"><div class="band-label" data-en="Annual Carbon Cost" data-zh="年碳排放成本">年碳排放成本</div><div class="band-value" id="cbRoi" style="color:#ef4444">—</div><div class="band-sub" data-en="at current carbon price" data-zh="按当前碳价">按当前碳价</div></div>
