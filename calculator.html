@@ -133,7 +133,7 @@
     <div class="loc-section-label">👉 CBAM 出口核算</div>
     <div class="loc-results">
       <span class="loc-res-item"><b>出口产品</b>
-        <select id="inpCbProduct" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="onCBAMProductChange()">
+        <select id="inpCbProduct" class="repay-select" onchange="onCBAMProductChange()">
           <optgroup label="CBAM当前覆盖">
             <option value="steel-hrc" selected>钢铁 — 热轧卷板</option>
             <option value="steel-crc">钢铁 — 冷轧卷板</option>
@@ -149,7 +149,7 @@
         </select>
       </span>
       <span class="loc-res-item"><b>核算年份</b>
-        <select id="inpCbYear" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="update()">
+        <select id="inpCbYear" class="repay-select" onchange="update()">
           <option value="2026">2026</option>
           <option value="2027">2027</option>
           <option value="2028">2028</option>
