@@ -321,60 +321,78 @@
 <div class="param-group open" data-tab-group="carbon">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
-          <select id="inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
-            <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
-            <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-            <optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
-            <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-            <optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
-            <optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
-            <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-            <option value="other">全国平均</option>
+        <div class="pr"><div class="pr-label"><span data-en="Scope1 Method" data-zh="直接排放核算方式"></span>
+          <select id="inpCbS1Method" class="repay-select" onchange="onCBAMMethodChange()">
+            <option value="default" selected>默认值（自动填）</option>
+            <option value="actual">实际值（核证数据）</option>
           </select>
-        </div>
-        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="10" max="100000" step="10" value="500" oninput="var s=el('inpCbUsageSmall');if(s)s.value=this.value"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
-          <select id="inpCbIndustry" class="repay-select" onchange="update()">
-            <optgroup label="CBAM 当前覆盖">
-              <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
-              <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
-              <option value="cement" data-en="Cement" data-zh="水泥">水泥</option>
-              <option value="fertiliser" data-en="Fertiliser" data-zh="化肥">化肥</option>
-              <option value="hydrogen" data-en="Hydrogen" data-zh="氢">氢</option>
-              <option value="power" data-en="Power Generation" data-zh="电力">电力</option>
-            </optgroup>
-            <optgroup label="CBAM 2028 扩围预期">
-              <option value="machinery" data-en="Machinery & Parts (CBAM 2028)" data-zh="机械/零部件">机械/零部件</option>
-              <option value="battery" data-en="Battery" data-zh="电池">电池</option>
-              <option value="chemical" data-en="Chemicals / Petrochemical" data-zh="化工/石化">化工/石化</option>
-              <option value="glass" data-en="Glass & Ceramics" data-zh="玻璃/陶瓷">玻璃/陶瓷</option>
-              <option value="paper" data-en="Pulp & Paper" data-zh="造纸">造纸</option>
-            </optgroup>
-            <optgroup label="国内碳市场覆盖">
-              <option value="petrochemical" data-en="Petrochemical" data-zh="石化">石化</option>
-              <option value="nonferrous" data-en="Non-ferrous Metals" data-zh="有色（铝以外）">有色（铝以外）</option>
-              <option value="aviation" data-en="Aviation" data-zh="航空">航空</option>
-              <option value="electronics" data-en="Electronics / Semiconductor" data-zh="电子/半导体">电子/半导体</option>
-            </optgroup>
-            <optgroup label="其他">
-              <option value="food" data-en="Food & Beverage" data-zh="食品饮料">食品饮料</option>
-              <option value="textile" data-en="Textile" data-zh="纺织">纺织</option>
-              <option value="pharma" data-en="Pharmaceutical" data-zh="制药">制药</option>
-              <option value="other" selected data-en="Other Manufacturing" data-zh="其他制造">其他制造</option>
-            </optgroup>
+        </div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Scope2 Method" data-zh="间接排放核算方式"></span>
+          <select id="inpCbS2Method" class="repay-select" onchange="onCBAMMethodChange()">
+            <option value="default" selected>默认值（按出口国电网因子）</option>
+            <option value="actual">实际值（PPA/直连绿电）</option>
+            <option value="unknown">出口国无法确定（取最高值）</option>
           </select>
-        </div>
-        <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0" oninput="var s=el('inpCbGreenPctSmall');if(s){s.value=this.value;var d=el('cbGreenSmallVal');if(d)d.textContent=this.value+'%'}"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Carbon Price" data-zh="碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span id="cbCarbonPriceUnit">欧元/吨</span></div></div>
-        <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Carbon Emissions" data-zh="→ 预估年碳排放量"></span><span class="pr-val gold" id="dispCbAnnualEmissions"></span></div></div>
+        </div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Electric Intensity" data-zh="用电强度"></span><span class="pr-val" id="dispCbElecIntensity"></span></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Grid Factor" data-zh="电网排放因子"></span>
+          <select id="inpCbScope2Province" class="repay-select" onchange="update()">
+            <optgroup label="热门">
+              <option value="zhejiang" selected>浙江 (0.9411)</option>
+              <option value="jiangsu">江苏 (0.9411)</option>
+              <option value="guangdong">广东 (0.9853)</option>
+              <option value="shandong">山东 (0.9411)</option>
+            </optgroup>
+            <optgroup label="华北">
+              <option value="beijing">北京 (1.0585)</option>
+              <option value="tianjin">天津 (1.0585)</option>
+              <option value="hebei">河北 (1.0585)</option>
+              <option value="shanxi">山西 (1.0585)</option>
+              <option value="neimenggu">内蒙古 (1.0585)</option>
+            </optgroup>
+            <optgroup label="东北">
+              <option value="liaoning">辽宁 (1.1983)</option>
+              <option value="jilin">吉林 (1.1983)</option>
+              <option value="heilongjiang">黑龙江 (1.1983)</option>
+            </optgroup>
+            <optgroup label="华东">
+              <option value="shanghai">上海 (0.9411)</option>
+              <option value="anhui">安徽 (0.9411)</option>
+              <option value="fujian">福建 (0.9411)</option>
+              <option value="jiangxi">江西 (0.9411)</option>
+            </optgroup>
+            <optgroup label="华中">
+              <option value="henan">河南 (1.2526)</option>
+              <option value="hubei">湖北 (1.2526)</option>
+              <option value="hunan">湖南 (1.2526)</option>
+            </optgroup>
+            <optgroup label="西南">
+              <option value="sichuan">四川 (1.2526)</option>
+              <option value="chongqing">重庆 (1.2526)</option>
+              <option value="guizhou">贵州 (1.2526)</option>
+              <option value="yunnan">云南 (0.9853)</option>
+              <option value="xizang">西藏 (1.2526)</option>
+            </optgroup>
+            <optgroup label="西北">
+              <option value="shaanxi">陕西 (1.0329)</option>
+              <option value="gansu">甘肃 (1.0329)</option>
+              <option value="qinghai">青海 (1.0329)</option>
+              <option value="ningxia">宁夏 (1.0329)</option>
+              <option value="xinjiang">新疆 (1.0329)</option>
+            </optgroup>
+            <optgroup label="华南">
+              <option value="guangxi">广西 (0.9853)</option>
+              <option value="hainan">海南 (0.9853)</option>
+            </optgroup>
+            <option value="other">全国平均 (0.5703)</option>
+          </select>
+        </div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Green Power %" data-zh="绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0" oninput="var d=el('cbGreenPctDisplay');if(d)d.textContent=this.value+'%'"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% from PPA or direct line" data-zh="已签署PPA或直连绿电占比">已签署PPA或直连绿电占比</div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Carbon Price" data-zh="碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span id="cbCarbonPriceUnit">€/tCO₂</span></div></div>
+        <div class="pr"><div class="pr-label"><span data-en="Paid in Origin" data-zh="出口国已付碳价"></span><span class="pr-val" id="dispCbPaidPrice"></span></div><div class="dual-input"><input type="range" id="inpCbPaidPrice" min="0" max="500" step="5" value="0"><input type="text" inputmode="decimal" id="numCbPaidPrice" step="5" class="num-field"></div><div class="pr-sub" data-en="¥/tCO₂, deducted from CBAM" data-zh="¥/吨，可抵扣CBAM">¥/吨，可抵扣CBAM</div></div>
+        <div class="pr derived"><div class="pr-label"><span data-en="→ Free Allocation Factor" data-zh="→ CBAM系数（2026-2028逐步退坡）"></span><span class="pr-val gold" id="dispCbAllocFactor"></span></div></div>
       </div>
-    </div>
-
-  <!-- Col 3: 运营与税务 -->
-  <div>
-
-    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="🔧 Ops & Tax" data-zh="🔧 运营与税务" data-ja="🔧 運用と税務">🔧 运营与税务</span></div>    <div class="param-group open">
+    </div><div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M" data-zh="🔧 运维成本" data-ja="🔧 運用費">🔧 运维成本</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Mgmt Fee" data-zh="管理费率" data-ja="管理費率"></span><span class="pr-val" id="dispMgmtFee"></span></div><div class="dual-input"><input type="range" id="inpMgmtFee" min="0" max="0.03" step="0.001" value="0.01"><input type="text" inputmode="decimal" id="numMgmtFee" step="0.001" class="num-field"></div></div>
