@@ -208,7 +208,7 @@ function calcCBAM(p){
   var product=p.product;
   var baseEF=defaultEFs[product]||1.5;
   var year=p.year||'2026';
-  var markup=markups[year]||1.10;
+  var markup=yearMarkup[year]||1.10;
   var directEF=baseEF*markup; // with mark-up applied
   var annualOutput=p.annualOutput||100000; // tons/year
   var exportQty=p.exportQty||10000; // tons/year
