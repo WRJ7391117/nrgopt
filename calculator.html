@@ -130,99 +130,84 @@
     </div>
   </div>
   <div data-tab-group="carbon" style="display:none">
-    <div class="loc-section-label">碳机制</div>
-    <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
-      <span class="loc-res-item"><b>选择碳定价机制</b>
-        <select id="inpCarbonMechanism" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="setCarbonMechanism(this.value);update()">
-          <option value="eu" selected>EU ETS / CBAM — 欧盟</option>
-          <option value="china">中国全国碳市场 — CEA配额</option>
+    <div class="loc-section-label">👉 CBAM 出口核算</div>
+    <div class="loc-results">
+      <span class="loc-res-item"><b>出口产品</b>
+        <select id="inpCbProduct" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="onCBAMProductChange()">
+          <optgroup label="CBAM当前覆盖">
+            <option value="steel-hrc" selected>钢铁 — 热轧卷板</option>
+            <option value="steel-crc">钢铁 — 冷轧卷板</option>
+            <option value="steel-rebar">钢铁 — 螺纹钢/线材</option>
+            <option value="steel-hdg">钢铁 — 镀锌板</option>
+            <option value="steel-hp">钢铁 — 厚板</option>
+            <option value="aluminium-primary">铝 — 原铝</option>
+            <option value="aluminium-secondary">铝 — 再生铝</option>
+            <option value="cement">水泥</option>
+            <option value="fertiliser">化肥</option>
+            <option value="hydrogen">氢气</option>
+          </optgroup>
         </select>
       </span>
-      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:4px" id="cbModeDesc">按欧盟CBAM估算——产品在清单内即全额缴纳</span>
-    </div>
-    <div class="loc-section-label" style="margin-top:10px">项目参数</div>
-    <div class="loc-results">
-      <span class="loc-res-item"><b>所在省份</b>
-        <select id="inpCbProvinceSmall" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
-<optgroup label="热门">
-<option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option>
-</optgroup>
-<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
-<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-<optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option></optgroup>
-<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-<optgroup label="西南"><option value="sichuan">四川</option><option value="chongqing">重庆</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
-<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-<optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
-<option value="other">全国平均</option></select>
+      <span class="loc-res-item"><b>核算年份</b>
+        <select id="inpCbYear" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="update()">
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+        </select>
       </span>
-                <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>行业</b> <span id="cbIndustryName" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>绿电占比</b> <span id="cbGreenPctDisplay" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
+      <span class="loc-res-item"><b>年产量</b>
+        <input type="number" id="inpCbOutput" min="1" max="9999999" step="1" value="100000" style="width:90px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="update()">
+        <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">吨/年</span>
+      </span>
+      <span class="loc-res-item"><b>出口欧盟量</b>
+        <input type="number" id="inpCbExport" min="1" max="9999999" step="1" value="10000" style="width:90px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.78rem;font-family:inherit;font-weight:600;text-align:right" onchange="update()">
+        <span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px">吨/年</span>
+      </span>
     </div>
   </div>
-
-<div data-tab-group="pv,ci,is,hy">
-<!-- PART 1 -->
-<div class="print-sec">二、核心指标</div>
-<div class="metric-band row4">
-  <div class="band-card"><div class="band-label" data-en="Payback" data-zh="回收周期" data-ja="回収期間">回收周期</div><div class="band-value" id="resPayback" style="color:var(--gold)">—</div><div class="band-sub" data-en="years" data-zh="年" data-ja="年">年</div></div>
-  <div class="band-card"><div class="band-label" data-en="ROI" data-zh="ROI" data-ja="ROI">ROI</div><div class="band-value" id="resRoi">—</div><div class="band-sub" data-en="total return / investment" data-zh="总利润÷总投资" data-ja="総利益÷総投資">总利润÷总投资</div></div>
-  <div class="band-card"><div class="band-label" data-en="ROE" data-zh="ROE" data-ja="ROE">ROE</div><div class="band-value" id="resRoe">—</div><div class="band-sub" data-en="avg profit / equity" data-zh="年均净利÷资本金" data-ja="平均純利÷自己資本">年均净利÷资本金</div></div>
-  <div class="band-card"><div class="band-label" data-en="ROA" data-zh="ROA" data-ja="ROA">ROA</div><div class="band-value" id="resRoa">—</div><div class="band-sub" data-en="avg profit / assets" data-zh="年均净利÷总资产" data-ja="平均純利÷総資産">年均净利÷总资产</div></div>
-</div>
-<div class="metric-band row4">
-  <div class="band-card"><div class="band-label" data-en="Full Inv. IRR" data-zh="全投资 IRR" data-ja="全投資IRR">全投资 IRR</div><div class="band-value" id="resIrrFull">—</div><div class="band-sub" data-en="all-equity" data-zh="不考虑杠杆" data-ja="全額自己資金">不考虑杠杆</div></div>
-  <div class="band-card"><div class="band-label" data-en="Equity IRR" data-zh="资本金 IRR" data-ja="資本IRR">资本金 IRR</div><div class="band-value" id="resIrrEq">—</div><div class="band-sub" data-en="leveraged" data-zh="含杠杆效应" data-ja="レバレッジあり">含杠杆效应</div></div>
-  <div class="band-card"><div class="band-label" data-en="Discount Rate" data-zh="折现率" data-ja="割引率">折现率</div><div class="band-value" id="resDiscount">—</div><div class="band-sub" data-en="pre-tax WACC" data-zh="税前" data-ja="税前">税前</div></div>
-  <div class="band-card"><div class="band-label" data-en="Net Present Value" data-zh="净现值 NPV" data-ja="正味現在価値">净现值 NPV</div><div class="band-value" id="resNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-</div>
-<div class="print-sec">三、投资与产出</div>
-<div class="metric-band row2">
-  <div class="band-card"><div class="band-label" data-en="Total Inv." data-zh="总投资" data-ja="総投資額">总投资</div><div class="band-value" id="resTotalInv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-  <div class="band-card"><div class="band-label" data-en="Loan" data-zh="贷款金额" data-ja="融資金額">贷款金额</div><div class="band-value" id="resLoan">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元" data-ja="万元">万元</div></div>
-  <div class="band-card"><div class="band-label" data-en="Gen Year 1" data-zh="首年总发电量" data-ja="初年度総発電量">首年总发电量</div><div class="band-value" id="resGenY1">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
-  <div class="band-card"><div class="band-label" data-en="Gen Life Total" data-zh="运营期总发电量" data-ja="全期間総発電量">运营期总发电量</div><div class="band-value" id="resGenTotal">—</div><div class="band-sub" data-en="10k kWh" data-zh="万度电" data-ja="万kWh">万度电</div></div>
-</div>
-<div class="print-sec">四、收入成本利润</div>
-<div class="metric-band row3">
-  <div class="band-card"><div class="band-label" data-en="Total Revenue" data-zh="总收入" data-ja="総収入">总收入</div><div class="band-value" id="resTotalRev">—</div><div class="band-sub" data-en="Sum of annual revenue" data-zh="各年营业收入合计" data-ja="各年営業収入合計">各年营业收入合计</div></div>
-  <div class="band-card"><div class="band-label" data-en="Total VAT" data-zh="总增值税" data-ja="総消費税">总增值税</div><div class="band-value" id="resTotalVat">—</div><div class="band-sub" data-en="VAT paid + surcharges" data-zh="实缴增值税+城建教育附加" data-ja="消費税+付加税">实缴增值税+城建教育附加</div></div>
-  <div class="band-card"><div class="band-label" data-en="Total Cost" data-zh="总成本" data-ja="総コスト">总成本</div><div class="band-value" id="resTotalCost">—</div><div class="band-sub" data-en="Depr+Interest+O&M+Ins" data-zh="折旧+利息+运维+保险" data-ja="減価償却+金利+運営+保険">折旧+利息+运维+保险</div></div>
-  <div class="band-card"><div class="band-label" data-en="Total Profit" data-zh="总利润" data-ja="総利益">总利润</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub" data-en="Revenue-Cost-Surcharge-Tax" data-zh="总收入-总成本-税金及附加-所得税" data-ja="収入-費用-付加税-所得税">总收入-总成本-税金及附加-所得税</div></div>
-</div>
 
 </div><div data-tab-group="carbon">
-  <div class="print-sec">二、碳排放基线</div>
+  <div class="print-sec">二、排放核算</div>
   <div class="metric-band row4">
-    <div class="band-card"><div class="band-label" data-en="Carbon Price" data-zh="当前碳价">当前碳价</div><div class="band-value" id="cbCarbonPrice" style="color:var(--gold)">—</div><div class="band-sub" data-en="€ or ¥/tCO₂" data-zh="€/吨 或 ¥/吨">€/吨 或 ¥/吨</div></div>
-    <div class="band-card"><div class="band-label" data-en="Coverage" data-zh="覆盖范围">覆盖范围</div><div class="band-value" id="cbCoverageNote" style="font-size:0.75rem;line-height:1.3">—</div><div class="band-sub" data-en="coverage of carbon policy" data-zh="碳政策覆盖说明">碳政策覆盖说明</div></div>
-    <div class="band-card"><div class="band-label" data-en="Grid Factor" data-zh="电网排放因子">电网排放因子</div><div class="band-value" id="cbIrrFull">—</div><div class="band-sub" data-en="tCO₂/MWh" data-zh="吨CO₂/MWh">吨CO₂/MWh</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Carbon Emissions" data-zh="年碳排放总量">年碳排放总量</div><div class="band-value" id="cbPayback">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Carbon Cost" data-zh="年碳排放成本">年碳排放成本</div><div class="band-value" id="cbRoi" style="color:#ef4444">—</div><div class="band-sub" data-en="at current carbon price" data-zh="按当前碳价">按当前碳价</div></div>
+    <div class="band-card"><div class="band-label" data-en="Carbon Price" data-zh="碳价">碳价</div><div class="band-value" id="cbCarbonPrice" style="color:var(--gold)">—</div><div class="band-sub" data-en="€/tCO₂ (after mark-up)" data-zh="€/吨（含加价）">€/吨（含加价）</div></div>
+    <div class="band-card"><div class="band-label" data-en="Direct Intensity" data-zh="直接排放强度">直接排放强度</div><div class="band-value" id="cbDirectEF" style="color:var(--gold)">—</div><div class="band-sub" data-en="tCO₂/ton product" data-zh="吨CO₂/吨产品">吨CO₂/吨产品</div></div>
+    <div class="band-card"><div class="band-label" data-en="Scope 1" data-zh="Scope1 直接排放">Scope1 直接排放</div><div class="band-value" id="cbScope1">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
+    <div class="band-card"><div class="band-label" data-en="Scope 2" data-zh="Scope2 间接排放">Scope2 间接排放</div><div class="band-value" id="cbScope2">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
+  </div>
+  <div class="metric-band row4">
+    <div class="band-card" style="border:2px solid #991b1b"><div class="band-label" data-en="Total Embedded" data-zh="总嵌入排放">总嵌入排放</div><div class="band-value" id="cbTotalEmbedded" style="color:#991b1b">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨CO₂/年">吨CO₂/年</div></div>
+    <div class="band-card" style="border:2px solid #991b1b"><div class="band-label" data-en="CBAM Certificates" data-zh="CBAM证书数">CBAM证书数</div><div class="band-value" id="cbCertificates" style="color:#991b1b">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
+    <div class="band-card"><div class="band-label" data-en="Free Allocation" data-zh="免费配额">免费配额</div><div class="band-value" id="cbFreeAlloc">—</div><div class="band-sub" data-en="吨，按CBAM系数折算" data-zh="吨，按CBAM系数折算">吨，按CBAM系数折算</div></div>
+    <div class="band-card" style="border:1.5px solid #ef4444"><div class="band-label" data-en="Annual CBAM Cost" data-zh="年CBAM碳关税">年CBAM碳关税</div><div class="band-value" id="cbRoi" style="color:#ef4444">—</div><div class="band-sub" data-en="万元/年" data-zh="万元/年">万元/年</div></div>
   </div>
 
-  <div class="print-sec">三、方案对比</div>
-  <div class="col-header" style="margin-bottom:12px;margin-top:8px;margin-left:24px"><span data-en="Option A: No Investment (Pay Carbon Cost)" data-zh="方案A：不做投资 → 每年缴碳成本">⚠️ 方案A：不做投资，每年缴碳成本</span></div>
-  <div class="metric-band row2" style="margin-bottom:12px">
-    <div class="band-card" style="border:1.5px solid #ef4444"><div class="band-label" data-en="Annual Carbon Cost" data-zh="每年碳排放成本">每年碳排放成本</div><div class="band-value" id="cbTotalVat" style="color:#ef4444">—</div><div class="band-sub" data-en="10k CNY/year" data-zh="万元/年">万元/年</div></div>
-    <div class="band-card"><div class="band-label" data-en="10-Year Total Cost" data-zh="10年累计碳成本">10年累计碳成本</div><div class="band-value" id="cbNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
-  </div>
-  <div class="col-header" style="margin-bottom:12px;margin-left:24px"><span data-en="Option B: Invest in Solar + Storage" data-zh="方案B：投资光储，降低碳排放成本">✅ 方案B：投资光储，降低碳排放成本</span></div>
-  <div class="metric-band row2" style="margin-bottom:12px">
-    <div class="band-card" style="border:1.5px solid #38bdf8"><div class="band-label" data-en="PV+Storage Investment" data-zh="光储方案总投资">光储方案总投资</div><div class="band-value" id="cbTotalInv" style="color:#38bdf8">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
-    <div class="band-card"><div class="band-label" data-en="Recommended System" data-zh="推荐配置">推荐配置</div><div class="band-value" id="cbLoan" style="font-size:1rem">—</div><div class="band-sub" data-en="PV + Storage capacity" data-zh="光伏+储能容量">光伏+储能容量</div></div>
+  <div class="print-sec">三、默认值加价说明</div>
+  <div class="col-header" style="margin-bottom:10px;margin-left:24px"><span id="cbMarkupDesc">2026年加价幅度：10% · 2027年：20% · 2028年起：30%</span></div>
+  <div class="metric-band row2">
+    <div class="band-card"><div class="band-label" data-en="Base Default" data-zh="基础默认值">基础默认值</div><div class="band-value" id="cbBaseDefault">—</div><div class="band-sub" data-en="tCO₂/ton, before mark-up" data-zh="吨/吨产品，加价前">吨/吨产品，加价前</div></div>
+    <div class="band-card"><div class="band-label" data-en="Applied Value" data-zh="实际适用值">实际适用值</div><div class="band-value" id="cbAppliedDefault" style="color:#b91c1c">—</div><div class="band-sub" data-en="after mark-up" data-zh="加价后">加价后</div></div>
   </div>
 
-  <div class="print-sec">四、对比结论</div>
-  <div class="metric-band row4">
-    <div class="band-card" style="border:2px solid var(--gold)"><div class="band-label" data-en="Payback" data-zh="投资回收期">投资回收期</div><div class="band-value" id="cbRoe" style="color:var(--gold)">—</div><div class="band-sub" data-en="years" data-zh="年">年</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Saving" data-zh="每年节省碳成本">每年节省碳成本</div><div class="band-value" id="cbTotalProfit">—</div><div class="band-sub" data-en="vs no investment" data-zh="相比不做投资">相比不做投资</div></div>
-    <div class="band-card"><div class="band-label" data-en="10yr Total: Investment+Cost" data-zh="方案B 10年总支出">方案B 10年总支出</div><div class="band-value" id="cbTotalCost">—</div><div class="band-sub" data-en="investment + remaining cost" data-zh="投资+剩余碳成本">投资+剩余碳成本</div></div>
-    <div class="band-card" style="border:2px solid #10b981"><div class="band-label" data-en="10yr Net Savings" data-zh="10年净节省">10年净节省</div><div class="band-value" id="cbTotalRev" style="color:#10b981">—</div><div class="band-sub" data-en="Option A - Option B" data-zh="方案A - 方案B">方案A - 方案B</div></div>
+  <div class="print-sec">四、方案对比</div>
+  <div class="col-header" style="margin-bottom:12px;margin-left:24px"><span>⚠️ 方案A：不做投资，每年按实际排放缴CBAM碳关税</span></div>
+  <div class="metric-band row2" style="margin-bottom:12px">
+    <div class="band-card" style="border:1.5px solid #ef4444"><div class="band-label" data-en="Annual CBAM Cost" data-zh="每年CBAM碳关税">每年CBAM碳关税</div><div class="band-value" id="cbTotalVat" style="color:#ef4444">—</div><div class="band-sub" data-en="万元/年" data-zh="万元/年">万元/年</div></div>
+    <div class="band-card"><div class="band-label" data-en="10-Year Total" data-zh="10年累计">10年累计</div><div class="band-value" id="cbNpv">—</div><div class="band-sub" data-en="万元" data-zh="万元">万元</div></div>
   </div>
-  <div class="print-sec" data-tab-group="carbon">五、逐年对比明细 (万元)</div>
+  <div class="col-header" style="margin-bottom:12px;margin-left:24px"><span>✅ 方案B：投资光储，降低Scope2（年用电碳排）</span></div>
+  <div class="metric-band row2" style="margin-bottom:12px">
+    <div class="band-card" style="border:1.5px solid #38bdf8"><div class="band-label" data-en="PV+Storage Investment" data-zh="光储方案总投资">光储方案总投资</div><div class="band-value" id="cbTotalInv" style="color:#38bdf8">—</div><div class="band-sub" data-en="万元" data-zh="万元">万元</div></div>
+    <div class="band-card"><div class="band-label" data-en="Scop2 Reduction" data-zh="Scope2减排幅度">Scope2减排幅度</div><div class="band-value" id="cbLoan" style="font-size:0.85rem">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨CO₂/年">吨CO₂/年</div></div>
+  </div>
+
+  <div class="print-sec">五、对比结论</div>
+  <div class="metric-band row4">
+    <div class="band-card" style="border:2px solid var(--gold)"><div class="band-label" data-en="Payback" data-zh="投资回收期">投资回收期</div><div class="band-value" id="cbRoe" style="color:var(--gold)">—</div><div class="band-sub" data-en="年" data-zh="年">年</div></div>
+    <div class="band-card"><div class="band-label" data-en="Annual Saving" data-zh="每年节省碳关税">每年节省碳关税</div><div class="band-value" id="cbTotalProfit">—</div><div class="band-sub" data-en="相比不做投资" data-zh="相比不做投资">相比不做投资</div></div>
+    <div class="band-card"><div class="band-label" data-en="10yr Net Savings" data-zh="10年净节省">10年净节省</div><div class="band-value" id="cbTotalRev" style="color:#10b981">—</div><div class="band-sub" data-en="方案A-方案B" data-zh="方案A-方案B">方案A-方案B</div></div>
+    <div class="band-card"><div class="band-label" data-en="Note" data-zh="说明">说明</div><div class="band-value" id="cbNote" style="font-size:0.7rem;color:#f59e0b">光储仅降低Scope2</div><div class="band-sub" data-en="Scope1不受影响" data-zh="Scope1不受影响">Scope1不受影响</div></div>
+  </div>
+  <div class="print-sec" data-tab-group="carbon">六、逐年对比明细 (万元)</div>
 </div><div class="print-sec" data-tab-group="pv,ci,is,hy">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
@@ -462,7 +447,7 @@
 </div>
 
 <script src="js/theme.js?v=2"></script>
-<script src="js/calculator.js?v=44"></script>
+<script src="js/calculator.js?v=45"></script>
 </body>
 
 </html>
