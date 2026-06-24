@@ -183,8 +183,25 @@ function calcCBAM(p){
     'aluminium-primary':1.464, 'aluminium-secondary':0.139,
     'cement':0.860, 'fertiliser':1.980, 'hydrogen':9.000
   };
-  // Year mark-up schedule
-  var markups={'2026':1.10,'2027':1.20,'2028':1.30};
+  // Year mark-up schedule — differs by sector
+  var markupMap={
+    'steel-hrc':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'steel-crc':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'steel-rebar':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'steel-hdg':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'steel-hp':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'aluminium-primary':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'aluminium-secondary':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'cement':{'2026':1.10,'2027':1.20,'2028':1.30},
+    'fertiliser':{'2026':1.01,'2027':1.01,'2028':1.01},
+    'hydrogen':{'2026':1.00,'2027':1.00,'2028':1.00}
+  };
+  var yearMarkup=markupMap[product]||{'2026':1.10,'2027':1.20,'2028':1.30};
+  var markup=yearMarkup[year]||1.10;
+  // Build mark-up description string
+  var prodName={'steel-hrc':'钢铁','steel-crc':'钢铁','steel-rebar':'钢铁','steel-hdg':'钢铁','steel-hp':'钢铁','aluminium-primary':'铝','aluminium-secondary':'铝','cement':'水泥','fertiliser':'化肥','hydrogen':'氢'}[product]||'钢铁';
+  var mu26=Math.round((yearMarkup['2026']-1)*100),mu27=Math.round((yearMarkup['2027']-1)*100),mu28=Math.round((yearMarkup['2028']-1)*100);
+  var markupDesc=prodName+'行业加价：2026年 +'+mu26+'% · 2027年 +'+mu27+'% · 2028年起 +'+mu28+'%';
   // EU default grid emission factor for scope2 (CBAM uses country-of-origin grid factor)
   var euGridFactor=0.347; // tCO₂/MWh
 
@@ -264,7 +281,8 @@ function calcCBAM(p){
     optionB:totalB,
     netSavings:netSavings,
     annualCarbonTax:annualCost,
-    newAnnualCarbonTax:newAnnualCost
+    newAnnualCarbonTax:newAnnualCost,
+    markupDesc:markupDesc
   };
 }
 
@@ -785,7 +803,7 @@ function update(){
     setText('cbAppliedDefault',R.directEF.toFixed(3));
     var yrStr=el('inpCbYear')?el('inpCbYear').value:'2026';
     var md=el('cbMarkupDesc');
-    if(md){var y=parseInt(yrStr);md.textContent=yrStr+'年加价幅度：+'+(y>=2028?'30%':(y==2027?'20%':'10%'))+' · '+(y<2027?'2027年：20% · ':'')+'2028年起：30%';}
+    if(md)md.textContent=R.markupDesc;
     setText('cbTotalVat',R.annualCost.toFixed(1));
     setText('cbNpv',R.optionA.toFixed(0));
     setText('cbTotalInv',R.totalInvestment.toFixed(0));
