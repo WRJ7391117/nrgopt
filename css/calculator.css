@@ -53,6 +53,7 @@
 .params-grid > div > .param-group { width:100%; }
 
 .col-header { padding:6px 12px 4px; font-size:0.78rem; font-weight:700; color:var(--accent); letter-spacing:0.02em; border-bottom:1.5px solid var(--accent); margin-bottom:4px; }
+
 .hy-section-label { padding:8px 0 3px; font-size:0.7rem; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; }
 
 .param-group { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
@@ -109,6 +110,7 @@
 .print-sec { max-width:1180px; margin:0 auto 10px; padding:22px 24px 6px; font-size:0.88rem; font-weight:600; color:var(--text); letter-spacing:0.02em; }
 .print-sec::after { content:''; display:block; margin-top:6px; border-bottom:2px solid var(--accent); }
 .print-sec:first-of-type { padding-top:8px; }
+
 /* ── PART 4: TABLE ── */
 .table-band { max-width:1180px; margin:0 auto 18px; padding:0 24px 48px; }
 .table-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:var(--shadow); }

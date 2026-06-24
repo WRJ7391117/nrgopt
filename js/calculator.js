@@ -174,135 +174,111 @@ function calc(p){
 }
 
 
-
-function calcCBAM(p){
-  // CBAM default values by product (tCO₂/ton, direct emissions, transitional period — EU published)
-  var defaultEFs={
-    'steel-hrc':1.530, 'steel-crc':1.641, 'steel-rebar':1.520,
-    'steel-hdg':1.692, 'steel-hp':1.530,
-    'aluminium-primary':1.464, 'aluminium-secondary':0.139,
-    'cement':0.860, 'fertiliser':1.980, 'hydrogen':9.000
+function calcCarbon(p){
+  var mech=p.mech||'eu';
+  // Grid emission factors by province (tCO₂/MWh, 2024 CDM baseline OM)
+  var gridFactors={
+    beijing:1.0585,tianjin:1.0585,hebei:1.0585,shanxi:1.0585,neimenggu:1.0585,
+    liaoning:1.1983,jilin:1.1983,heilongjiang:1.1983,
+    shanghai:0.9411,jiangsu:0.9411,zhejiang:0.9411,anhui:0.9411,fujian:0.9411,jiangxi:0.9411,shandong:0.9411,
+    henan:1.2526,hubei:1.2526,hunan:1.2526,sichuan:1.2526,chongqing:1.2526,xizang:1.2526,
+    shaanxi:1.0329,gansu:1.0329,qinghai:1.0329,ningxia:1.0329,xinjiang:1.0329,
+    guangdong:0.9853,guangxi:0.9853,yunnan:0.9853,guizhou:0.9853,hainan:0.9853,
+    other:0.5703
   };
-  // Year mark-up schedule — differs by sector
-  var markupMap={
-    'steel-hrc':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'steel-crc':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'steel-rebar':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'steel-hdg':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'steel-hp':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'aluminium-primary':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'aluminium-secondary':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'cement':{'2026':1.10,'2027':1.20,'2028':1.30},
-    'fertiliser':{'2026':1.01,'2027':1.01,'2028':1.01},
-    'hydrogen':{'2026':1.00,'2027':1.00,'2028':1.00}
-  };
-  var yearMarkup=markupMap[product]||{'2026':1.10,'2027':1.20,'2028':1.30};
-  var markup=yearMarkup[year]||1.10;
-  // Build mark-up description string
-  var prodName={'steel-hrc':'钢铁','steel-crc':'钢铁','steel-rebar':'钢铁','steel-hdg':'钢铁','steel-hp':'钢铁','aluminium-primary':'铝','aluminium-secondary':'铝','cement':'水泥','fertiliser':'化肥','hydrogen':'氢'}[product]||'钢铁';
-  var mu26=Math.round((yearMarkup['2026']-1)*100),mu27=Math.round((yearMarkup['2027']-1)*100),mu28=Math.round((yearMarkup['2028']-1)*100);
-  var markupDesc=prodName+'行业加价：2026年 +'+mu26+'% · 2027年 +'+mu27+'% · 2028年起 +'+mu28+'%';
-  // EU default grid emission factor for scope2 (CBAM uses country-of-origin grid factor)
-  var euGridFactor=0.347; // tCO₂/MWh
+  var usage=p.usage;
+  var province=p.province;
+  var gridFactor=gridFactors[province]||0.5703;
+  var greenPct=p.greenPct/100;
+  var industry=p.industry;
 
-  var product=p.product;
-  var baseEF=defaultEFs[product]||1.5;
-  var year=p.year||'2026';
-  var markup=yearMarkup[year]||1.10;
-  var directEF=baseEF*markup; // with mark-up applied
-  var annualOutput=p.annualOutput||100000; // tons/year
-  var exportQty=p.exportQty||10000; // tons/year
-  var elecUsage=p.elecUsage||5000; // 万kWh
-  var greenPct=(p.greenPct||0)/100;
+  // === Pricing ===
+  var carbonPriceCNY;
+  if(mech==='china'){
+    carbonPriceCNY=p.carbonPrice||90;
+  }else{
+    carbonPriceCNY=(p.carbonPrice||80)*(p.cnyPerEuro||7.2);
+  }
 
-  // Scope 1: direct emissions from exported products
-  var scope1=exportQty*directEF; // tCO₂
+  // === Coverage: EU is binary, China has thresholds ===
+  var coverageFactor;
+  var coverageNote;
+  if(mech==='china'){
+    coverageFactor={
+      power:1,steel:1,cement:1,aluminium:1,
+      petrochemical:0.7,chemical:0.6,nonferrous:0.5,paper:0.4,
+      fertiliser:0.6,glass:0.5,hydrogen:0.8,
+      machinery:0.2,battery:0.2,electronics:0.15,aviation:0.3,
+      food:0.1,textile:0.1,pharma:0.1,other:0
+    }[industry]||0;
+    coverageNote='国内碳市场覆盖——部分行业有排放门槛和分批纳入安排';
+  }else{
+    var cbamScopes=['steel','aluminium','cement','fertiliser','hydrogen','power'];
+    coverageFactor=cbamScopes.indexOf(industry)>=0?1:0;
+    coverageNote='欧盟CBAM——产品在覆盖清单内则100%缴纳，不在则0%';
+  }
 
-  // Scope 2: indirect from electricity (EU factor for CBAM, reduced by green power)
-  var elecMWh=elecUsage*10; // 万kWh → MWh
-  var avgElecPerTon=annualOutput>0?elecMWh/annualOutput:0; // MWh/ton
-  var scope2Export=exportQty*avgElecPerTon*euGridFactor*(1-greenPct); // tCO₂
+  // Current carbon footprint
+  var effFactor=gridFactor*(1-greenPct);
+  var totalEmissions=usage*10*effFactor;
 
-  // Total embedded emissions
-  var totalEmbedded=scope1+scope2Export; // tCO₂
+  // Option A
+  var annualCarbonCost=totalEmissions*coverageFactor*carbonPriceCNY/10000;
+  var total10yrCost=annualCarbonCost*10;
 
-  // CBAM certificates
-  var cbamCertificates=totalEmbedded;
-
-  // CBAM factor (free allocation phase-out schedule)
-  var cbamFactors={'2026':0.975,'2027':0.95,'2028':0.90};
-  var cbamFactorVal=cbamFactors[year]||0.975;
-  var freeAlloc=totalEmbedded*cbamFactorVal;
-
-  // Carbon price & cost
-  var euCarbonPrice=p.carbonPrice||80; // €/tCO₂
-  var cnyPerEuro=7.2;
-  var payableEmissions=totalEmbedded*(1-cbamFactorVal);
-  var annualCost=payableEmissions*euCarbonPrice*cnyPerEuro/10000; // 万元
-
-  // Option B — PV+Storage reduces scope2 only
-  // Recommend PV based on electricity usage
-  var targetGreenPct=Math.min(1,1-0.4/euGridFactor+greenPct);
+  // Option B
+  var targetIntensity=mech==='china'?0.5:0.4;
+  var targetGreenPct=Math.max(0,1-targetIntensity/gridFactor);
   var greenGap=Math.max(0,targetGreenPct-greenPct);
-  var pvCapMW=elecUsage*greenGap/100;
+  var pvCapMW=usage*greenGap/100;
   var stCapMWh=pvCapMW*1.5;
   var pvCost=pvCapMW*370;
   var stCost=stCapMWh*80;
   var totalInvestment=pvCost+stCost;
-
-  // After green power
-  var newScope2=exportQty*avgElecPerTon*euGridFactor*(1-Math.min(1,greenPct+greenGap));
-  var newTotal=(scope1+newScope2)*(1-cbamFactorVal);
-  var newAnnualCost=newTotal*euCarbonPrice*cnyPerEuro/10000;
-  var annualSaving=annualCost-newAnnualCost;
-  var payback=annualSaving>0?totalInvestment/annualSaving:99;
-
-  // 10-year comparison (simplified, no escalation)
-  var totalA=annualCost*10;
-  var totalB=totalInvestment+newAnnualCost*10;
-  var netSavings=totalA-totalB;
+  var newGreenPct=Math.min(1,greenPct+greenGap);
+  var newEffFactor=gridFactor*(1-newGreenPct);
+  var newEmissions=usage*10*newEffFactor;
+  var newAnnualCarbonCost=newEmissions*coverageFactor*carbonPriceCNY/10000;
+  var annualSaving=annualCarbonCost-newAnnualCarbonCost;
+  var payback=totalInvestment>0?totalInvestment/annualSaving:0;
+  var tenYearTotalB=totalInvestment+newAnnualCarbonCost*10;
+  var tenYearNetSavings=total10yrCost-tenYearTotalB;
 
   return {
-    baseEF:baseEF,
-    directEF:directEF,
-    markup:((markup-1)*100).toFixed(0),
-    scope1:scope1,
-    scope2:scope2Export,
-    totalEmbedded:totalEmbedded,
-    cbamCertificates:cbamCertificates,
-    cbamFactorVal:cbamFactorVal,
-    freeAlloc:freeAlloc,
-    annualCost:annualCost,
-    optionA:totalA,
+    mech:mech,
+    gridFactor:gridFactor,
+    totalEmissions:totalEmissions,
+    annualCarbonTax:annualCarbonCost,
+    coverageFactor:coverageFactor,
+    coverageNote:coverageNote,
+    optionA:total10yrCost,
     totalInvestment:totalInvestment,
+    pvCapMW:pvCapMW,
+    stCapMWh:stCapMWh,
+    pvCost:pvCost,
+    stCost:stCost,
     systemDesc:(pvCapMW*1000>0?Math.round(pvCapMW*1000)+'kW光伏':'')+(stCapMWh>0?' + '+stCapMWh.toFixed(1)+'MWh储能':'')||'无需投资',
+    newAnnualCarbonTax:newAnnualCarbonCost,
     annualSaving:annualSaving,
     payback:payback,
-    optionB:totalB,
-    netSavings:netSavings,
-    annualCarbonTax:annualCost,
-    newAnnualCarbonTax:newAnnualCost,
-    markupDesc:markupDesc
+    tenYearTotalB:tenYearTotalB,
+    tenYearNetSavings:tenYearNetSavings,
+    greenGap:greenGap*100,
+    newGreenPct:newGreenPct*100
   };
 }
-
-function getPCBAM(){
+function getPCarbon(){
+  var mech=window._carbonMechanism||'eu';
   return {
-    product:el('inpCbProduct')?el('inpCbProduct').value:'steel-hrc',
-    year:el('inpCbYear')?el('inpCbYear').value:'2026',
-    annualOutput:ival('inpCbOutput')||100000,
-    exportQty:ival('inpCbExport')||10000,
-    elecUsage:val('inpCbUsage')||5000,
+    mech:mech,
+    province:el('inpCbProvince')?el('inpCbProvince').value:'zhejiang',
+    usage:val('inpCbUsage')||500,
+    industry:el('inpCbIndustry')?el('inpCbIndustry').value:'other',
     greenPct:val('inpCbGreenPct')||0,
-    carbonPrice:val('inpCbCarbonPrice')||80
+    carbonPrice:val('inpCbCarbonPrice')||(mech==='china'?90:80),
+    cnyPerEuro:7.2
   };
-}
-
-// When product changes, update default direct intensity display
-window.onCBAMProductChange=function(){
-  update();
-};
-function calcCI(p){
+}function calcCI(p){
   var cap=p.capacity,dur=p.duration,uc=p.unitCost,lr=p.loanRatio,li=p.loanRate,ly=p.loanYears;
   var spPrice=p.spPrice,spHrs=p.spHours,peakPrice=p.peakPrice,peakHrs=p.peakHours;
   var flatPrice=p.flatPrice,flatHrs=p.flatHours,valleyPrice=p.valleyPrice,valleyHrs=p.valleyHours;
@@ -783,53 +759,82 @@ function update(){
     if(currentTab==='ci'){R=calcCI(getPCI());}
     else if(currentTab==='is'){R=calcIS(getPIS());}
     else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
-    else if(currentTab==='carbon'){R=calcCBAM(getPCBAM());}
+    else if(currentTab==='carbon'){R=calcCarbon(getPCarbon());}
     else{R=calc(getP());}
   }catch(e){R=null;}
   if(!R)return;
 
   // Carbon tab has different return structure
   if(currentTab==='carbon'){
-    if(!R)return;
-    setText('cbCarbonPrice','€'+val('inpCbCarbonPrice'));
-    setText('cbDirectEF',R.directEF.toFixed(3));
-    setText('cbScope1',Math.round(R.scope1).toLocaleString());
-    setText('cbScope2',Math.round(R.scope2).toLocaleString());
-    setText('cbTotalEmbedded',Math.round(R.totalEmbedded).toLocaleString());
-    setText('cbCertificates',Math.round(R.cbamCertificates).toLocaleString());
-    setText('cbFreeAlloc',Math.round(R.freeAlloc).toLocaleString());
-    setText('cbRoi',R.annualCost.toFixed(1));
-    setText('cbBaseDefault',R.baseEF.toFixed(3));
-    setText('cbAppliedDefault',R.directEF.toFixed(3));
-    var yrStr=el('inpCbYear')?el('inpCbYear').value:'2026';
-    var md=el('cbMarkupDesc');
-    if(md)md.textContent=R.markupDesc;
-    setText('cbTotalVat',R.annualCost.toFixed(1));
+    var mech=window._carbonMechanism||'eu';
+    // Baseline
+    setText('cbIrrFull',R.gridFactor.toFixed(3));
+    setText('cbPayback',Math.round(R.totalEmissions).toLocaleString());
+    setText('cbRoi',R.annualCarbonTax.toFixed(1));
+    setText('cbRoe',R.payback>0&&R.payback<99?R.payback.toFixed(1):'-');
+    // Current carbon price
+    var cbPriceEl=el('cbCarbonPrice');
+    if(cbPriceEl){
+      var priceVal=val('inpCbCarbonPrice')||(mech==='china'?90:80);
+      cbPriceEl.textContent=(mech==='china'?'¥':'€')+priceVal;
+    }
+
+    // Update mode-specific labels
+    var priceLabelName=mech==='china'?'中国碳市场价':('EU碳价 €'+val('inpCbCarbonPrice'));
+    var annualLabel=el('cbRoi');if(annualLabel&&annualLabel.parentElement){
+      var sub=annualLabel.parentElement.querySelector('.band-sub');
+      if(sub){sub.textContent=mech==='china'?'按中国碳价':'按当前欧盟碳价';}
+    }
+
+    // Option A
+    setText('cbTotalVat',R.annualCarbonTax.toFixed(1));
     setText('cbNpv',R.optionA.toFixed(0));
+    
+    // Option B
     setText('cbTotalInv',R.totalInvestment.toFixed(0));
     setText('cbLoan',R.systemDesc);
     setText('cbTotalProfit',R.annualSaving.toFixed(1)+'万');
-    setText('cbTotalRev',R.netSavings.toFixed(0));
-    el('cbTotalRev').style.color=R.netSavings>0?'#10b981':'#ef4444';
-    setText('resGenY1','');setText('resGenTotal','');setText('dispGenY1Total','');
+    setText('cbTotalCost',R.tenYearTotalB.toFixed(0));
+    setText('cbTotalRev',R.tenYearNetSavings.toFixed(0));
+    if(R.tenYearNetSavings>0){el('cbTotalRev').style.color='#10b981';}
+    else{el('cbTotalRev').style.color='#ef4444';}
+    setText('resGenY1','');
+    setText('resGenTotal','');
+    setText('dispGenY1Total','');
+    
     var tb=el('cfTableBody');if(tb){
       var rows=[
-        {yr:1,a:R.annualCost,b:R.totalInvestment,bt:R.newAnnualCarbonTax},
-        {yr:2,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},
-        {yr:3,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},{yr:4,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},
-        {yr:5,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},{yr:6,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},
-        {yr:7,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},{yr:8,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},
-        {yr:9,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax},{yr:10,a:R.annualCost,b:0,bt:R.newAnnualCarbonTax}
+        {yr:1,a:R.annualCarbonTax,b:R.totalInvestment,bt:R.newAnnualCarbonTax},
+        {yr:2,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:3,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:4,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:5,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:6,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:7,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:8,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:9,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax},
+        {yr:10,a:R.annualCarbonTax,b:0,bt:R.newAnnualCarbonTax}
       ];
-      var sa=0,sb=0;
-      for(var i=0;i<rows.length;i++){var r=rows[i];var ca=r.a,cb=r.b+r.bt;sa+=ca;sb+=cb;tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.a.toFixed(1)+'</td><td>'+r.bt.toFixed(1)+'</td><td>'+(r.b>0?r.b.toFixed(0):'0')+'</td><td>'+cb.toFixed(1)+'</td><td>'+(r.b>0?'投资年':'')+'</td><td>'+sa.toFixed(0)+'</td><td>'+sb.toFixed(0)+'</td></tr>';}
-      tb.innerHTML+='<tr style="font-weight:700;border-top:2px solid var(--accent)"><td>合计</td><td>'+sa.toFixed(0)+'</td><td>'+sb.toFixed(0)+'</td><td></td><td></td><td></td><td></td><td>净节省:'+(sa-sb).toFixed(0)+'万</td></tr>';
+      var sumA=0,sumB=0;
+      for(var i=0;i<rows.length;i++){
+        var r=rows[i];
+        var yrCostA=r.a,yrCostB=r.b+r.bt;
+        sumA+=yrCostA;sumB+=yrCostB;
+        tb.innerHTML+='<tr><td>'+r.yr+'</td><td>'+r.a.toFixed(1)+'</td><td>'+r.bt.toFixed(1)+'</td><td>'+(r.b>0?r.b.toFixed(0):'0')+'</td><td>'+yrCostB.toFixed(1)+'</td><td>'+(r.b>0?'投资年':'')+'</td><td>'+sumA.toFixed(0)+'</td><td>'+sumB.toFixed(0)+'</td></tr>';
+      }
+      // Total row
+      var totalSavings=sumA-sumB;
+      tb.innerHTML+='<tr style="font-weight:700;border-top:2px solid var(--accent)"><td>合计</td><td>'+sumA.toFixed(0)+'</td><td>'+sumB.toFixed(0)+'</td><td></td><td></td><td></td><td></td><td>净节省:'+totalSavings.toFixed(0)+'万</td></tr>';
     }
+    // Simplified chart: investment year 1, then savings
     var chartYrs=[];
-    for(var i=1;i<=10;i++){var cost=i===1?R.totalInvestment+R.newAnnualCarbonTax:R.newAnnualCarbonTax;chartYrs.push({yr:i,cf:cost*-1});}
+    for(var i=1;i<=10;i++){
+      var cost=i===1?R.totalInvestment+R.newAnnualCarbonTax:R.newAnnualCarbonTax;
+      chartYrs.push({yr:i,cf:cost*-1});
+    }
     drawChart(chartYrs);
     return;
-	  }  var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
+  }  var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
   setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
   el('resIrrEq').style.color='#38bdf8';
@@ -970,6 +975,20 @@ window.applyProvincePreset=function(val){
   refreshDisplays();update();
 };
 
+window.setCarbonMechanism=function(mech){
+  window._carbonMechanism=mech;
+  var desc=el('cbModeDesc'),priceUnit=el('cbCarbonPriceUnit');
+  if(mech==='china'){
+    if(desc)desc.textContent='中国全国碳市场——按行业覆盖率和CEA配额价格估算碳排放成本';
+    if(priceUnit)priceUnit.innerHTML='<span data-en="¥/tCO₂" data-zh="元/吨">元/吨</span>';
+    var s=el('inpCbCarbonPrice');if(s){s.min=30;s.max=300;s.step=5;s.value=90;var n=el('numCbCarbonPrice');if(n)n.value=90;var d=el('dispCbCarbonPrice');if(d)d.textContent='¥90';}
+  }else{
+    if(desc)desc.textContent='欧盟CBAM——产品在覆盖清单内即全额缴纳，不在则0%';
+    if(priceUnit)priceUnit.innerHTML='<span data-en="€/tCO₂" data-zh="欧元/吨">欧元/吨</span>';
+    var s=el('inpCbCarbonPrice');if(s){s.min=40;s.max=200;s.step=5;s.value=80;var n=el('numCbCarbonPrice');if(n)n.value=80;var d=el('dispCbCarbonPrice');if(d)d.textContent='€80';}
+  }
+  update();
+};
 
 function init(){
   function L(){return document.documentElement.lang||'en';}
