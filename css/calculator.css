@@ -111,6 +111,8 @@
 .print-sec::after { content:''; display:block; margin-top:6px; border-bottom:2px solid var(--accent); }
 .print-sec:first-of-type { padding-top:8px; }
 .col-header { max-width:1180px; margin:0 auto; padding:0 24px; font-size:0.88rem; font-weight:600; color:var(--text-dim); }
+.col-header.carbon-title { padding:6px 0 4px; font-size:0.82rem; font-weight:600; color:var(--text); margin-bottom:10px; border-bottom:1px solid var(--border); }
+.col-header.carbon-title:first-child { margin-top:16px; }
 
 /* ── PART 4: TABLE ── */
 .table-band { max-width:1180px; margin:0 auto 18px; padding:0 24px 48px; }
