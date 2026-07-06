@@ -67,7 +67,7 @@ function switchTab(tab){
     // Ensure replacement year sliders trigger update
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='none';
   }else if(tab==='hy'){
-    setSlider('inpRunYears','numRunYears',15,30,25);
+    setSlider('inpRunYears','numRunYears',5,30,25);
     setSlider('inpDeprYears','numDeprYears',5,20,10);
     setSlider('inpLoanYears','numLoanYears',5,20,10);
     setSlider('inpUnitCost','numUnitCost',0.1,50,3.7);
@@ -91,7 +91,7 @@ function switchTab(tab){
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }else if(tab==='pv'){
     // PV defaults
-    setSlider('inpRunYears','numRunYears',15,30,25);
+    setSlider('inpRunYears','numRunYears',5,30,25);
     setSlider('inpDeprYears','numDeprYears',5,20,10);
     setSlider('inpLoanYears','numLoanYears',5,20,10);
     setSlider('inpUnitCost','numUnitCost',0.1,50,3.7);
