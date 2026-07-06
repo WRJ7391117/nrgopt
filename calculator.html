@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NRGOpt 测算 — 光伏·储能·碳管理</title>
-<meta name="description" content="NRGOpt 新能源项目投资测算与碳管理工具 – 光伏/储能/光储一体化 IRR 与现金流分析">
+<title>Project Calculator — NrgOpt</title>
+<meta name="description" content="Online distributed PV project calculator">
 <meta property="og:title" content="NrgOpt PV Project Calculator">
 <link rel="canonical" href="https://nrgopt.com/calculator">
 <link rel="stylesheet" href="css/style.css">
@@ -16,8 +16,8 @@
 
 <nav class="nav" role="navigation">
   <div class="nav-inner">
-    <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub" data-en="Calculator" data-zh="测算">测算</span></a>
-    <ul class="nav-links"><li><a href="/" data-en="Home" data-zh="首页">首页</a></li><li><a href="about.html" data-en="About" data-zh="关于">关于</a></li><li><a href="#" onclick="downloadPDF();return false" class="btn-pdf" data-en="📄 PDF" data-zh="📄 下载PDF">📄 下载PDF</a></li></ul>
+    <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub" data-en="Project Calc" data-zh="项目测算" data-ja="プロジェクト試算">项目测算</span></a>
+    <ul class="nav-links"><li><a href="/" data-en="← Home" data-zh="← 返回首页" data-ja="← ホーム">← 返回首页</a></li><li><a href="#" onclick="downloadPDF();return false" class="btn-pdf" data-en="📄 PDF" data-zh="📄 下载PDF" data-ja="📄 PDF保存">📄 下载PDF</a></li></ul>
     <div class="nav-tools">
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">
         <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -25,7 +25,7 @@
       <select class="lang-select" onchange="switchLang(this.value)" id="langSelect">
         <option value="en">English</option>
         <option value="zh">中文</option>
-        
+        <option value="ja">日本語</option>
       </select>
     </div>
   </div>
@@ -33,11 +33,10 @@
 <section class="calc-hero" id="calcMain"><div class="container"><h1>新能源项目 <span class="hl">投资测算</span></h1><p class="hero-sub" data-en="PV · Storage · Hybrid — real-time IRR, NPV, and cash flow" data-zh="光伏 · 独立储能 · 工商业储能 · 光储一体化" data-ja="太陽光 · 蓄電 · ハイブリッド">光伏 · 独立储能 · 工商业储能 · 光储一体化</p></div></section>
 
 <div class="tab-bar">
-  <button class="tab-btn" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏">光伏</span></button>
+  <button class="tab-btn active" data-tab="pv" onclick="switchTab('pv')"><span class="tab-icon" style="color:#d69e2e">☀️</span> <span data-en="PV" data-zh="光伏" data-ja="太陽光">光伏</span></button>
   <button class="tab-btn" data-tab="ci" onclick="switchTab('ci')"><span class="tab-icon">🏭</span> <span data-en="C&I Storage" data-zh="工商业储能" data-ja="産業用蓄電">工商业储能</span></button>
   <button class="tab-btn" data-tab="hy" onclick="switchTab('hy')"><span class="tab-icon">🔗</span> <span data-en="PV+Storage" data-zh="光储一体化" data-ja="PV+蓄電">光储一体化</span></button>
-  <button class="tab-btn" data-tab="is" onclick="switchTab('is')"><span class="tab-icon">🔋</span> <span data-en="Indep. Storage" data-zh="独立储能">独立储能</span></button>
-  <button class="tab-btn active" data-tab="carbon" onclick="switchTab('carbon')"><span class="tab-icon">🌍</span> <span data-en="Carbon" data-zh="碳管理">碳管理</span></button>
+  <button class="tab-btn" data-tab="is" onclick="switchTab('is')"><span class="tab-icon">🔋</span> <span data-en="Indep. Storage" data-zh="独立储能" data-ja="系統用蓄電">独立储能</span></button>
 </div>
 
 <div class="print-title">NrgOpt 项目测算报告</div>
@@ -129,41 +128,9 @@
       <span class="loc-res-item"><b>年辐照量</b> <span id="hyIrr" class="loc-val">—</span></span>
     </div>
   </div>
-  <div data-tab-group="carbon" style="display:none">
-    <div class="loc-section-label">碳机制</div>
-    <div class="loc-results" style="padding-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
-      <span class="loc-res-item"><b>选择碳定价机制</b>
-        <select id="inpCarbonMechanism" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="setCarbonMechanism(this.value);update()">
-          <option value="eu" selected>EU ETS / CBAM — 欧盟</option>
-          <option value="china">中国全国碳市场 — CEA配额</option>
-        </select>
-      </span>
-      <span style="font-size:0.7rem;color:var(--text-dim);margin-left:4px" id="cbModeDesc">按欧盟CBAM估算——产品在清单内即全额缴纳</span>
-    </div>
-    <div class="loc-section-label" style="margin-top:10px">项目参数</div>
-    <div class="loc-results">
-      <span class="loc-res-item"><b>所在省份</b>
-        <select id="inpCbProvinceSmall" style="padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--accent);font-size:0.76rem;font-family:inherit;cursor:pointer;font-weight:600" onchange="el('inpCbProvince').value=this.value;update()">
-<optgroup label="热门">
-<option value="zhejiang" selected>浙江</option><option value="jiangsu">江苏</option><option value="guangdong">广东</option><option value="shandong">山东</option>
-</optgroup>
-<optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
-<optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-<optgroup label="华东"><option value="shanghai">上海</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option></optgroup>
-<optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-<optgroup label="西南"><option value="sichuan">四川</option><option value="chongqing">重庆</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
-<optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-<optgroup label="华南"><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
-<option value="other">全国平均</option></select>
-      </span>
-                <span class="loc-res-item"><b>年用电量</b> <span id="cbUsage" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>行业</b> <span id="cbIndustryName" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>绿电占比</b> <span id="cbGreenPctDisplay" class="loc-val">—</span></span>
-          <span class="loc-res-item"><b>电网排放因子</b> <span id="cbGridFactor" class="loc-val">—</span></span>
-    </div>
-  </div>
+</div>
+</div>
 
-<div data-tab-group="pv,ci,is,hy">
 <!-- PART 1 -->
 <div class="print-sec">二、核心指标</div>
 <div class="metric-band row4">
@@ -193,43 +160,14 @@
   <div class="band-card"><div class="band-label" data-en="Total Profit" data-zh="总利润" data-ja="総利益">总利润</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub" data-en="Revenue-Cost-Surcharge-Tax" data-zh="总收入-总成本-税金及附加-所得税" data-ja="収入-費用-付加税-所得税">总收入-总成本-税金及附加-所得税</div></div>
 </div>
 
-</div><div data-tab-group="carbon">
-  <div class="print-sec">二、碳排放基线</div>
-  <div class="metric-band row4">
-    <div class="band-card"><div class="band-label" data-en="Carbon Price" data-zh="当前碳价">当前碳价</div><div class="band-value" id="cbCarbonPrice" style="color:var(--gold)">—</div><div class="band-sub" data-en="€ or ¥/tCO₂" data-zh="€/吨 或 ¥/吨">€/吨 或 ¥/吨</div></div>
-    <div class="band-card"><div class="band-label" data-en="Coverage" data-zh="覆盖范围">覆盖范围</div><div class="band-value" id="cbCoverageNote" style="font-size:0.75rem;line-height:1.3">—</div><div class="band-sub" data-en="coverage of carbon policy" data-zh="碳政策覆盖说明">碳政策覆盖说明</div></div>
-    <div class="band-card"><div class="band-label" data-en="Grid Factor" data-zh="电网排放因子">电网排放因子</div><div class="band-value" id="cbIrrFull">—</div><div class="band-sub" data-en="tCO₂/MWh" data-zh="吨CO₂/MWh">吨CO₂/MWh</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Carbon Emissions" data-zh="年碳排放总量">年碳排放总量</div><div class="band-value" id="cbPayback">—</div><div class="band-sub" data-en="tCO₂/year" data-zh="吨/年">吨/年</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Carbon Cost" data-zh="年碳排放成本">年碳排放成本</div><div class="band-value" id="cbRoi" style="color:#ef4444">—</div><div class="band-sub" data-en="at current carbon price" data-zh="按当前碳价">按当前碳价</div></div>
-  </div>
-
-  <div class="print-sec">三、方案对比</div>
-  <div class="col-header" style="margin-bottom:12px;margin-top:8px;margin-left:24px"><span data-en="Option A: No Investment (Pay Carbon Cost)" data-zh="方案A：不做投资 → 每年缴碳成本">⚠️ 方案A：不做投资，每年缴碳成本</span></div>
-  <div class="metric-band row2" style="margin-bottom:12px">
-    <div class="band-card" style="border:1.5px solid #ef4444"><div class="band-label" data-en="Annual Carbon Cost" data-zh="每年碳排放成本">每年碳排放成本</div><div class="band-value" id="cbTotalVat" style="color:#ef4444">—</div><div class="band-sub" data-en="10k CNY/year" data-zh="万元/年">万元/年</div></div>
-    <div class="band-card"><div class="band-label" data-en="10-Year Total Cost" data-zh="10年累计碳成本">10年累计碳成本</div><div class="band-value" id="cbNpv">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
-  </div>
-  <div class="col-header" style="margin-bottom:12px;margin-left:24px"><span data-en="Option B: Invest in Solar + Storage" data-zh="方案B：投资光储，降低碳排放成本">✅ 方案B：投资光储，降低碳排放成本</span></div>
-  <div class="metric-band row2" style="margin-bottom:12px">
-    <div class="band-card" style="border:1.5px solid #38bdf8"><div class="band-label" data-en="PV+Storage Investment" data-zh="光储方案总投资">光储方案总投资</div><div class="band-value" id="cbTotalInv" style="color:#38bdf8">—</div><div class="band-sub" data-en="10k CNY" data-zh="万元">万元</div></div>
-    <div class="band-card"><div class="band-label" data-en="Recommended System" data-zh="推荐配置">推荐配置</div><div class="band-value" id="cbLoan" style="font-size:1rem">—</div><div class="band-sub" data-en="PV + Storage capacity" data-zh="光伏+储能容量">光伏+储能容量</div></div>
-  </div>
-
-  <div class="print-sec">四、对比结论</div>
-  <div class="metric-band row4">
-    <div class="band-card" style="border:2px solid var(--gold)"><div class="band-label" data-en="Payback" data-zh="投资回收期">投资回收期</div><div class="band-value" id="cbRoe" style="color:var(--gold)">—</div><div class="band-sub" data-en="years" data-zh="年">年</div></div>
-    <div class="band-card"><div class="band-label" data-en="Annual Saving" data-zh="每年节省碳成本">每年节省碳成本</div><div class="band-value" id="cbTotalProfit">—</div><div class="band-sub" data-en="vs no investment" data-zh="相比不做投资">相比不做投资</div></div>
-    <div class="band-card"><div class="band-label" data-en="10yr Total: Investment+Cost" data-zh="方案B 10年总支出">方案B 10年总支出</div><div class="band-value" id="cbTotalCost">—</div><div class="band-sub" data-en="investment + remaining cost" data-zh="投资+剩余碳成本">投资+剩余碳成本</div></div>
-    <div class="band-card" style="border:2px solid #10b981"><div class="band-label" data-en="10yr Net Savings" data-zh="10年净节省">10年净节省</div><div class="band-value" id="cbTotalRev" style="color:#10b981">—</div><div class="band-sub" data-en="Option A - Option B" data-zh="方案A - 方案B">方案A - 方案B</div></div>
-  </div>
-  <div class="print-sec" data-tab-group="carbon">五、逐年对比明细 (万元)</div>
-</div><div class="print-sec" data-tab-group="pv,ci,is,hy">五、测算参数</div>
+<!-- PART 2: PARAMETERS -->
+<div class="print-sec">五、测算参数</div>
 <div class="params-wrap"><div class="params-grid">
 
   <!-- Col 1: 投资与融资 -->
   <div>
 
-    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="💵 Investment & Financing" data-zh="💵 投资与融资" data-ja="💵 投資と融資">💵 投资与融资</span></div>    <div class="param-group open" data-tab-group="pv">
+    <div class="col-header"><span data-en="💵 Investment & Financing" data-zh="💵 投资与融资" data-ja="💵 投資と融資">💵 投资与融资</span></div>    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ PV System" data-zh="☀ 光伏系统" data-ja="☀ PVシステム">☀ 光伏系统</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Capacity" data-zh="光伏装机容量" data-ja="設備容量"></span><span class="pr-val" id="dispCapacity"></span></div><div class="dual-input"><input type="range" id="inpCapacity" min="0.01" max="1000" step="0.01" value="1"><input type="text" inputmode="decimal" id="numCapacity" step="0.01" class="num-field"></div></div>
@@ -274,7 +212,7 @@
   <div>
     <div class="hy-section-label" data-tab-group="hy"><span>—— ☀ 光伏系统 ——</span></div>
 
-    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="📈 Revenue" data-zh="📈 收入参数" data-ja="📈 収入">📈 收入参数</span></div>    <div class="param-group open" data-tab-group="pv">
+    <div class="col-header"><span data-en="📈 Revenue" data-zh="📈 收入参数" data-ja="📈 収入">📈 收入参数</span></div>    <div class="param-group open" data-tab-group="pv">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="☀ PV Generation" data-zh="☀ 光伏发电量" data-ja="☀ PV発電量">☀ 光伏发电量</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Irradiance" data-zh="年水平辐照量" data-ja="年水平日射量"></span><span class="pr-val" id="dispIrradiance"></span></div><div class="dual-input"><input type="range" id="inpIrradiance" min="800" max="2200" step="1" value="1350"><input type="text" inputmode="decimal" id="numIrradiance" step="1" class="num-field"></div></div>
@@ -333,63 +271,11 @@
       </div>
     </div>
   </div>
-<div class="param-group open" data-tab-group="carbon">
-      <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🌍 Carbon Cost" data-zh="🌍 碳管理参数">🌍 碳管理参数</span><span class="arrow">▶</span></div>
-      <div class="param-group-body">
-        <div class="pr"><div class="pr-label"><span data-en="Province / Region" data-zh="所在省份"></span><span class="pr-val" id="dispCbProvince"></span></div>
-          <select id="inpCbProvince" class="repay-select" onchange="el('inpCbProvinceSmall').value=this.value;update()">
-            <optgroup label="华北"><option value="beijing">北京</option><option value="tianjin">天津</option><option value="hebei">河北</option><option value="shanxi">山西</option><option value="neimenggu">内蒙古</option></optgroup>
-            <optgroup label="东北"><option value="liaoning">辽宁</option><option value="jilin">吉林</option><option value="heilongjiang">黑龙江</option></optgroup>
-            <optgroup label="华东"><option value="shanghai">上海</option><option value="jiangsu">江苏</option><option value="zhejiang" selected>浙江</option><option value="anhui">安徽</option><option value="fujian">福建</option><option value="jiangxi">江西</option><option value="shandong">山东</option></optgroup>
-            <optgroup label="华中"><option value="henan">河南</option><option value="hubei">湖北</option><option value="hunan">湖南</option></optgroup>
-            <optgroup label="华南"><option value="guangdong">广东</option><option value="guangxi">广西</option><option value="hainan">海南</option></optgroup>
-            <optgroup label="西南"><option value="chongqing">重庆</option><option value="sichuan">四川</option><option value="guizhou">贵州</option><option value="yunnan">云南</option><option value="xizang">西藏</option></optgroup>
-            <optgroup label="西北"><option value="shaanxi">陕西</option><option value="gansu">甘肃</option><option value="qinghai">青海</option><option value="ningxia">宁夏</option><option value="xinjiang">新疆</option></optgroup>
-            <option value="other">全国平均</option>
-          </select>
-        </div>
-        <div class="pr"><div class="pr-label"><span data-en="Annual Elec. Usage" data-zh="年用电量"></span><span class="pr-val" id="dispCbUsage"></span></div><div class="dual-input"><input type="range" id="inpCbUsage" min="10" max="100000" step="10" value="500" oninput="var s=el('inpCbUsageSmall');if(s)s.value=this.value"><input type="text" inputmode="decimal" id="numCbUsage" step="10" class="num-field"></div><div class="pr-sub"><span data-en="10k kWh" data-zh="万kWh">万kWh</span></div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Industry" data-zh="产品行业"></span><span class="pr-val" id="dispCbIndustry"></span></div>
-          <select id="inpCbIndustry" class="repay-select" onchange="update()">
-            <optgroup label="CBAM 当前覆盖">
-              <option value="steel" data-en="Iron & Steel" data-zh="钢铁">钢铁</option>
-              <option value="aluminium" data-en="Aluminium" data-zh="铝">铝</option>
-              <option value="cement" data-en="Cement" data-zh="水泥">水泥</option>
-              <option value="fertiliser" data-en="Fertiliser" data-zh="化肥">化肥</option>
-              <option value="hydrogen" data-en="Hydrogen" data-zh="氢">氢</option>
-              <option value="power" data-en="Power Generation" data-zh="电力">电力</option>
-            </optgroup>
-            <optgroup label="CBAM 2028 扩围预期">
-              <option value="machinery" data-en="Machinery & Parts (CBAM 2028)" data-zh="机械/零部件">机械/零部件</option>
-              <option value="battery" data-en="Battery" data-zh="电池">电池</option>
-              <option value="chemical" data-en="Chemicals / Petrochemical" data-zh="化工/石化">化工/石化</option>
-              <option value="glass" data-en="Glass & Ceramics" data-zh="玻璃/陶瓷">玻璃/陶瓷</option>
-              <option value="paper" data-en="Pulp & Paper" data-zh="造纸">造纸</option>
-            </optgroup>
-            <optgroup label="国内碳市场覆盖">
-              <option value="petrochemical" data-en="Petrochemical" data-zh="石化">石化</option>
-              <option value="nonferrous" data-en="Non-ferrous Metals" data-zh="有色（铝以外）">有色（铝以外）</option>
-              <option value="aviation" data-en="Aviation" data-zh="航空">航空</option>
-              <option value="electronics" data-en="Electronics / Semiconductor" data-zh="电子/半导体">电子/半导体</option>
-            </optgroup>
-            <optgroup label="其他">
-              <option value="food" data-en="Food & Beverage" data-zh="食品饮料">食品饮料</option>
-              <option value="textile" data-en="Textile" data-zh="纺织">纺织</option>
-              <option value="pharma" data-en="Pharmaceutical" data-zh="制药">制药</option>
-              <option value="other" selected data-en="Other Manufacturing" data-zh="其他制造">其他制造</option>
-            </optgroup>
-          </select>
-        </div>
-        <div class="pr"><div class="pr-label"><span data-en="Current Green Power %" data-zh="当前绿电占比"></span><span class="pr-val" id="dispCbGreenPct"></span></div><div class="dual-input"><input type="range" id="inpCbGreenPct" min="0" max="100" step="5" value="0" oninput="var s=el('inpCbGreenPctSmall');if(s){s.value=this.value;var d=el('cbGreenSmallVal');if(d)d.textContent=this.value+'%'}"><input type="text" inputmode="decimal" id="numCbGreenPct" step="5" class="num-field"></div><div class="pr-sub" data-en="% of electricity from green sources" data-zh="已经使用绿电的比例">已经使用绿电的比例</div></div>
-        <div class="pr"><div class="pr-label"><span data-en="Carbon Price" data-zh="碳价"></span><span class="pr-val" id="dispCbCarbonPrice"></span></div><div class="dual-input"><input type="range" id="inpCbCarbonPrice" min="40" max="200" step="5" value="80"><input type="text" inputmode="decimal" id="numCbCarbonPrice" step="5" class="num-field"></div><div class="pr-sub"><span id="cbCarbonPriceUnit">欧元/吨</span></div></div>
-        <div class="pr derived"><div class="pr-label"><span data-en="→ Annual Carbon Emissions" data-zh="→ 预估年碳排放量"></span><span class="pr-val gold" id="dispCbAnnualEmissions"></span></div></div>
-      </div>
-    </div>
 
   <!-- Col 3: 运营与税务 -->
   <div>
 
-    <div class="col-header" data-tab-group="pv,ci,is,hy"><span data-en="🔧 Ops & Tax" data-zh="🔧 运营与税务" data-ja="🔧 運用と税務">🔧 运营与税务</span></div>    <div class="param-group open">
+    <div class="col-header"><span data-en="🔧 Ops & Tax" data-zh="🔧 运营与税务" data-ja="🔧 運用と税務">🔧 运营与税务</span></div>    <div class="param-group open">
       <div class="param-group-header" onclick="this.parentElement.classList.toggle('open')"><span data-en="🔧 O&M" data-zh="🔧 运维成本" data-ja="🔧 運用費">🔧 运维成本</span><span class="arrow">▶</span></div>
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span data-en="Mgmt Fee" data-zh="管理费率" data-ja="管理費率"></span><span class="pr-val" id="dispMgmtFee"></span></div><div class="dual-input"><input type="range" id="inpMgmtFee" min="0" max="0.03" step="0.001" value="0.01"><input type="text" inputmode="decimal" id="numMgmtFee" step="0.001" class="num-field"></div></div>
@@ -423,7 +309,6 @@
 
 </div></div>
 <!-- PART 3: CHART -->
-<div data-tab-group="pv,ci,is,hy,carbon">
 <div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
   <div class="chart-card">
@@ -433,36 +318,18 @@
 </div>
 
 <!-- PART 4: TABLE -->
-<div class="print-sec" data-tab-group="pv,ci,is,hy,carbon">七、现金流明细</div>
+<div class="print-sec">七、现金流明细</div>
 <div class="table-band">
   <div class="table-card">
     <h3 data-en="📋 Cash Flow Detail (10k CNY)" data-zh="📋 现金流明细（万元）" data-ja="📋 CF明細（万元）">📋 现金流明细（万元）</h3>
-    <table><thead id="cfTableHead"><tr data-tab-group="pv,ci,is,hy"><th data-en="Yr" data-zh="年">年</th><th data-en="Gen" data-zh="发电量">发电量</th><th data-en="Rev" data-zh="收入">收入</th><th data-en="Cost" data-zh="成本">成本</th><th data-en="Tax" data-zh="所得税">所得税</th><th data-en="Profit" data-zh="净利">净利</th><th>CF</th><th data-en="Cum" data-zh="累计">累计</th></tr><tr data-tab-group="carbon"><th>年</th><th>方案A碳税(万)</th><th>方案B剩余碳税(万)</th><th>方案B投资(万)</th><th>方案B年支出(万)</th><th>说明</th><th>方案A累计(万)</th><th>方案B累计(万)</th></tr></thead><tbody id="cfTableBody"></tbody></table>
+    <table><thead><tr><th data-en="Yr" data-zh="年" data-ja="年">年</th><th data-en="Gen" data-zh="发电量" data-ja="発電量">发电量</th><th data-en="Rev" data-zh="收入" data-ja="収入">收入</th><th data-en="Cost" data-zh="成本" data-ja="コスト">成本</th><th data-en="Tax" data-zh="所得税" data-ja="税金">所得税</th><th data-en="Profit" data-zh="净利" data-ja="純利益">净利</th><th>CF</th><th data-en="Cum" data-zh="累计" data-ja="累計">累计</th></tr></thead><tbody id="cfTableBody"></tbody></table>
   </div>
 </div>
 
-<p class="calc-disclaimer" data-en="⚠️ Estimates only. Carbon tool v2. Data sources: EU ETS auction price, China national carbon market price, provincial grid emission factors (NDRC CDM), industry benchmark prices." data-zh="⚠️ 碳管理测算 V2。数据来源：EU ETS拍卖价、中国碳市场成交价、各省电网排放因子（CDM基准线）、行业市场价。仅供参考。">⚠️ 碳管理测算 V2。数据来源：EU ETS拍卖价、中国碳市场成交价、各省电网排放因子（CDM基准线）、行业市场价。仅供参考。</p>
-
-<!-- ═══════════ CTA: 碳管理转化入口 ═══════════ -->
-<div data-tab-group="carbon" style="margin:0 auto 40px;max-width:700px;padding:0 24px">
-  <div style="background:var(--surface);border:2px solid var(--accent);border-radius:14px;padding:28px 32px;text-align:center;box-shadow:0 4px 20px rgba(56,189,248,0.1)">
-    <div style="font-size:2rem;margin-bottom:10px;">📋</div>
-    <h3 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px">需要帮你落地这个方案吗？</h3>
-    <p style="font-size:0.9rem;color:var(--text-dim);margin-bottom:18px;line-height:1.6">
-      我可以帮你：<br>
-      ■ 对接中国最靠谱的光伏/储能供应商<br>
-      ■ 出具完整的碳管理方案和成本核算<br>
-      ■ 协助完成绿电直连或零碳园区入驻
-    </p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a href="mailto:7391117@qq.com?subject=碳管理方案咨询" style="display:inline-block;padding:12px 28px;border-radius:24px;background:var(--accent);color:var(--btn-primary-text);text-decoration:none;font-weight:600;font-size:0.95rem">📧 发送邮件</a>
-      <span style="display:inline-block;padding:12px 24px;border-radius:24px;border:1.5px solid var(--accent);color:var(--accent);font-weight:500;font-size:0.88rem;background:transparent">WeChat: 13916897518</span>
-    </div>
-  </div>
-</div>
+<p class="calc-disclaimer" data-en="⚠️ Standard model (tax holiday + 50% VAT refund + inverter replacement). Estimates only." data-zh="⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。" data-ja="⚠️ 標準モデル。参考値です。">⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。</p>
 
 <script src="js/theme.js?v=2"></script>
-<script src="js/calculator.js?v=44"></script>
+<script src="js/calculator.js?v=43"></script>
 </body>
+</html>        <div class="pr derived" data-tab-group="hy"><div class="pr-label"><span data-en="→ Storage Capacity" data-zh="→ 储能装机容量容量" data-ja="→ 蓄電容量"></span><span class="pr-val gold" id="dispHyStCapInline"></span></div></div>
 
-</html>
