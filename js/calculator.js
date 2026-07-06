@@ -70,7 +70,7 @@ function switchTab(tab){
     setSlider('inpRunYears','numRunYears',15,30,25);
     setSlider('inpDeprYears','numDeprYears',5,20,10);
     setSlider('inpLoanYears','numLoanYears',5,20,10);
-    setSlider('inpUnitCost','numUnitCost',1,50,3.7);
+    setSlider('inpUnitCost','numUnitCost',0.1,50,3.7);
     setSlider('inpDiscount','numDiscount',0,100,10);
     setSlider('inpDegradY1','numDegradY1',0,3,1.0);
     setSlider('inpDegrad','numDegrad',0.2,1,0.55);
@@ -94,7 +94,7 @@ function switchTab(tab){
     setSlider('inpRunYears','numRunYears',15,30,25);
     setSlider('inpDeprYears','numDeprYears',5,20,10);
     setSlider('inpLoanYears','numLoanYears',5,20,10);
-    setSlider('inpUnitCost','numUnitCost',1,50,3.7);
+    setSlider('inpUnitCost','numUnitCost',0.1,50,3.7);
     setSlider('inpInvReplace','numInvReplace',0,0.5,0.2);
     setSlider('inpInvYear','numInvYear',8,20,12);
     setSlider('inpMaintFee','numMaintFee',0.01,0.08,0.04);
