@@ -1,6 +1,11 @@
 /**
  * NrgOpt Contact Form — Vercel Serverless Function
  * QQ SMTP → nodemailer
+ *
+ * Required environment variables:
+ *   SMTP_USER    - QQ email address (e.g. 7391117@qq.com)
+ *   SMTP_PASS    - QQ SMTP authorization code (NOT the login password)
+ *   CONTACT_TO   - Destination email address for receiving inquiries
  */
 import nodemailer from 'nodemailer';
 
@@ -18,21 +23,32 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'Name, email, and message are required.' });
   }
 
+  // Validate environment config
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const contactTo = process.env.CONTACT_TO;
+
+  if (!smtpUser || !smtpPass || !contactTo) {
+    console.error('Missing SMTP environment variables');
+    return res.status(500).json({
+      ok: false,
+      error: 'Server configuration error. Please try again later.',
+    });
+  }
+
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.qq.com',
       port: 465,
       secure: true,
       auth: {
-        user: process.env.SMTP_USER || '7391117@qq.com',
-        pass: process.env.SMTP_PASS || 'eaeudffrtpinbhgd',
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
-    const contactTo = process.env.CONTACT_TO || '7391117@qq.com';
-
     await transporter.sendMail({
-      from: `"NrgOpt Contact" <7391117@qq.com>`,
+      from: `"NrgOpt Contact" <${smtpUser}>`,
       to: contactTo,
       subject: `NrgOpt 咨询来自 ${name}`,
       html: [
@@ -56,7 +72,7 @@ export default async function handler(req, res) {
     console.error('Email error:', err);
     return res.status(500).json({
       ok: false,
-      error: 'Failed to send. Please email us directly at 7391117@qq.com',
+      error: 'Failed to send. Please try again later.',
     });
   }
 }

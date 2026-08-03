@@ -178,7 +178,7 @@
           }
         })
         .catch(function () {
-          statusEl.textContent = form.dataset.errorText || 'Something went wrong. Please email us directly at 7391117@qq.com';
+          statusEl.textContent = form.dataset.errorText || 'Something went wrong. Please try again later.';
           statusEl.className = 'form-status error';
         })
         .finally(function () {
