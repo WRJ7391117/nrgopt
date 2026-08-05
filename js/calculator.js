@@ -107,7 +107,15 @@ function switchTab(tab){
     // PV defaults
     var g1=el('dispGenY1Total');if(g1&&g1.parentElement)g1.parentElement.style.display='';
   }
+  syncDurationInputs();
   update();
+}
+
+function activeDurIds(){return currentTab==='is'?['inpDurationIs','numDurationIs']:['inpDuration','numDuration'];}
+function syncDurationInputs(){
+  var ids=activeDurIds(),a=el(ids[0]),b=el('inpHyDur'),na=el(ids[1]),nb=el('numHyDur');
+  if(a&&b)b.value=a.value;
+  if(na&&nb)nb.value=na.value;
 }
 
 function npv(r,c){var t=0;for(var i=0;i<c.length;i++)t+=c[i]/Math.pow(1+r,i);return t;}
@@ -153,6 +161,13 @@ function calc(p){
     }
     remLoan=Math.max(0,remLoan-prPaid);
     var depr=y<=dy?deprA:0;
+    var totCostF=depr+opex+ins;
+    var pbtF=rev-sur-totCostF;
+    var taxF;
+    if(y<=taxFree)taxF=0;
+    else if(y<=taxFree+taxHalf)taxF=Math.max(0,pbtF*taxRate*0.5);
+    else taxF=Math.max(0,pbtF*taxRate);
+    var patF=pbtF-taxF;
     var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
     var tax;
@@ -160,7 +175,7 @@ function calc(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=pat+depr;if(y===iry)cf-=invRep;
+    var cf=patF+depr;if(y===iry)cf-=invRep;
     cfsF.push(cf);
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
@@ -195,10 +210,10 @@ function calcCI(p){
   var spFill=Math.min(dur,spHrs),pkFill=Math.min(dur-spFill,peakHrs);
   var totalDisHrs=spFill+pkFill;
   var avgOutPrice=totalDisHrs>0?(spFill*spPrice+pkFill*peakPrice)/totalDisHrs:peakPrice;
-  var baseDailyArb=effKWh*rte/1000*cycles*(avgOutPrice-valleyPrice/rte);
+  var baseDailyArb=effKWh*rte/10000*cycles*(avgOutPrice-valleyPrice/rte);
 
-  // Demand charge savings
-  var peakReduction=cap*1000*demandReduction,demandSavings=peakReduction*demandCharge*12/10000;
+  // Demand charge savings (仅按最大需量计费时储能才可削减需量电费)
+  var peakReduction=cap*1000*demandReduction,demandSavings=demandMode==='demand'?peakReduction*demandCharge*12/10000:0;
 
   // Battery degradation: calendar + cycle-based
   var totalCycles=cycles*opDays*ry,cycleLife=6000;
@@ -231,7 +246,7 @@ function calcCI(p){
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-    var opex=cap*1000*mgmt*Math.pow(1+me,y-1)+cap*1000*maint*Math.pow(1+mte,y-1);
+    var opex=cap*100*mgmt*Math.pow(1+me,y-1)+cap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -242,6 +257,13 @@ function calcCI(p){
     }
     remLoan=Math.max(0,remLoan-prPaid);
     var depr=y<=dy?deprA:0;
+    var totCostF=depr+opex+ins;
+    var pbtF=rev-sur-totCostF;
+    var taxF;
+    if(y<=taxFree)taxF=0;
+    else if(y<=taxFree+taxHalf)taxF=Math.max(0,pbtF*taxRate*0.5);
+    else taxF=Math.max(0,pbtF*taxRate);
+    var patF=pbtF-taxF;
     var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
     var tax;
@@ -249,7 +271,7 @@ function calcCI(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=pat+depr;if(y===iry)cf-=invRep;
+    var cf=patF+depr;if(y===iry)cf-=invRep;
     cfsF.push(cf);
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
@@ -299,13 +321,13 @@ function calcIS(p){
   }
 
   for(var y=1;y<=ry;y++){
-    var degF=Math.pow(1-da,y-1)/(1-d1);
+    var degF=Math.pow(1-da,y-1);
     var rev=annualRev*degF;
     var outputVat=rev*vr;
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-    var opex=cap*1000*mgmt*Math.pow(1+me,y-1)+cap*1000*maint*Math.pow(1+mte,y-1);
+    var opex=cap*100*mgmt*Math.pow(1+me,y-1)+cap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -316,6 +338,13 @@ function calcIS(p){
     }
     remLoan=Math.max(0,remLoan-prPaid);
     var depr=y<=dy?deprA:0;
+    var totCostF=depr+opex+ins;
+    var pbtF=rev-sur-totCostF;
+    var taxF;
+    if(y<=taxFree)taxF=0;
+    else if(y<=taxFree+taxHalf)taxF=Math.max(0,pbtF*taxRate*0.5);
+    else taxF=Math.max(0,pbtF*taxRate);
+    var patF=pbtF-taxF;
     var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
     var tax;
@@ -323,7 +352,7 @@ function calcIS(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=pat+depr;if(y===iry)cf-=invRep;
+    var cf=patF+depr;if(y===iry)cf-=invRep;
     cfsF.push(cf);
     var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
     cfsE.push(ecf);
@@ -385,13 +414,13 @@ function calcHybrid(p){
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var pvRev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
-      var stRev=arbRev*Math.pow(1-stDegrad,y-1)/(1-d1); // storage degrades ~2.5x faster
+      var stRev=arbRev*Math.pow(1-stDegrad,y-1); // storage degrades ~2.5x faster
     var rev=pvRev+stRev;
     var outputVat=rev*vr;
     var inputVat=0;
     if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
     var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-      var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1)+stCap*1000*mgmt*Math.pow(1+me,y-1);
+      var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1)+stCap*100*mgmt*Math.pow(1+me,y-1)+stCap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
     var interest=remLoan*li;
     var prPaid=0;
@@ -409,8 +438,14 @@ function calcHybrid(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
+    var pbtF=rev-sur-(depr+opex+ins);
+    var taxF;
+    if(y<=taxFree)taxF=0;
+    else if(y<=taxFree+taxHalf)taxF=Math.max(0,pbtF*taxRate*0.5);
+    else taxF=Math.max(0,pbtF*taxRate);
+    var patF=pbtF-taxF;
     var repCost=0;if(y===iry)repCost+=invRep_pv;if(y===batYear)repCost+=invRep_st;
-    var cf=pat+depr-repCost;
+    var cf=patF+depr-repCost;
     cfsF.push(cf);
     var ecf=pat+depr-prPaid-repCost;
     cfsE.push(ecf);
@@ -427,6 +462,9 @@ function calcHybrid(p){
 function el(id){return document.getElementById(id);}
 function val(id){var e=el(id);return e?parseFloat(e.value)||0:0;}
 function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
+// 与 val/ival 不同: 合法的 0 值不会被替换成默认值(折现率0、贷款比例0、更换成本0等)
+function vdef(id,def){var e=el(id);if(!e)return def;var v=parseFloat(e.value);return isNaN(v)?def:v;}
+function idef(id,def){var e=el(id);if(!e)return def;var v=parseInt(e.value);return isNaN(v)?def:v;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
 function fmtWan(v){return Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+' 万元';}
 var _infoCardData=null;
@@ -441,88 +479,90 @@ function syncInfoCard(){
 
 function getP(){
   return {
-    capacity:val('inpCapacity')||1, unitCost:val('inpUnitCost')||3.7,
-    loanRatio:(val('inpLoanRatio')||70)/100, loanRate:(val('inpLoanRate')||3.9)/100,
-    loanYears:ival('inpLoanYears')||15, repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal', genPerW:computeGen(),
-    runYears:ival('inpRunYears')||25,
-    degradY1:(val('inpDegradY1')||1)/100, degrad:(val('inpDegrad')||0.55)/100,
-    selfUse:(val('inpSelfUse')||90)/100, dayPrice:val('inpDayPrice')||0.664,
-    gridPrice:val('inpGridPrice')||0.3, deprYears:ival('inpDeprYears')||10,
-    residual:(val('inpResidual')||5)/100,
-    mgmtFee:val('inpMgmtFee')||0.01, mgmtEscal:(val('inpMgmtEscal')||3)/100,
-    maintFee:val('inpMaintFee')||0.04, maintEscal:(val('inpMaintEscal')||1)/100,
-    insRate:val('inpInsRate')||0.1,
-    vatRate:(ival('inpVatRate')||13)/100,
-    taxFreeYr:ival('inpTaxFreeYr')||3, taxHalfYr:ival('inpTaxHalfYr')||3,
-    taxRate:(val('inpTaxRate')||25)/100,
-    invReplace:val('inpInvReplace')||0.2, invYear:ival('inpInvYear')||12,
-    discount:(val('inpDiscount')||10)/100
+    capacity:vdef('inpCapacity',1), unitCost:vdef('inpUnitCost',3.7),
+    loanRatio:vdef('inpLoanRatio',70)/100, loanRate:vdef('inpLoanRate',3.9)/100,
+    loanYears:idef('inpLoanYears',15), repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal', genPerW:computeGen(),
+    runYears:idef('inpRunYears',25),
+    degradY1:vdef('inpDegradY1',1)/100, degrad:vdef('inpDegrad',0.55)/100,
+    selfUse:vdef('inpSelfUse',90)/100, dayPrice:vdef('inpDayPrice',0.664),
+    gridPrice:vdef('inpGridPrice',0.3), deprYears:idef('inpDeprYears',10),
+    residual:vdef('inpResidual',5)/100,
+    mgmtFee:vdef('inpMgmtFee',0.01), mgmtEscal:vdef('inpMgmtEscal',3)/100,
+    maintFee:vdef('inpMaintFee',0.04), maintEscal:vdef('inpMaintEscal',1)/100,
+    insRate:vdef('inpInsRate',0.1),
+    vatRate:idef('inpVatRate',13)/100,
+    taxFreeYr:idef('inpTaxFreeYr',3), taxHalfYr:idef('inpTaxHalfYr',3),
+    taxRate:vdef('inpTaxRate',25)/100,
+    invReplace:vdef('inpInvReplace',0.2), invYear:idef('inpInvYear',12),
+    discount:vdef('inpDiscount',10)/100
   };
 }
 
 function getPCI(){
   return {
-    capacity:val('inpHyStCap')||0.2,duration:val('inpDuration')||2,unitCost:val('inpStUC')||0.8,
-    dod:val('inpDod')||85,priceEscal:val('inpPriceEscal')||2.5,
-    demandCharge:val('inpDemandCharge')||40,demandReduction:val('inpDemandReduction')||30,
-    spPrice:val('inpSpPrice')||1.2,spHours:val('inpSpHours')||2,
-    peakPrice:val('inpPeakPrice')||1.0,peakHours:val('inpPeakHours')||4,
-    flatPrice:val('inpFlatPrice')||0.6,flatHours:val('inpFlatHours')||10,
-    valleyPrice:val('inpValleyPrice')||0.35,valleyHours:val('inpValleyHours')||8,
-    cycles:val('inpCycles')||2,opDays:ival('inpOpDays')||330,
-    rte:val('inpRte')||88,
-    runYears:ival('inpStLife')||20,
-    loanRatio:(val('inpLoanRatio')||70)/100,loanRate:(val('inpLoanRate')||3.9)/100,
-    loanYears:ival('inpLoanYears')||15,repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
-    degradY1:(val('inpDegradY1')||2)/100,degrad:(val('inpDegrad')||1.5)/100,
-    deprYears:ival('inpStDepr')||8,residual:(val('inpStResidual')||5)/100,
-    mgmtFee:val('inpMgmtFee')||0.01,mgmtEscal:(val('inpMgmtEscal')||3)/100,
-    maintFee:val('inpMaintFee')||0.015,maintEscal:(val('inpMaintEscal')||1)/100,
-    insRate:val('inpInsRate')||0.15,
-    vatRate:(ival('inpVatRate')||13)/100,
-    taxFreeYr:ival('inpTaxFreeYr')||3,taxHalfYr:ival('inpTaxHalfYr')||3,
-    taxRate:(val('inpTaxRate')||25)/100,
-    invReplace:val('inpBatReplace')||0.3,invYear:ival('inpBatYear')||10,
-    discount:(val('inpDiscount')||10)/100
+    capacity:vdef('inpHyStCap',0.2),duration:vdef('inpDuration',2),unitCost:vdef('inpStUC',0.8),
+    dod:vdef('inpDod',85),priceEscal:vdef('inpPriceEscal',2.5),
+    demandMode:el('inpDemandMode')?el('inpDemandMode').value:'demand',
+    demandCharge:vdef('inpDemandCharge',40),demandReduction:vdef('inpDemandReduction',30),
+    transCapacity:vdef('inpTransCapacity',30),
+    spPrice:vdef('inpSpPrice',1.2),spHours:vdef('inpSpHours',2),
+    peakPrice:vdef('inpPeakPrice',1.0),peakHours:vdef('inpPeakHours',4),
+    flatPrice:vdef('inpFlatPrice',0.6),flatHours:vdef('inpFlatHours',10),
+    valleyPrice:vdef('inpValleyPrice',0.35),valleyHours:vdef('inpValleyHours',8),
+    cycles:vdef('inpCycles',2),opDays:idef('inpOpDays',330),
+    rte:vdef('inpRte',88),
+    runYears:idef('inpStLife',20),
+    loanRatio:vdef('inpLoanRatio',70)/100,loanRate:vdef('inpLoanRate',3.9)/100,
+    loanYears:idef('inpLoanYears',15),repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
+    degradY1:vdef('inpDegradY1',2)/100,degrad:vdef('inpDegrad',1.5)/100,
+    deprYears:idef('inpStDepr',8),residual:vdef('inpStResidual',5)/100,
+    mgmtFee:vdef('inpMgmtFee',0.01),mgmtEscal:vdef('inpMgmtEscal',3)/100,
+    maintFee:vdef('inpMaintFee',0.015),maintEscal:vdef('inpMaintEscal',1)/100,
+    insRate:vdef('inpInsRate',0.15),
+    vatRate:idef('inpVatRate',13)/100,
+    taxFreeYr:idef('inpTaxFreeYr',3),taxHalfYr:idef('inpTaxHalfYr',3),
+    taxRate:vdef('inpTaxRate',25)/100,
+    invReplace:vdef('inpBatReplace',0.3),invYear:idef('inpBatYear',10),
+    discount:vdef('inpDiscount',10)/100
   };
 }
 
 function getPIS(){
   return {
-    capacity:val('inpHyStCap')||50,duration:val('inpDurationIs')||2,unitCost:val('inpStUC')||0.9,
-    leasePrice:val('inpLeasePrice')||300,leaseRate:val('inpLeaseRate')||85,
-    spread:val('inpSpreadIs')||0.5,cycles:val('inpCyclesIs')||1.5,opDays:ival('inpOpDaysIs')||330,
-    freqReg:val('inpFreqReg')||50,
-    rte:val('inpRteIs')||88,
-    runYears:ival('inpStLife')||20,
-    loanRatio:(val('inpLoanRatio')||70)/100,loanRate:(val('inpLoanRate')||3.9)/100,
-    loanYears:ival('inpLoanYears')||15,repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
-    degradY1:(val('inpDegradY1')||2)/100,degrad:(val('inpDegrad')||1.5)/100,
-    deprYears:ival('inpStDepr')||10,residual:(val('inpStResidual')||5)/100,
-    mgmtFee:val('inpMgmtFee')||0.01,mgmtEscal:(val('inpMgmtEscal')||3)/100,
-    maintFee:val('inpMaintFee')||0.015,maintEscal:(val('inpMaintEscal')||1)/100,
-    insRate:val('inpInsRate')||0.15,
-    vatRate:(ival('inpVatRate')||13)/100,
-    taxFreeYr:ival('inpTaxFreeYr')||3,taxHalfYr:ival('inpTaxHalfYr')||3,
-    taxRate:(val('inpTaxRate')||25)/100,
-    invReplace:val('inpBatReplace')||0.3,invYear:ival('inpBatYear')||10,
-    discount:(val('inpDiscount')||8)/100
+    capacity:vdef('inpHyStCap',50),duration:vdef('inpDurationIs',2),unitCost:vdef('inpStUC',0.9),
+    leasePrice:vdef('inpLeasePrice',300),leaseRate:vdef('inpLeaseRate',85),
+    spread:vdef('inpSpreadIs',0.5),cycles:vdef('inpCyclesIs',1.5),opDays:idef('inpOpDaysIs',330),
+    freqReg:vdef('inpFreqReg',50),
+    rte:vdef('inpRteIs',88),
+    runYears:idef('inpStLife',20),
+    loanRatio:vdef('inpLoanRatio',70)/100,loanRate:vdef('inpLoanRate',3.9)/100,
+    loanYears:idef('inpLoanYears',15),repayMethod:el('inpRepayMethod')?el('inpRepayMethod').value:'equal-principal',
+    degradY1:vdef('inpDegradY1',2)/100,degrad:vdef('inpDegrad',1.5)/100,
+    deprYears:idef('inpStDepr',10),residual:vdef('inpStResidual',5)/100,
+    mgmtFee:vdef('inpMgmtFee',0.01),mgmtEscal:vdef('inpMgmtEscal',3)/100,
+    maintFee:vdef('inpMaintFee',0.015),maintEscal:vdef('inpMaintEscal',1)/100,
+    insRate:vdef('inpInsRate',0.15),
+    vatRate:idef('inpVatRate',13)/100,
+    taxFreeYr:idef('inpTaxFreeYr',3),taxHalfYr:idef('inpTaxHalfYr',3),
+    taxRate:vdef('inpTaxRate',25)/100,
+    invReplace:vdef('inpBatReplace',0.3),invYear:idef('inpBatYear',10),
+    discount:vdef('inpDiscount',8)/100
   };
 }
 
 function getPHybrid(){
   var p=getP();
-  p.duration=val('inpDuration')||2;
-  p.spPrice=val('inpSpPrice')||1.2;p.spHours=val('inpSpHours')||2;
-  p.peakPrice=val('inpPeakPrice')||1.0;p.peakHours=val('inpPeakHours')||4;
-  p.valleyPrice=val('inpValleyPrice')||0.35;p.valleyHours=val('inpValleyHours')||8;
-  p.cycles=val('inpCycles')||2;p.opDays=ival('inpOpDays')||330;
-  p.stUC=val('inpStUC')||0.8;
-  p.stLife=ival('inpStLife')||15;
-  p.stDepr=ival('inpStDepr')||8;
-  p.hyStCap=val('inpHyStCap')||0.2;
-  p.rte=val('inpRte')||88;
-  p.batReplace=val('inpBatReplace')||0.3;p.batYear=ival('inpBatYear')||10;
+  p.duration=vdef('inpDuration',2);
+  p.spPrice=vdef('inpSpPrice',1.2);p.spHours=vdef('inpSpHours',2);
+  p.peakPrice=vdef('inpPeakPrice',1.0);p.peakHours=vdef('inpPeakHours',4);
+  p.valleyPrice=vdef('inpValleyPrice',0.35);p.valleyHours=vdef('inpValleyHours',8);
+  p.cycles=vdef('inpCycles',2);p.opDays=idef('inpOpDays',330);
+  p.stUC=vdef('inpStUC',0.8);
+  p.stLife=idef('inpStLife',15);
+  p.stDepr=idef('inpStDepr',8);
+  p.hyStCap=vdef('inpHyStCap',0.2);
+  p.rte=vdef('inpRte',88);
+  p.batReplace=vdef('inpBatReplace',0.3);p.batYear=idef('inpBatYear',10);
   return p;
 }
 
@@ -538,65 +578,63 @@ function update(){
   var l=document.documentElement.lang||'en';
   if(currentTab==='ci'){
     // Update C&I info card
-    var ciCap=val('inpCapacity')||0.2,ciDur=val('inpDuration')||2;
-    var ciKwh=ciCap*1000*ciDur,ciDays=ival('inpOpDays')||330;
-    var ciRte=(val('inpRte')||88)/100;
-    var ciDaily=ciKwh*ciRte*(val('inpCycles')||2)/1000;
-    var ciMw=(val('inpHyStCap')||0.2).toFixed(2);var sy=el('ciSysSize');if(sy)sy.textContent=ciMw+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
+    var ciCap=vdef('inpHyStCap',0.2),ciDur=vdef('inpDuration',2);
+    var ciKwh=ciCap*1000*ciDur,ciDays=idef('inpOpDays',330);
+    var ciRte=vdef('inpRte',88)/100;
+    var ciDod=vdef('inpDod',85)/100;
+    var ciDaily=ciKwh*ciDod*ciRte*vdef('inpCycles',2)/1000;
+    var sy=el('ciSysSize');if(sy)sy.textContent=ciCap.toFixed(2)+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
     var dd=el('ciDailyDis');if(dd)dd.textContent=ciDaily.toFixed(1)+' 万kWh';
     var od=el('ciOpDays');if(od)od.textContent=ciDays+' 天';
     // Update metric labels
-    var g1=el('resGenY1');if(g1&&g1.parentElement){var bl=g1.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
-    var gt=el('resGenTotal');if(gt&&gt.parentElement){var bl2=gt.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
+    var g1=el('resGenY1');if(g1&&g1.parentElement){var bl=g1.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年放电量';}
+    var gt=el('resGenTotal');if(gt&&gt.parentElement){var bl2=gt.parentElement.querySelector('.band-label');if(bl2)bl2.textContent='总放电量';}
     // C&I storage display values
-    var dur=val('inpDuration')||2,kWh=val('inpHyStCap')*1000*dur;
-    var rte2=(val('inpRte')||88)/100;
-    var spP=val('inpSpPrice')||1.2,spH=val('inpSpHours')||2;
-    var pkP=val('inpPeakPrice')||1.0,pkH=val('inpPeakHours')||4;
-    var vlP=val('inpValleyPrice')||0.35,vlH=val('inpValleyHours')||8;
-    var cyc=val('inpCycles')||2,opD=ival('inpOpDays')||330;
+    var dur=vdef('inpDuration',2),kWh=ciCap*1000*dur;
+    var rte2=vdef('inpRte',88)/100;
+    var spP=vdef('inpSpPrice',1.2),spH=vdef('inpSpHours',2);
+    var pkP=vdef('inpPeakPrice',1.0),pkH=vdef('inpPeakHours',4);
+    var vlP=vdef('inpValleyPrice',0.35);
+    var cyc=vdef('inpCycles',2),opD=idef('inpOpDays',330);
     var spFill=Math.min(dur,spH);
     var pkFill=Math.min(dur-spFill,pkH);
     var totalDisH=spFill+pkFill;
     var avgOut=totalDisH>0?(spFill*spP+pkFill*pkP)/totalDisH:pkP;
-        var dod2=(val('inpDod')||85)/100;
+    var dod2=vdef('inpDod',85)/100;
     var effKWh=kWh*dod2;
-    var baseArb=effKWh*rte2/1000*cyc*(avgOut-vlP/rte2);
-    var pe=(val('inpPriceEscal')||2.5)/100;
+    var baseArb=effKWh*rte2/10000*cyc*(avgOut-vlP/rte2);
     var dmMode=el('inpDemandMode')?el('inpDemandMode').value:'demand';
-    var dmCharge=val('inpDemandCharge')||40,dmRed=(val('inpDemandReduction')||30)/100;
-    var dmSave=dmMode==='demand'?((val('inpHyStCap')||0.2)*1000)*dmRed*dmCharge*12/10000:0;
-    var tcCost=dmMode==='capacity'?val('inpTransCapacity')||30*12/10000:0;
-    var dailyTotal=baseArb+dmSave/(ival('inpOpDays')||330)-tcCost/365;
-    setText('dispArbitrage','套利'+baseArb.toFixed(1)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1):'')+(dmMode==='capacity'?'-容量'+tcCost.toFixed(1):'')+(' ≈ '+dailyTotal.toFixed(1)+' 万元/天'));
+    var dmCharge=vdef('inpDemandCharge',40),dmRed=vdef('inpDemandReduction',30)/100;
+    var dmSave=dmMode==='demand'?(ciCap*1000)*dmRed*dmCharge*12/10000:0;
+    var dailyTotal=baseArb+dmSave/opD;
+    setText('dispArbitrage','套利'+baseArb.toFixed(2)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1)+'万/年':'')+(' ≈ '+dailyTotal.toFixed(2)+' 万元/天'));
     var idealThru=kWh*cyc*opD*rte2/1000;
-    setText('dispGenPerW',(idealThru/val('inpHyStCap')).toFixed(2)+' 万kWh/kW');
+    setText('dispGenPerW',(idealThru/ciCap).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
-    var omT=(val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015);
-    setText('dispOmTotal',omT.toFixed(3)+' 元/Wh');
+    var omT=vdef('inpMgmtFee',0.01)+vdef('inpMaintFee',0.015);
+    setText('dispOmTotal',omT.toFixed(3)+' 元/W');
     setText('dispBestAngle','');
   }else if(currentTab==='is'){
     // IS info card
-    var isCap=val('inpHyStCap')||50,isDur=val('inpDurationIs')||2;
+    var isCap=vdef('inpHyStCap',50),isDur=vdef('inpDurationIs',2);
     var isKwh=isCap*1000*isDur;
-    var ss=el('isSysSize');if(ss)ss.textContent=Math.round(isCap)+' MW / '+Math.round(isKwh)+' MWh';
-    var sc=el('isCycles');if(sc)sc.textContent=(val('inpCyclesIs')||1.5).toFixed(1)+' 次/天';
-    var so=el('isOpDays');if(so)so.textContent=(ival('inpOpDaysIs')||330)+' 天';
-    var sl=el('isLeaseRate');if(sl)sl.textContent=Math.round(val('inpLeaseRate')||85)+'%';
+    var ss=el('isSysSize');if(ss)ss.textContent=Math.round(isCap)+' MW / '+Math.round(isKwh/1000)+' MWh';
+    var sc=el('isCycles');if(sc)sc.textContent=vdef('inpCyclesIs',1.5).toFixed(1)+' 次/天';
+    var so=el('isOpDays');if(so)so.textContent=idef('inpOpDaysIs',330)+' 天';
+    var sl=el('isLeaseRate');if(sl)sl.textContent=Math.round(vdef('inpLeaseRate',85))+'%';
     // IS display
-    var isRte2=(val('inpRteIs')||88)/100,isSpread=val('inpSpreadIs')||0.5;
-    var isCycles=val('inpCyclesIs')||1.5,isOpD=ival('inpOpDaysIs')||330;
-    var isLeaseRev=isCap*(val('inpLeasePrice')||300)*(val('inpLeaseRate')||85)/100/10;
-    var isArbRev=isKwh*isRte2*isCycles*isSpread/10000;
-    var isFreqRev=isCap*(val('inpFreqReg')||50);
-    var isDailyRev=isArbRev+(isLeaseRev+isFreqRev)/isOpD;
-    setText('dispIsDailyRev','租赁'+isLeaseRev.toFixed(1)+'+套利'+isArbRev.toFixed(1)+'+调频'+isFreqRev.toFixed(1)+' 万元');
+    var isRte2=vdef('inpRteIs',88)/100,isSpread=vdef('inpSpreadIs',0.5);
+    var isCycles=vdef('inpCyclesIs',1.5),isOpD=idef('inpOpDaysIs',330);
+    var isLeaseRev=isCap*vdef('inpLeasePrice',300)*vdef('inpLeaseRate',85)/100/10;
+    var isArbRev=(isCap*isDur)*isRte2*isCycles*isSpread/10*isOpD;
+    var isFreqRev=isCap*vdef('inpFreqReg',50);
+    setText('dispIsDailyRev','租赁'+isLeaseRev.toFixed(0)+'+套利'+isArbRev.toFixed(0)+'+调频'+isFreqRev.toFixed(0)+' ≈ '+(isLeaseRev+isArbRev+isFreqRev).toFixed(0)+' 万元/年');
     setText('dispGenPerW',(isKwh*isCycles*isOpD*isRte2/1000/isCap).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(isKwh*isCycles*isOpD*isRte2/1000));
-    setText('dispOmTotal',((val('inpMgmtFee')||0.01)+(val('inpMaintFee')||0.015)).toFixed(3)+' 元/Wh');
+    setText('dispOmTotal',(vdef('inpMgmtFee',0.01)+vdef('inpMaintFee',0.015)).toFixed(3)+' 元/W');
     // Metric labels
-    var g1i=el('resGenY1');if(g1i&&g1i.parentElement){var bl=g1i.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Discharge Y1');bl.setAttribute('data-zh','首年放电量');bl.setAttribute('data-ja','初年度放電量');bl.textContent='首年放电量';}}
-    var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Discharge Total');bl2.setAttribute('data-zh','总放电量');bl2.setAttribute('data-ja','総放電量');bl2.textContent='总放电量';}}
+    var g1i=el('resGenY1');if(g1i&&g1i.parentElement){var bl=g1i.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年放电量';}
+    var gti=el('resGenTotal');if(gti&&gti.parentElement){var bl2=gti.parentElement.querySelector('.band-label');if(bl2)bl2.textContent='总放电量';}
   }else if(currentTab==='hy'){
     // HY info card
     var hyCap=val('inpCapacity')||1,hyDur=val('inpDuration')||2;
@@ -607,8 +645,8 @@ function update(){
     var hySu=el('hySelfUse');if(hySu)hySu.textContent=Math.round(val('inpSelfUse')||90)+'%';
     var hyIr=el('hyIrr');if(hyIr)hyIr.textContent=Math.round(val('inpIrradiance')||1350)+' kWh/m²';
     // Metric labels
-    var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
-    var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
+    var g1h=el('resGenY1');if(g1h&&g1h.parentElement){var bl=g1h.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年总发电量';}
+    var gth=el('resGenTotal');if(gth&&gth.parentElement){var bl2=gth.parentElement.querySelector('.band-label');if(bl2)bl2.textContent='运营期总发电量';}
     setText('dispBestAngle','');
     // HY daily revenue estimate
     var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
@@ -620,8 +658,8 @@ function update(){
     setText('dispArbitrage','余电'+hyExcess.toFixed(1)+'万kWh 储能消纳≈'+hyActDay.toFixed(1)+'万/天');
   }else{
     // Restore PV metric labels
-    var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl&&bl.hasAttribute('data-en')){bl.setAttribute('data-en','Gen Year 1');bl.setAttribute('data-zh','首年总发电量');bl.setAttribute('data-ja','初年度総発電量');bl.textContent='首年总发电量';}}
-    var gtr=el('resGenTotal');if(gtr&&gtr.parentElement){var bl2=gtr.parentElement.querySelector('.band-label');if(bl2&&bl2.hasAttribute('data-en')){bl2.setAttribute('data-en','Gen Life Total');bl2.setAttribute('data-zh','运营期总发电量');bl2.setAttribute('data-ja','全期間総発電量');bl2.textContent='运营期总发电量';}}
+    var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年总发电量';}
+    var gtr=el('resGenTotal');if(gtr&&gtr.parentElement){var bl2=gtr.parentElement.querySelector('.band-label');if(bl2)bl2.textContent='运营期总发电量';}
     var gw=computeGen();
     setText('dispGenPerW',gw.toFixed(3)+' kWh/W');
     var ir=val('inpIrradiance')||1350,ti=val('inpTilt')||1.05,ef=(val('inpSysEff')||83.5)/100;
@@ -634,15 +672,18 @@ function update(){
 
   // Sync storage discount with PV discount
   var ds=el('inpDiscountSt');if(ds){var dv=el('inpDiscount');if(dv&&parseFloat(ds.value)!==parseFloat(dv.value)){ds.value=dv.value;var ns=el('numDiscountSt');if(ns)ns.value=dv.value;var disp=el('dispDiscountSt');if(disp)disp.textContent=Math.round(parseFloat(dv.value))+'%';}}
-  // Update storage total capacity display
-  var stMw=val('inpHyStCap')||0.2;var stDur=val('inpHyDur')||2;var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(stMw*stDur).toFixed(1)+' MWh';
+  // 按变压器容量计费时显示容量单价行
+  var dmModeC=el('inpDemandMode')?el('inpDemandMode').value:'demand';
+  var capRowC=el('capacityRow');if(capRowC)capRowC.style.display=dmModeC==='capacity'?'':'none';
+  // Update storage total capacity display (duration 按当前tab取生效的输入)
+  var stMw=vdef('inpHyStCap',0.2);var stDur=currentTab==='is'?vdef('inpDurationIs',2):vdef('inpDuration',vdef('inpHyDur',2));var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(stMw*stDur).toFixed(1)+' MWh';
 
   try{
     if(currentTab==='ci'){R=calcCI(getPCI());}
     else if(currentTab==='is'){R=calcIS(getPIS());}
     else if(currentTab==='hy'){R=calcHybrid(getPHybrid());}
     else{R=calc(getP());}
-  }catch(e){R=null;}
+  }catch(e){console.error('calc error:',e);R=null;}
   if(!R)return;
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
   setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
@@ -665,12 +706,15 @@ function update(){
   setText('resGenTotal',fm(R.totalGen));
   var genUnit=currentTab==='ci'?' 万度电':' 万度电';
   setText('dispGenY1Total',fm(R.genY1)+genUnit);
-  var cap=val('inpCapacity')||0,uc=val('inpUnitCost')||0;
+  var cap=vdef('inpCapacity',0),uc=vdef('inpUnitCost',0);
   setText('dispPvTotalInv',fmtWan(cap*uc*100));
-  var stCap=val('inpHyStCap')||0,stUc=val('inpStUC')||0;
-  var stDur=val('inpDuration')||val('inpDurationIs')||val('inpHyDur')||2;
-  setText('dispStTotalInv',fmtWan(stCap*stDur*stUc*100));
-  var totalEquip=cap*uc*100 + stCap*stDur*stUc*100;
+  var stCap=vdef('inpHyStCap',0),stUc=vdef('inpStUC',0);
+  var stInv=stCap*stDur*stUc*100;
+  setText('dispStTotalInv',fmtWan(stInv));
+  var totalEquip;
+  if(currentTab==='pv')totalEquip=cap*uc*100;
+  else if(currentTab==='ci'||currentTab==='is')totalEquip=stInv;
+  else totalEquip=cap*uc*100+stInv;
   setText('dispTotalEquipInv',fmtWan(totalEquip));
 
   var tb=el('cfTableBody');if(!tb)return;
@@ -693,7 +737,7 @@ function bindDual(sliderId,numId,dispId,fmt){
   function sync(v){var vv=parseFloat(v);s.value=vv;n.value=vv;if(d)d.textContent=typeof fmt==='function'?fmt(vv):vv.toFixed(2);}
   s.addEventListener('input',function(){sync(s.value);update();});
   n.addEventListener('input',function(){var raw=n.value;if(raw===''||raw==='-')return;var vv=parseFloat(raw);if(!isNaN(vv)&&(String(vv)===raw||raw==='.'+vv)){sync(vv);update();}});
-  n.addEventListener('change',function(){var raw=n.value,vv=parseFloat(raw);if(isNaN(vv))sync(parseFloat(s.value));else sync(vv);update();});
+  n.addEventListener('change',function(){var raw=n.value,vv=parseFloat(raw);if(isNaN(vv))sync(parseFloat(s.value));else{var mn=parseFloat(s.min),mx=parseFloat(s.max);if(!isNaN(mn)&&vv<mn)vv=mn;if(!isNaN(mx)&&vv>mx)vv=mx;sync(vv);}update();});
   sync(parseFloat(s.value));
 }
 function refreshDisplays(){
@@ -748,16 +792,6 @@ function initBTT(){
   window.addEventListener('scroll',function(){btn.classList.toggle('visible',window.scrollY>500);},{passive:true});
 }
 
-window.switchLang=function(lang){
-  document.documentElement.lang=lang;
-  var els=document.querySelectorAll('[data-en],[data-zh],[data-ja]');
-  for(var i=0;i<els.length;i++){var e=els[i];if(lang==='en'&&e.hasAttribute('data-en'))e.textContent=e.getAttribute('data-en');else if(lang==='zh'&&e.hasAttribute('data-zh'))e.textContent=e.getAttribute('data-zh');else if(lang==='ja'&&e.hasAttribute('data-ja'))e.textContent=e.getAttribute('data-ja');}
-  var h1=document.querySelector('.calc-hero h1');if(h1){var hl=h1.querySelector('.hl');if(hl){var t={en:['Clean Energy ','Project Calculator'],zh:['新能源项目 ','投资测算'],ja:['再エネプロジェクト ','投資試算']},tt=t[lang]||t.zh;h1.childNodes[0]&&(h1.childNodes[0].textContent=tt[0]);hl.textContent=tt[1];}}
-  var sel=el('langSelect');if(sel)sel.value=lang;try{localStorage.setItem('nrgopt-lang',lang);}catch(e){}
-  var ths=document.querySelectorAll('th[data-en]');for(var i=0;i<ths.length;i++){var th=ths[i],txt=lang==='en'?th.getAttribute('data-en'):(lang==='zh'?th.getAttribute('data-zh'):th.getAttribute('data-ja'));if(txt)th.textContent=txt;}
-  refreshDisplays();update();
-};
-
 var regionMap={tibet:1900,nw:1600,nc:1400,ec:1350,sc:1100,sw:1000};
 window.setRegionPreset=function(val){if(val==='custom')return;var irr=regionMap[val];if(!irr)return;var s=el('inpIrradiance'),n=el('numIrradiance');if(s)s.value=irr;if(n)n.value=irr;refreshDisplays();update();};
 
@@ -786,19 +820,21 @@ window.applyProvincePreset=function(val){
 };
 
 function init(){
-  function L(){return document.documentElement.lang||'en';}
-  function uYr(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));}
+  function uYr(v){return Math.round(v)+' 年';}
   function uPct(v){return Math.round(v)+'%';}function uPct1(v){return v.toFixed(1)+'%';}
-  function uMW(v){var l=L();return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+(l==='en'?' MW':(l==='ja'?' MW':' 兆瓦'));}
-  function uPrc(v){var l=L();return(v<1?v.toFixed(3):v.toFixed(2))+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));}
+  function uMW(v){return(v<1?v.toFixed(3):v<10?v.toFixed(2):v.toFixed(1))+' 兆瓦';}
+  function uPrc(v){return(v<1?v.toFixed(3):v.toFixed(2))+' 元/千瓦时';}
+  function uH(v){return v.toFixed(1)+' 小时';}
+  function uPerDay(v){return v.toFixed(1)+' 次/天';}
+  function uDays(v){return Math.round(v)+' 天';}
 
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
-  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){var l=L();return v.toFixed(2)+(l==='en'?' 元/W':(l==='ja'?' 元/W':' 元/瓦'));});
+  bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){return v.toFixed(2)+' 元/瓦';});
   bindDual('inpRunYears','numRunYears','dispRunYears',uYr);
   bindDual('inpDeprYears','numDeprYears','dispDeprYears',uYr);
   bindDual('inpResidual','numResidual','dispResidual',function(v){return Math.round(v)+'%';});
-  bindDual('inpIrradiance','numIrradiance','dispIrradiance',function(v){var l=L();return Math.round(v)+(l==='en'?' kWh/m²':(l==='ja'?' kWh/m²':' 千瓦时/平方米'));});
+  bindDual('inpIrradiance','numIrradiance','dispIrradiance',function(v){return Math.round(v)+' 千瓦时/平方米';});
   bindDual('inpTilt','numTilt','dispTilt',function(v){return v.toFixed(2);});
   bindDual('inpSysEff','numSysEff','dispSysEff',function(v){return v.toFixed(1)+'%';});
   bindDual('inpDegradY1','numDegradY1','dispDegradY1',uPct1);
@@ -819,38 +855,49 @@ function init(){
   bindDual('inpTaxHalfYr','numTaxHalfYr','dispTaxHalfYr',uYr);
   bindDual('inpTaxRate','numTaxRate','dispTaxRate',function(v){return Math.round(v)+'%';});
   bindDual('inpInvReplace','numInvReplace','dispInvReplace',function(v){return v.toFixed(3)+' 元/W';});
-  bindDual('inpInvYear','numInvYear','dispInvYear',function(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
+  bindDual('inpInvYear','numInvYear','dispInvYear',function(v){return '第'+Math.round(v)+'年';});
 bindDual('inpBatReplace','numBatReplace','dispBatReplace',function(v){return v.toFixed(3)+' 元/Wh';});
-  bindDual('inpBatYear','numBatYear','dispBatYear',function(v){var l=L();return(l==='en'?'Yr ':'第')+Math.round(v)+(l==='en'?'':(l==='ja'?'年':'年'));});
-bindDual('inpDurationIs','numDurationIs','dispDurationIs',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
-  bindDual('inpLeasePrice','numLeasePrice','dispLeasePrice',function(v){var l=L();return Math.round(v)+(l==='en'?' ¢/kW/yr':(l==='ja'?' 元/kW/年':' 元/千瓦/年'));});
+  bindDual('inpBatYear','numBatYear','dispBatYear',function(v){return '第'+Math.round(v)+'年';});
+bindDual('inpDurationIs','numDurationIs','dispDurationIs',uH);
+  bindDual('inpLeasePrice','numLeasePrice','dispLeasePrice',function(v){return Math.round(v)+' 元/千瓦/年';});
   bindDual('inpLeaseRate','numLeaseRate','dispLeaseRate',function(v){return Math.round(v)+'%';});
-  bindDual('inpCyclesIs','numCyclesIs','dispCyclesIs',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
-  bindDual('inpOpDaysIs','numOpDaysIs','dispOpDaysIs',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
+  bindDual('inpCyclesIs','numCyclesIs','dispCyclesIs',uPerDay);
+  bindDual('inpOpDaysIs','numOpDaysIs','dispOpDaysIs',uDays);
   bindDual('inpRteIs','numRteIs','dispRteIs',function(v){return Math.round(v)+'%';});
       bindDual('inpDiscount','numDiscount','dispDiscount',uPct);
-bindDual('inpDuration','numDuration','dispDuration',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
+bindDual('inpDuration','numDuration','dispDuration',uH);
   bindDual('inpHyStCap','numHyStCap','dispHyStCap',uMW);
   bindDual('inpStUC','numStUC','dispStUC',function(v){return v.toFixed(2)+' 元/Wh';});
-  bindDual('inpStLife','numStLife','dispStLife',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
+  bindDual('inpStLife','numStLife','dispStLife',uYr);
   bindDual('inpStResidual','numStResidual','dispStResidual',function(v){return Math.round(v)+'%';});
-  bindDual('inpStDepr','numStDepr','dispStDepr',function(v){var l=L();return Math.round(v)+(l==='en'?' yr':(l==='ja'?' 年':' 年'));});
-  bindDual('inpHyDur','numHyDur','dispHyDur',function(v){var l=L();return v.toFixed(1)+(l==='en'?' h':(l==='ja'?' 時間':' 小时'));});
+  bindDual('inpStDepr','numStDepr','dispStDepr',uYr);
+  bindDual('inpHyDur','numHyDur','dispHyDur',uH);
   bindDual('inpDiscountSt','numDiscountSt','dispDiscountSt',function(v){return Math.round(v)+'%';});
-  bindDual('inpSpread','numSpread','dispSpread',function(v){var l=L();return v.toFixed(2)+(l==='en'?' ¢/kWh':(l==='ja'?' 元/kWh':' 元/千瓦时'));});
-  bindDual('inpCycles','numCycles','dispCycles',function(v){var l=L();return v.toFixed(1)+(l==='en'?' /day':(l==='ja'?' 回/日':' 次/天'));});
-  bindDual('inpOpDays','numOpDays','dispOpDays',function(v){var l=L();return Math.round(v)+(l==='en'?' days':(l==='ja'?' 日':' 天'));});
+  bindDual('inpSpread','numSpread','dispSpread',function(v){return v.toFixed(2)+' 元/千瓦时';});
+  bindDual('inpCycles','numCycles','dispCycles',uPerDay);
+  bindDual('inpOpDays','numOpDays','dispOpDays',uDays);
   bindDual('inpRte','numRte','dispRte',function(v){return Math.round(v)+'%';});
   bindDual('inpDod','numDod','dispDod',function(v){return Math.round(v)+'%';});
-  bindDual('inpPriceEscal','numPriceEscal','dispPriceEscal',function(v){var l=L();return v.toFixed(1)+(l==='en'?'%/yr':(l==='ja'?'%/年':'%/年'));});
+  bindDual('inpPriceEscal','numPriceEscal','dispPriceEscal',function(v){return v.toFixed(1)+'%/年';});
+
 
   
   var rs=el('inpRepayMethod');if(rs){rs.addEventListener('change',update);setText('dispRepayMethod',rs.options[rs.selectedIndex].textContent);}
 
+  // 储能时长双向同步: 储能系统组 inpHyDur <-> 当前tab生效的时长输入(inpDuration/inpDurationIs)
+  function linkDur(aId,aNum){
+    var a=el(aId),an=el(aNum);
+    if(a)a.addEventListener('input',function(){var b=el('inpHyDur'),bn=el('numHyDur');if(b)b.value=a.value;if(bn)bn.value=a.value;refreshDisplays();});
+    if(an)an.addEventListener('change',function(){var b=el('inpHyDur'),bn=el('numHyDur');if(b)b.value=an.value;if(bn)bn.value=an.value;refreshDisplays();});
+  }
+  linkDur('inpDuration','numDuration');
+  linkDur('inpDurationIs','numDurationIs');
+  var hyDurEl=el('inpHyDur'),hyDurNum=el('numHyDur');
+  if(hyDurEl)hyDurEl.addEventListener('input',function(){var ids=activeDurIds(),a=el(ids[0]),an=el(ids[1]);if(a)a.value=hyDurEl.value;if(an)an.value=hyDurEl.value;update();});
+  if(hyDurNum)hyDurNum.addEventListener('change',function(){var ids=activeDurIds(),a=el(ids[0]),an=el(ids[1]);if(a)a.value=hyDurNum.value;if(an)an.value=hyDurNum.value;update();});
+
   initBTT();switchTab('pv');update();
   window.addEventListener('resize',function(){if(R)drawChart(R.rows);});
-  var saved='en';try{saved=localStorage.getItem('nrgopt-lang')||'en';}catch(e){}
-  switchLang(saved);
 }
 
 window.downloadPDF=function(){

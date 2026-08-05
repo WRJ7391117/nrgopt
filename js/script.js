@@ -1,7 +1,7 @@
 /**
  * NrgOpt — script.js
  * Enterprise Clean Energy Solutions
- * Theme toggle, language switch, form, scroll effects, analytics
+ * Theme toggle, form, scroll effects, analytics
  */
 (function () {
   'use strict';
@@ -12,12 +12,6 @@
   }
   function setTheme(theme) {
     localStorage.setItem('nrgopt-theme', theme);
-  }
-  function getLang() {
-    return localStorage.getItem('nrgopt-lang') || 'en';
-  }
-  function setLang(lang) {
-    localStorage.setItem('nrgopt-lang', lang);
   }
 
   // ── THEME ──
@@ -49,18 +43,6 @@
   window.toggleTheme = function () {
     var current = document.documentElement.getAttribute('data-theme');
     applyTheme(current === 'dark' ? 'light' : 'dark');
-  };
-
-  // ── LANGUAGE ──
-  window.switchLang = function (lang) {
-    var b = document.body;
-    b.classList.remove('lang-en', 'lang-zh', 'lang-ja');
-    b.classList.add('lang-' + lang);
-    document.documentElement.lang = lang;
-    setLang(lang);
-    // Update select
-    var sel = document.getElementById('langSelect');
-    if (sel) sel.value = lang;
   };
 
   // ── BACK TO TOP ──
@@ -151,7 +133,7 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       submitBtn.disabled = true;
-      submitBtn.textContent = form.dataset.sendingText || 'Sending...';
+      submitBtn.textContent = form.dataset.sendingText || '发送中...';
       statusEl.textContent = '';
       statusEl.className = 'form-status';
 
@@ -170,7 +152,7 @@
         .then(function (resp) { return resp.json(); })
         .then(function (data) {
           if (data.ok) {
-            statusEl.textContent = form.dataset.successText || 'Message sent! We\'ll get back to you soon.';
+            statusEl.textContent = form.dataset.successText || '已收到您的留言，我们会尽快回复。';
             statusEl.className = 'form-status success';
             form.reset();
           } else {
@@ -178,12 +160,12 @@
           }
         })
         .catch(function () {
-          statusEl.textContent = form.dataset.errorText || 'Something went wrong. Please try again later.';
+          statusEl.textContent = form.dataset.errorText || '发送失败，请稍后重试。';
           statusEl.className = 'form-status error';
         })
         .finally(function () {
           submitBtn.disabled = false;
-          submitBtn.textContent = form.dataset.submitText || 'Send Message';
+          submitBtn.textContent = form.dataset.submitText || '发送';
         });
     });
   }
@@ -234,7 +216,6 @@
   function init() {
     // Restore saved preferences
     applyTheme(getTheme());
-    window.switchLang(getLang());
 
     // UI enhancements
     var btt = createBackToTop();

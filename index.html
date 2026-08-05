@@ -30,10 +30,10 @@
 }
 </script>
 
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
-<body class="lang-zh">
+<body>
 
 <a href="#hero" class="skip-link">跳到主要内容</a>
 
@@ -41,24 +41,19 @@
   <div class="nav-inner">
     <a href="/" class="nav-logo" aria-label="NRGOpt 首页">
       Nrg<span class="primary">Opt</span>
-      <span class="sub en">Carbon Cost</span>
-      <span class="sub zh">碳成本</span>
+      <span class="sub">碳成本</span>
     </a>
     <ul class="nav-links">
-      <li><a href="/"><span class="en">Home</span><span class="zh">首页</span></a></li>
-      <li><a href="calculator.html"><span class="en">Calculator</span><span class="zh">测算</span></a></li>
-      <li><a href="barriers.html"><span class="en">Barriers</span><span class="zh">壁垒</span></a></li>
-      <li><a href="about.html"><span class="en">About</span><span class="zh">关于</span></a></li>
-      <li><a href="#contact"><span class="en">Contact</span><span class="zh">联系</span></a></li>
+      <li><a href="/"><span>首页</span></a></li>
+      <li><a href="calculator.html"><span>测算</span></a></li>
+      <li><a href="barriers.html"><span>壁垒</span></a></li>
+      <li><a href="about.html"><span>关于</span></a></li>
+      <li><a href="#contact"><span>联系</span></a></li>
     </ul>
     <div class="nav-tools">
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="切换主题">
         <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
-      <select class="lang-select" onchange="switchLang(this.value)" id="langSelect" aria-label="选择语言">
-        <option value="en">English</option>
-        <option value="zh">中文</option>
-      </select>
     </div>
   </div>
 </nav>
@@ -69,14 +64,12 @@
 <section class="hero" id="hero" aria-label="Hero">
   <div class="container">
     <h1>
-      <span class="en">Your Carbon Emissions Have a Price Tag.<br>Do You Know What It Costs?</span>
-      <span class="zh">你的碳排放<span class="hl">是有价格的</span>。<br>你知道你一年要花多少钱吗？</span>
+      <span>你的碳排放<span class="hl">是有价格的</span>。<br>你知道你一年要花多少钱吗？</span>
     </h1>
-    <p class="hero-sub en">Whether it's EU CBAM, the domestic carbon market, or supply chain requirements — carbon is a real financial cost. NRGOpt tells you how much, and whether investing in solar + storage is cheaper than just paying the bill.</p>
-    <p class="hero-sub zh">不管是欧盟碳关税、国内碳市场扩围，还是供应链客户的减碳要求——碳排放是你的财务报表上一笔真实的成本。NRGOpt 帮你算清楚这笔账，以及投资光伏+储能来降碳，到底划不划算。</p>
+    <p class="hero-sub">不管是欧盟碳关税、国内碳市场扩围，还是供应链客户的减碳要求——碳排放是你的财务报表上一笔真实的成本。NRGOpt 帮你算清楚这笔账，以及投资光伏+储能来降碳，到底划不划算。</p>
     <div class="btn-row">
-      <a href="calculator.html" class="btn btn-primary"><span class="en">Calculate Now</span><span class="zh">免费测算</span></a>
-      <a href="#how" class="btn btn-outline"><span class="en">How It Works</span><span class="zh">了解详情</span></a>
+      <a href="calculator.html" class="btn btn-primary"><span>免费测算</span></a>
+      <a href="#how" class="btn btn-outline"><span>了解详情</span></a>
     </div>
   </div>
 </section>
@@ -84,23 +77,22 @@
 <!-- ═══════════ PROBLEM ═══════════ -->
 <section id="problem" aria-labelledby="problem-title">
   <div class="container reveal">
-    <div class="section-label"><span class="en">The Problem</span><span class="zh">碳排放到底花你多少钱？</span></div>
+    <div class="section-label"><span>碳排放到底花你多少钱？</span></div>
     <h2 class="section-title" id="problem-title">
-      <span class="en">Three Levels of Carbon Cost</span>
-      <span class="zh">碳成本三个来源，你至少会碰上一个</span>
+      <span>碳成本三个来源，你至少会碰上一个</span>
     </h2>
     <div class="card-grid" style="margin-top:18px">
       <div class="card">
         <h3>🇪🇺 欧盟绿色壁垒</h3>
-        <p class="zh">CBAM 已开征，€75/吨，2028 年扩围至 180 种产品。电池法要求碳足迹声明，超标产品禁入。ESPR 要求产品数字护照——所有出口欧盟的企业都逃不掉。</p>
+        <p>CBAM 已开征，€75/吨，2028 年扩围至 180 种产品。电池法要求碳足迹声明，超标产品禁入。ESPR 要求产品数字护照——所有出口欧盟的企业都逃不掉。</p>
       </div>
       <div class="card">
         <h3>🇨🇳 国内碳市场扩围</h3>
-        <p class="zh">中国碳市场已从电力扩围至钢铁、水泥、铝。你的工厂如果不属于这些行业，也可能因为供应链客户的要求而被传导——"不提供碳数据，就换供应商"。</p>
+        <p>中国碳市场已从电力扩围至钢铁、水泥、铝。你的工厂如果不属于这些行业，也可能因为供应链客户的要求而被传导——"不提供碳数据，就换供应商"。</p>
       </div>
       <div class="card">
         <h3>🔗 供应链传导压力</h3>
-        <p class="zh">你的客户（整车厂、电池厂、品牌商）需要向欧盟证明整条供应链的碳足迹合规。他们会通过合同和采购条款把压力传导到你身上——这不是"要不要做"的问题，是"客户要求你做"。</p>
+        <p>你的客户（整车厂、电池厂、品牌商）需要向欧盟证明整条供应链的碳足迹合规。他们会通过合同和采购条款把压力传导到你身上——这不是"要不要做"的问题，是"客户要求你做"。</p>
       </div>
     </div>
   </div>
@@ -109,26 +101,25 @@
 <!-- ═══════════ HOW ═══════════ -->
 <section id="how" aria-labelledby="how-title">
   <div class="container reveal">
-    <div class="section-label"><span class="en">How We Help</span><span class="zh">我们能做什么</span></div>
+    <div class="section-label"><span>我们能做什么</span></div>
     <h2 class="section-title" id="how-title">
-      <span class="en">From "How Much Do I Owe?" to "What's the Best Way to Pay Less?"</span>
-      <span class="zh">从"我要交多少钱"，到"怎么交最少"</span>
+      <span>从"我要交多少钱"，到"怎么交最少"</span>
     </h2>
     <div class="card-grid">
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">📊</div>
         <h3>碳成本诊断</h3>
-        <p class="zh">输入工厂用电量、所在省、行业 → 5 分钟出结果：你的碳排放基线是多少、按当前碳价一年要花多少钱、跟行业平均水平比是高了还是低了。</p>
+        <p>输入工厂用电量、所在省、行业 → 5 分钟出结果：你的碳排放基线是多少、按当前碳价一年要花多少钱、跟行业平均水平比是高了还是低了。</p>
       </div>
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">☀️</div>
         <h3>降碳方案决策</h3>
-        <p class="zh">投光伏+储能 vs 继续交碳税，哪个划算？方案 A 不做投资 vs 方案 B 投资光储，10 年净节省一目了然。帮你用投资逻辑做降碳决策，而不是被动合规。</p>
+        <p>投光伏+储能 vs 继续交碳税，哪个划算？方案 A 不做投资 vs 方案 B 投资光储，10 年净节省一目了然。帮你用投资逻辑做降碳决策，而不是被动合规。</p>
       </div>
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">🔗</div>
         <h3>落地执行服务</h3>
-        <p class="zh">算完之后，需要落地？我们帮你对接靠谱的光伏/储能供应商，出具完整方案和成本核算，协助绿电直连或零碳园区入驻——从决策到执行，一个窗口。</p>
+        <p>算完之后，需要落地？我们帮你对接靠谱的光伏/储能供应商，出具完整方案和成本核算，协助绿电直连或零碳园区入驻——从决策到执行，一个窗口。</p>
       </div>
     </div>
   </div>
@@ -137,28 +128,26 @@
 <!-- ═══════════ TOOLS ═══════════ -->
 <section id="tools" aria-labelledby="tools-title">
   <div class="container reveal">
-    <div class="section-label"><span class="en">Free Tools</span><span class="zh">免费工具</span></div>
+    <div class="section-label"><span>免费工具</span></div>
     <h2 class="section-title" id="tools-title">
-      <span class="en">Try It Yourself</span>
-      <span class="zh">自己动手算</span>
+      <span>自己动手算</span>
     </h2>
-    <p class="section-desc en">No registration. Input your data, get results in minutes.</p>
-    <p class="section-desc zh">无需注册。输入数据，5 分钟出结果。</p>
+    <p class="section-desc">无需注册。输入数据，5 分钟出结果。</p>
     <div class="card-grid">
       <div class="card" onclick="location.href='calculator.html'" style="cursor:pointer">
         <div style="font-size:2rem;margin-bottom:10px;">🌍</div>
         <h3>碳成本测算</h3>
-        <p class="zh">用电量 → 碳排放 → 碳关税/碳成本 → 光储方案 → 10 年净节省。一步到位。</p>
+        <p>用电量 → 碳排放 → 碳关税/碳成本 → 光储方案 → 10 年净节省。一步到位。</p>
       </div>
       <div class="card" onclick="location.href='calculator.html'" style="cursor:pointer">
         <div style="font-size:2rem;margin-bottom:10px;">☀️</div>
         <h3>光伏投资测算</h3>
-        <p class="zh">输入位置辐照、自用比例、融资条件 → 秒出 IRR。</p>
+        <p>输入位置辐照、自用比例、融资条件 → 秒出 IRR。</p>
       </div>
       <div class="card" onclick="location.href='calculator.html'" style="cursor:pointer">
         <div style="font-size:2rem;margin-bottom:10px;">🔋</div>
         <h3>储能 / 光储一体化</h3>
-        <p class="zh">工商业储能 / 独立储能 / 光储一体。含逐年现金流表和图表。</p>
+        <p>工商业储能 / 独立储能 / 光储一体。含逐年现金流表和图表。</p>
       </div>
     </div>
   </div>
@@ -167,26 +156,25 @@
 <!-- ═══════════ WHY ═══════════ -->
 <section id="why" aria-labelledby="why-title">
   <div class="container reveal">
-    <div class="section-label"><span class="en">Why Us</span><span class="zh">为什么是我们</span></div>
+    <div class="section-label"><span>为什么是我们</span></div>
     <h2 class="section-title" id="why-title">
-      <span class="en">This Intersection Is Where the Market Is Going</span>
-      <span class="zh">这个交叉点，就是市场正在去的方向</span>
+      <span>这个交叉点，就是市场正在去的方向</span>
     </h2>
     <div class="card-grid">
       <div class="card">
         <div style="font-size:1.8rem;margin-bottom:8px;">🏗️</div>
         <h3>产业内部视角</h3>
-        <p class="zh">扎根于全球领先的钙钛矿光伏研发企业。我们清楚中国新能源供应链的真实成本、真实性能、谁靠谱——不是纸上谈兵。</p>
+        <p>扎根于全球领先的钙钛矿光伏研发企业。我们清楚中国新能源供应链的真实成本、真实性能、谁靠谱——不是纸上谈兵。</p>
       </div>
       <div class="card">
         <div style="font-size:1.8rem;margin-bottom:8px;">🔢</div>
         <h3>分钟级经济测算</h3>
-        <p class="zh">传统碳咨询出一份报告 5-20 万、耗时数周。NRGOpt 的核心测算 5 分钟出结果——免费。你不需要等报告再做决策。</p>
+        <p>传统碳咨询出一份报告 5-20 万、耗时数周。NRGOpt 的核心测算 5 分钟出结果——免费。你不需要等报告再做决策。</p>
       </div>
       <div class="card">
         <div style="font-size:1.8rem;margin-bottom:8px;">🎯</div>
         <h3>碳政策 × 新能源 交叉点</h3>
-        <p class="zh">碳咨询公司不懂光伏储能的成本和性能。光伏销售算不了碳政策的经济账。我们站在交叉点上——而那个交叉点就是市场正在去的方向。</p>
+        <p>碳咨询公司不懂光伏储能的成本和性能。光伏销售算不了碳政策的经济账。我们站在交叉点上——而那个交叉点就是市场正在去的方向。</p>
       </div>
     </div>
   </div>
@@ -195,13 +183,11 @@
 <!-- ═══════════ CONTACT ═══════════ -->
 <section id="contact" aria-labelledby="contact-title">
   <div class="container reveal">
-    <div class="section-label"><span class="en">Contact</span><span class="zh">联系</span></div>
+    <div class="section-label"><span>联系</span></div>
     <h2 class="section-title" id="contact-title">
-      <span class="en">Let's Talk</span>
-      <span class="zh">算完了？想知道怎么落地？</span>
+      <span>算完了？想知道怎么落地？</span>
     </h2>
-    <p class="section-desc en">Free calculator gives you the numbers. We help you decide what to do next.</p>
-    <p class="section-desc zh">免费工具给你数字。我们帮你决定下一步怎么做。</p>
+    <p class="section-desc">免费工具给你数字。我们帮你决定下一步怎么做。</p>
 
     <div class="contact-row">
       <div class="card">
@@ -217,12 +203,12 @@
     </div>
 
     <form class="contact-form" id="contactForm"
-          data-submit-text="Send Message"
-          data-sending-text="Sending..."
-          data-success-text="Thank you! We'll get back to you within 24 hours."
-          data-error-text="Something went wrong. Please email us at 7391117@qq.com">
+          data-submit-text="发送"
+          data-sending-text="发送中..."
+          data-success-text="已收到您的留言，我们会在24小时内回复。"
+          data-error-text="发送失败，请直接邮件联系 7391117@qq.com">
       <div class="form-group">
-        <label for="formName"><span class="en">Name</span><span class="zh">姓名</span></label>
+        <label for="formName"><span>姓名</span></label>
         <input type="text" id="formName" name="name" required autocomplete="name">
       </div>
       <div class="form-group">
@@ -230,16 +216,14 @@
         <input type="email" id="formEmail" name="email" required autocomplete="email">
       </div>
       <div class="form-group">
-        <label for="formCompany"><span class="en">Company</span><span class="zh">公司</span></label>
+        <label for="formCompany"><span>公司</span></label>
         <input type="text" id="formCompany" name="company" autocomplete="organization">
       </div>
       <div class="form-group">
-        <label for="formMessage"><span class="en">Message</span><span class="zh">留言</span></label>
-        <textarea id="formMessage" name="message" rows="5" required
-                  data-en-placeholder="What's your product? How much electricity do you use? What problem are you facing?"
-                  data-zh-placeholder="出口什么产品？年用电量大概多少？您面临什么问题？"></textarea>
+        <label for="formMessage"><span>留言</span></label>
+        <textarea id="formMessage" name="message" rows="5" required placeholder="出口什么产品？年用电量大概多少？您面临什么问题？"></textarea>
       </div>
-      <button type="submit" class="btn-submit"><span class="en">Send Message</span><span class="zh">发送消息</span></button>
+      <button type="submit" class="btn-submit"><span>发送消息</span></button>
       <div class="form-status" id="formStatus" aria-live="polite"></div>
     </form>
   </div>
@@ -248,11 +232,10 @@
 
 <footer role="contentinfo">
   <div class="container">
-    <p class="en">© 2026 NRGOpt — Carbon Cost Management</p>
-    <p class="zh">© 2026 NRGOpt — 碳成本管理决策工具</p>
+    <p>© 2026 NRGOpt — 碳成本管理决策工具</p>
   </div>
 </footer>
 
-<script src="js/script.js"></script>
+<script src="js/script.js?v=2"></script>
 </body>
 </html>
