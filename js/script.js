@@ -142,6 +142,7 @@
         email: form.querySelector('[name="email"]').value,
         company: form.querySelector('[name="company"]').value,
         message: form.querySelector('[name="message"]').value,
+        website: form.querySelector('[name="website"]').value,
       };
 
       fetch('/api/contact', {

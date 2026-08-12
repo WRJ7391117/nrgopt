@@ -134,6 +134,11 @@
 @media (max-width:500px) {
   .calc-hero { padding:72px 0 10px; }
   .calc-hero h1 { font-size:1.2rem; }
+  .tab-bar { max-width:100%; padding:0 8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tab-btn { width:100%; padding:9px 6px; }
+  .loc-tab-panel { display:block; }
+  .loc-city-row { margin-top:8px; max-width:100%; }
+  .loc-city-row .loc-input { min-width:0 !important; }
   .metric-band { padding:6px 8px; gap:6px; }
   .band-card { padding:10px 8px; }
   .band-label { font-size:0.6rem; }

@@ -119,47 +119,82 @@ function syncDurationInputs(){
 }
 
 function npv(r,c){var t=0;for(var i=0;i<c.length;i++)t+=c[i]/Math.pow(1+r,i);return t;}
-function irr(c,g){g=g||0.1;var r=g;for(var i=0;i<120;i++){var f=npv(r,c),d=(npv(r+1e-6,c)-f)/1e-6;if(Math.abs(d)<1e-14)break;var x=f/d;r-=x;if(Math.abs(x)<1e-8)return r;}return r;}
+function irr(c){
+  var hasNeg=c.some(function(v){return v<0;}),hasPos=c.some(function(v){return v>0;});
+  if(!hasNeg||!hasPos)return null;
+  var rates=[-0.999];
+  for(var r=-0.99;r<=1;r+=0.01)rates.push(r);
+  for(var x=1.1;x<=100;x*=1.35)rates.push(x);
+  var lo=null,hi=null,lastR=rates[0],lastV=npv(lastR,c);
+  for(var i=1;i<rates.length;i++){
+    var v=npv(rates[i],c);
+    if(v===0)return rates[i];
+    if(lastV*v<0){lo=lastR;hi=rates[i];break;}
+    lastR=rates[i];lastV=v;
+  }
+  if(lo===null)return null;
+  for(var j=0;j<160;j++){
+    var mid=(lo+hi)/2,mv=npv(mid,c);
+    if(Math.abs(mv)<1e-8)return mid;
+    if(npv(lo,c)*mv<=0)hi=mid;else lo=mid;
+  }
+  return (lo+hi)/2;
+}
 function payback(c){var s=0;for(var i=0;i<c.length;i++){s+=c[i];if(s>0){var p=s-c[i];return(i-1)+Math.abs(p)/(Math.abs(p)+Math.abs(c[i]));}}return null;}
+function batteryHealth(year,firstDeg,calendarDeg,cycles,opDays,cycleLife,replacementYear){
+  var age=year-1;
+  if(replacementYear>0&&year>replacementYear)age=year-replacementYear-1;
+  var cal=Math.max(0,1-calendarDeg*age);
+  var cyc=Math.max(0,1-(0.2/cycleLife)*cycles*opDays*age);
+  return Math.max(0.65,(1-firstDeg)*cal*cyc);
+}
+function vatCash(rev,rate,credit,refundRate){
+  var output=rev*rate;
+  var used=Math.min(credit,output);
+  var gross=Math.max(0,output-used);
+  var refund=gross*refundRate;
+  return {credit:credit-used,used:used,gross:gross,refund:refund,paid:gross-refund,cashBenefit:used+refund};
+}
+function annualInstallment(loan,rate,years,method){
+  if(years<=0||method!=='equal-installment')return 0;
+  var mr=rate/12,n=years*12;
+  return mr>0?loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12:loan/years;
+}
+function debtService(year,loan,rate,years,method,installment,remaining){
+  if(year>years||remaining<=0)return {interest:0,principal:0,remaining:remaining};
+  var interest=remaining*rate,principal=0;
+  if(method==='equal-principal')principal=loan/years;
+  else if(method==='equal-installment')principal=Math.max(0,installment-interest);
+  else if(method==='bullet'&&year===years)principal=loan;
+  principal=Math.min(remaining,principal);
+  return {interest:interest,principal:principal,remaining:Math.max(0,remaining-principal)};
+}
 
 function calc(p){
   var cap=p.capacity,uc=p.unitCost,lr=p.loanRatio,li=p.loanRate,ly=p.loanYears;
   var gkw=p.genPerW,ry=p.runYears,su=p.selfUse,dp=p.dayPrice,gp=p.gridPrice;
-  var d1=p.degradY1||0.01,da=p.degrad||0.0055;
+  var d1=p.degradY1==null?0.01:p.degradY1,da=p.degrad==null?0.0055:p.degrad;
   var vr=p.vatRate,mgmt=p.mgmtFee,me=p.mgmtEscal,maint=p.maintFee,mte=p.maintEscal;
   var insR=p.insRate,res=p.residual;
   var dy=p.deprYears,irpw=p.invReplace,iry=p.invYear,disc=p.discount;
   var taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
   var TI=cap*uc*100,loan=TI*lr;
-  // Repayment method
   var repayMethod=p.repayMethod||'equal-principal';
-  var installment=0;
-  if(ly>0&&repayMethod==='equal-installment'){
-    var mr=li/12,n=ly*12;
-    if(mr>0){installment=loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12;}
-    else{installment=loan/ly;}
-  }
+  var installment=annualInstallment(loan,li,ly,repayMethod);
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy,invRep=cap*irpw*100;
+  var residualCash=deprBase*res;
   var idealGen=cap*gkw*100,genY1=idealGen*(1-d1);
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var rev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
-    var outputVat=rev*vr;
-    var inputVat=0;
-    if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
-    var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
+    var vatInfo=vatCash(rev,vr,vatCredit,p.vatRefundRate||0);vatCredit=vatInfo.credit;
+    var vat=vatInfo.paid,sur=vat*0.12;
     var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
-    var interest=remLoan*li;
-    var prPaid=0;
-    if(y<=ly){
-      if(repayMethod==='equal-principal'){prPaid=loan/ly;}
-      else if(repayMethod==='equal-installment'){prPaid=installment-interest;}
-      else if(repayMethod==='bullet'){prPaid=0;if(y===ly)prPaid=loan;}
-    }
-    remLoan=Math.max(0,remLoan-prPaid);
+    var debt=debtService(y,loan,li,ly,repayMethod,installment,remLoan);
+    var interest=debt.interest,prPaid=debt.principal;remLoan=debt.remaining;
     var depr=y<=dy?deprA:0;
     var totCostF=depr+opex+ins;
     var pbtF=rev-sur-totCostF;
@@ -175,16 +210,19 @@ function calc(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=patF+depr;if(y===iry)cf-=invRep;
+    var repCost=y===iry?invRep:0;
+    var terminalFull=y===ry?residualCash:0;
+    var terminalEquity=y===ry?residualCash-remLoan:0;
+    var cf=patF+depr+vatInfo.cashBenefit-repCost+terminalFull;
     cfsF.push(cf);
-    var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
+    var ecf=pat+depr+vatInfo.cashBenefit-prPaid-repCost+terminalEquity;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur});
+    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost+repCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur,vatBenefit:vatInfo.cashBenefit,replacement:repCost,terminal:terminalFull});
   }
-  cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalRev=0,totalCost=0,totalProfit=0,totalVat=0,totalGen=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;totalGen+=rows[i].gen;}
-  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/(TI-loan)*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalRev=0,totalCost=0,accountingProfit=0,totalVat=0,totalGen=0;for(var i=0;i<rows.length;i++){totalRev+=rows[i].rev;totalCost+=rows[i].totCost;accountingProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;totalGen+=rows[i].gen;}
+  var netCash=cfsF.reduce(function(a,v){return a+v;},0);
+  return {totalInv:TI,loan:loan,equity:TI-loan,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:netCash,totalVat:totalVat,roi:netCash/TI*100,roe:(TI-loan)>0?accountingProfit/ry/(TI-loan)*100:null,roa:accountingProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 
@@ -193,7 +231,7 @@ function calcCI(p){
   var spPrice=p.spPrice,spHrs=p.spHours,peakPrice=p.peakPrice,peakHrs=p.peakHours;
   var flatPrice=p.flatPrice,flatHrs=p.flatHours,valleyPrice=p.valleyPrice,valleyHrs=p.valleyHours;
   var cycles=p.cycles,opDays=p.opDays,rte=p.rte/100;
-  var d1=p.degradY1||0.02,da=p.degrad||0.015;
+  var d1=p.degradY1==null?0.02:p.degradY1,da=p.degrad==null?0.015:p.degrad;
   var ry=p.runYears,dy=p.deprYears,res=p.residual;
   var vr=p.vatRate,taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
   var mgmt=p.mgmtFee,me=p.mgmtEscal,maint=p.maintFee,mte=p.maintEscal,insR=p.insRate;
@@ -210,16 +248,14 @@ function calcCI(p){
   var spFill=Math.min(dur,spHrs),pkFill=Math.min(dur-spFill,peakHrs);
   var totalDisHrs=spFill+pkFill;
   var avgOutPrice=totalDisHrs>0?(spFill*spPrice+pkFill*peakPrice)/totalDisHrs:peakPrice;
-  var baseDailyArb=effKWh*rte/10000*cycles*(avgOutPrice-valleyPrice/rte);
+  var baseDailyArb=Math.max(0,effKWh*rte/10000*cycles*(avgOutPrice-valleyPrice/rte));
 
   // Demand charge savings (仅按最大需量计费时储能才可削减需量电费)
   var peakReduction=cap*1000*demandReduction,demandSavings=demandMode==='demand'?peakReduction*demandCharge*12/10000:0;
 
-  // Battery degradation: calendar + cycle-based
-  var totalCycles=cycles*opDays*ry,cycleLife=6000;
-  var cycleDegRate=0.2/(cycles*opDays); // lose 20% per year-equivalent cycles
-  var calendarDegRate=da;
-  var annualThru=effKWh*cycles*opDays*rte/1000;
+  // Battery degradation: calendar + cycle-based, reset after replacement.
+  var cycleLife=6000;
+  var annualThru=effKWh*cycles*opDays*rte/10000;
   var baseAnnualRev=baseDailyArb*opDays+demandSavings;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
@@ -228,34 +264,20 @@ function calcCI(p){
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
 
-  var installment=0;
-  if(ly>0&&repayMethod==='equal-installment'){
-    var mr=li/12,n=ly*12;
-    if(mr>0){installment=loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12;}
-    else{installment=loan/ly;}
-  }
+  var installment=annualInstallment(loan,li,ly,repayMethod);
+  var residualCash=deprBase*res;
 
   for(var y=1;y<=ry;y++){
-    var calD=1-calendarDegRate*(y-1);
-    var cycD=1-cycleDegRate*cycles*(y-1);
-    var degF=Math.max(0.65,calD*cycD);
+    var degF=batteryHealth(y,d1,da,cycles,opDays,cycleLife,invRep>0?iry:0);
     var thru=annualThru*degF;
     var priceF=Math.pow(1+priceEscal,y-1);
     var rev=baseAnnualRev*priceF*degF;
-    var outputVat=rev*vr;
-    var inputVat=0;
-    if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
-    var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
+    var vatInfo=vatCash(rev,vr,vatCredit,p.vatRefundRate||0);vatCredit=vatInfo.credit;
+    var vat=vatInfo.paid,sur=vat*0.12;
     var opex=cap*100*mgmt*Math.pow(1+me,y-1)+cap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
-    var interest=remLoan*li;
-    var prPaid=0;
-    if(y<=ly){
-      if(repayMethod==='equal-principal'){prPaid=loan/ly;}
-      else if(repayMethod==='equal-installment'){prPaid=installment-interest;}
-      else if(repayMethod==='bullet'){prPaid=0;if(y===ly)prPaid=loan;}
-    }
-    remLoan=Math.max(0,remLoan-prPaid);
+    var debt=debtService(y,loan,li,ly,repayMethod,installment,remLoan);
+    var interest=debt.interest,prPaid=debt.principal;remLoan=debt.remaining;
     var depr=y<=dy?deprA:0;
     var totCostF=depr+opex+ins;
     var pbtF=rev-sur-totCostF;
@@ -271,17 +293,20 @@ function calcCI(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=patF+depr;if(y===iry)cf-=invRep;
+    var repCost=y===iry?invRep:0;
+    var terminalFull=y===ry?residualCash:0;
+    var terminalEquity=y===ry?residualCash-remLoan:0;
+    var cf=patF+depr+vatInfo.cashBenefit-repCost+terminalFull;
     cfsF.push(cf);
-    var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
+    var ecf=pat+depr+vatInfo.cashBenefit-prPaid-repCost+terminalEquity;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:thru,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur});
+    rows.push({yr:y,gen:thru,rev:rev,totCost:totCost+repCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur,vatBenefit:vatInfo.cashBenefit,replacement:repCost,terminal:terminalFull});
   }
-  cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalThru=0,totalRev=0,totalCost=0,totalProfit=0,totalVat=0;
-  for(var i=0;i<rows.length;i++){totalThru+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
-  return {totalInv:TI,loan:loan,equity:equity,genY1:annualThru,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalThru=0,totalRev=0,totalCost=0,accountingProfit=0,totalVat=0;
+  for(var i=0;i<rows.length;i++){totalThru+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;accountingProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
+  var netCash=cfsF.reduce(function(a,v){return a+v;},0);
+  return {totalInv:TI,loan:loan,equity:equity,genY1:rows.length?rows[0].gen:0,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:netCash,totalVat:totalVat,roi:netCash/TI*100,roe:equity>0?accountingProfit/ry/equity*100:null,roa:accountingProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function setSlider(sid,nid,min,max,val){
@@ -294,7 +319,7 @@ function calcIS(p){
   var cap=p.capacity,dur=p.duration,uc=p.unitCost,lr=p.loanRatio,li=p.loanRate,ly=p.loanYears;
   var spread=p.spread,leasePrice=p.leasePrice,leaseRate=p.leaseRate/100,freqReg=p.freqReg;
   var cycles=p.cycles,opDays=p.opDays,rte=p.rte/100;
-  var d1=p.degradY1||0.02,da=p.degrad||0.015;
+  var d1=p.degradY1==null?0.02:p.degradY1,da=p.degrad==null?0.015:p.degrad;
   var ry=p.runYears,dy=p.deprYears,res=p.residual;
   var vr=p.vatRate,taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
   var mgmt=p.mgmtFee,me=p.mgmtEscal,maint=p.maintFee,mte=p.maintEscal,insR=p.insRate;
@@ -302,10 +327,15 @@ function calcIS(p){
   var repayMethod=p.repayMethod||'equal-principal';
 
   var MWh=cap*dur,TI=MWh*100*uc,loan=TI*lr,equity=TI-loan;
-  var dailyArb=MWh*rte*cycles*spread/10,annualArb=dailyArb*opDays;
+  // Bug #1 fix: RTE should only apply to discharge (peak) side, not the entire spread
+  // dailyArb = MWh * cycles * (rte * peakPrice - valleyPrice) / 10
+  // where peakPrice = spread + valleyPrice
+  var valleyPrice=p.valleyPrice||0.35;
+  var peakPrice=spread+valleyPrice;
+  var dailyArb=Math.max(0,MWh*cycles*(rte*peakPrice-valleyPrice)/10),annualArb=dailyArb*opDays;
   var annualLease=cap*1000*leasePrice*leaseRate/10000;
   var annualFreq=cap*freqReg,annualRev=annualArb+annualLease+annualFreq;
-  var annualThru=MWh*cycles*opDays*rte/10*(1-d1);
+  var annualThru=MWh*cycles*opDays*rte/10;
 
   var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
   var invRep=MWh*100*irpw;
@@ -313,30 +343,18 @@ function calcIS(p){
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
 
-  var installment=0;
-  if(ly>0&&repayMethod==='equal-installment'){
-    var mr=li/12,n=ly*12;
-    if(mr>0){installment=loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12;}
-    else{installment=loan/ly;}
-  }
+  var installment=annualInstallment(loan,li,ly,repayMethod);
+  var residualCash=deprBase*res;
 
   for(var y=1;y<=ry;y++){
-    var degF=Math.pow(1-da,y-1);
+    var degF=batteryHealth(y,d1,da,cycles,opDays,6000,invRep>0?iry:0);
     var rev=annualRev*degF;
-    var outputVat=rev*vr;
-    var inputVat=0;
-    if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
-    var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
+    var vatInfo=vatCash(rev,vr,vatCredit,p.vatRefundRate||0);vatCredit=vatInfo.credit;
+    var vat=vatInfo.paid,sur=vat*0.12;
     var opex=cap*100*mgmt*Math.pow(1+me,y-1)+cap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
-    var interest=remLoan*li;
-    var prPaid=0;
-    if(y<=ly){
-      if(repayMethod==='equal-principal'){prPaid=loan/ly;}
-      else if(repayMethod==='equal-installment'){prPaid=installment-interest;}
-      else if(repayMethod==='bullet'){prPaid=0;if(y===ly)prPaid=loan;}
-    }
-    remLoan=Math.max(0,remLoan-prPaid);
+    var debt=debtService(y,loan,li,ly,repayMethod,installment,remLoan);
+    var interest=debt.interest,prPaid=debt.principal;remLoan=debt.remaining;
     var depr=y<=dy?deprA:0;
     var totCostF=depr+opex+ins;
     var pbtF=rev-sur-totCostF;
@@ -352,30 +370,33 @@ function calcIS(p){
     else if(y<=taxFree+taxHalf)tax=Math.max(0,pbt*taxRate*0.5);
     else tax=Math.max(0,pbt*taxRate);
     var pat=pbt-tax;
-    var cf=patF+depr;if(y===iry)cf-=invRep;
+    var repCost=y===iry?invRep:0;
+    var terminalFull=y===ry?residualCash:0;
+    var terminalEquity=y===ry?residualCash-remLoan:0;
+    var cf=patF+depr+vatInfo.cashBenefit-repCost+terminalFull;
     cfsF.push(cf);
-    var ecf=pat+depr-prPaid;if(y===iry)ecf-=invRep;
+    var ecf=pat+depr+vatInfo.cashBenefit-prPaid-repCost+terminalEquity;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:annualThru*degF,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur});
+    rows.push({yr:y,gen:annualThru*degF,rev:rev,totCost:totCost+repCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur,vatBenefit:vatInfo.cashBenefit,replacement:repCost,terminal:terminalFull});
   }
-  cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalThru=0,totalRev=0,totalCost=0,totalProfit=0,totalVat=0;
-  for(var i=0;i<rows.length;i++){totalThru+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
-  return {totalInv:TI,loan:loan,equity:equity,genY1:annualThru,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalThru=0,totalRev=0,totalCost=0,accountingProfit=0,totalVat=0;
+  for(var i=0;i<rows.length;i++){totalThru+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;accountingProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
+  var netCash=cfsF.reduce(function(a,v){return a+v;},0);
+  return {totalInv:TI,loan:loan,equity:equity,genY1:rows.length?rows[0].gen:0,totalGen:totalThru,totalRev:totalRev,totalCost:totalCost,totalProfit:netCash,totalVat:totalVat,roi:netCash/TI*100,roe:equity>0?accountingProfit/ry/equity*100:null,roa:accountingProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 function calcHybrid(p){
   // Simplified hybrid: PV self-use savings + storage arbitrage from excess
   var cap=p.capacity,uc=p.unitCost,lr=p.loanRatio,li=p.loanRate,ly=p.loanYears;
-  var gkw=p.genPerW,ry=p.runYears,su=p.selfUse,dp=p.dayPrice,gp=p.gridPrice;
+  var gkw=p.genPerW,ry=p.runYears,stLife=p.stLife||p.runYears,su=p.selfUse,dp=p.dayPrice,gp=p.gridPrice;
   var dur=p.duration,rte=p.rte/100,cycles=p.cycles,opDays=p.opDays;
   var spPrice=p.spPrice,spHrs=p.spHours,peakPrice=p.peakPrice,peakHrs=p.peakHours;
   var valleyPrice=p.valleyPrice;
-  var d1=p.degradY1||0.01,da=p.degrad||0.0055;
+  var d1=p.degradY1==null?0.01:p.degradY1,da=p.degrad==null?0.0055:p.degrad;
   var vr=p.vatRate,mgmt=p.mgmtFee,me=p.mgmtEscal,maint=p.maintFee,mte=p.maintEscal;
   var insR=p.insRate,res=p.residual;
-  var dy=p.deprYears,irpw=p.invReplace,iry=p.invYear,batYear=p.batYear||10,disc=p.discount;
+  var dy=p.deprYears,stDy=p.stDepr||8,irpw=p.invReplace,iry=p.invYear,batYear=p.batYear||10,disc=p.discount;
   var taxFree=p.taxFreeYr,taxHalf=p.taxHalfYr,taxRate=p.taxRate;
   var repayMethod=p.repayMethod||'equal-principal';
 
@@ -384,8 +405,9 @@ function calcHybrid(p){
   var idealGen=cap*gkw*100,genY1=idealGen*(1-d1);
   
   // Storage side
-  var stCap=p.hyStCap||0.2,dur2=dur,kWh2=stCap*1000*dur2; // stCap MW→kW×h=kWh
-    var stUC=p.stUC||0.8,stDegrad=da*2.5; var TI_st=kWh2*stUC/10; // kWh * 元/Wh / 10 = 万元
+  var stCap=p.hyStCap||0.2,dur2=dur,dod=p.dod==null?0.85:p.dod/100;
+  var nominalKWh=stCap*1000*dur2,usableKWh=nominalKWh*dod;
+  var stUC=p.stUC||0.8; var TI_st=nominalKWh*stUC/10;
   var TI=TI_pv+TI_st;
   var loan=TI*lr,equity=TI-loan;
 
@@ -393,44 +415,38 @@ function calcHybrid(p){
   var spFill=Math.min(dur2,spHrs),pkFill=Math.min(dur2-spFill,peakHrs);
   var totalDisHrs=spFill+pkFill;
   var avgOutPrice=totalDisHrs>0?(spFill*spPrice+pkFill*peakPrice)/totalDisHrs:peakPrice;
-  var excessGen=genY1*(1-su); // 万kWh not self-used
-  var stThru=Math.min(excessGen*10000,kWh2*cycles*opDays*rte)/10000; // limit to excess
-  var arbRev=stThru*(avgOutPrice-valleyPrice/rte); // 万元
+  var excessGen=genY1*(1-su); // 万kWh available to charge
+  var stThru=Math.min(excessGen*rte,usableKWh*cycles*opDays*rte/10000);
+  // Excess PV already earns the grid tariff in pvRev. Storage adds only the
+  // avoided grid sale opportunity cost, not a second valley-energy purchase.
+  var arbRev=stThru*Math.max(0,avgOutPrice-gp/rte);
 
   var annualThru=genY1;
-  var vatDed=TI*vr/(1+vr),deprBase=TI-vatDed,deprA=deprBase*(1-res)/dy;
-  var invRep_pv=cap*irpw*100,invRep_st=kWh2*(p.batReplace||0.3)/10;
+  var vatDed=TI*vr/(1+vr),pvVatBase=TI_pv/(1+vr),stVatBase=TI_st/(1+vr);
+  var deprBase=pvVatBase+stVatBase,deprPv=pvVatBase*(1-res)/dy,deprSt=stVatBase*(1-res)/stDy;
+  var invRep_pv=cap*irpw*100,invRep_st=nominalKWh*(p.batReplace||0.3)/10;
 
   var cfsF=[-TI],cfsE=[-(TI-loan)],rows=[],cum=-TI;
   var vatCredit=vatDed,remLoan=loan;
 
-  var installment=0;
-  if(ly>0&&repayMethod==='equal-installment'){
-    var mr=li/12,n=ly*12;
-    if(mr>0){installment=loan*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1)*12;}
-    else{installment=loan/ly;}
-  }
+  var installment=annualInstallment(loan,li,ly,repayMethod);
+  var pvResidual=pvVatBase*res,stResidual=stVatBase*res;
 
   for(var y=1;y<=ry;y++){
     var gen=y===1?genY1:genY1*Math.pow(1-da,y-1);
     var pvRev=gen*su*dp/(1+vr)+gen*(1-su)*gp/(1+vr);
-      var stRev=arbRev*Math.pow(1-stDegrad,y-1); // storage degrades ~2.5x faster
+    var stActive=y<=stLife;
+    var stHealth=stActive?batteryHealth(y,0,p.storageDegrad||0.015,cycles,opDays,6000,invRep_st>0?batYear:0):0;
+    var stRev=arbRev*stHealth;
     var rev=pvRev+stRev;
-    var outputVat=rev*vr;
-    var inputVat=0;
-    if(vatCredit>0){inputVat=Math.min(vatCredit,outputVat);vatCredit-=inputVat;}
-    var vat=Math.max(0,(outputVat-inputVat)*0.5),sur=vat*0.1;
-      var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1)+stCap*100*mgmt*Math.pow(1+me,y-1)+stCap*100*maint*Math.pow(1+mte,y-1);
+    var vatInfo=vatCash(rev,vr,vatCredit,p.vatRefundRate||0);vatCredit=vatInfo.credit;
+    var vat=vatInfo.paid,sur=vat*0.12;
+    var opex=cap*mgmt*100*Math.pow(1+me,y-1)+cap*maint*100*Math.pow(1+mte,y-1);
+    if(stActive)opex+=stCap*100*mgmt*Math.pow(1+me,y-1)+stCap*100*maint*Math.pow(1+mte,y-1);
     var ins=TI*insR/100*Math.pow(1.02,y-1);
-    var interest=remLoan*li;
-    var prPaid=0;
-    if(y<=ly){
-      if(repayMethod==='equal-principal'){prPaid=loan/ly;}
-      else if(repayMethod==='equal-installment'){prPaid=installment-interest;}
-      else if(repayMethod==='bullet'){prPaid=0;if(y===ly)prPaid=loan;}
-    }
-    remLoan=Math.max(0,remLoan-prPaid);
-    var depr=y<=dy?deprA:0;
+    var debt=debtService(y,loan,li,ly,repayMethod,installment,remLoan);
+    var interest=debt.interest,prPaid=debt.principal;remLoan=debt.remaining;
+    var depr=(y<=dy?deprPv:0)+(y<=stDy&&stActive?deprSt:0);
     var totCost=depr+interest+opex+ins;
     var pbt=rev-sur-totCost;
     var tax;
@@ -444,18 +460,20 @@ function calcHybrid(p){
     else if(y<=taxFree+taxHalf)taxF=Math.max(0,pbtF*taxRate*0.5);
     else taxF=Math.max(0,pbtF*taxRate);
     var patF=pbtF-taxF;
-    var repCost=0;if(y===iry)repCost+=invRep_pv;if(y===batYear)repCost+=invRep_st;
-    var cf=patF+depr-repCost;
+    var repCost=0;if(y===iry)repCost+=invRep_pv;if(y===batYear&&stActive)repCost+=invRep_st;
+    var terminalFull=(y===ry?pvResidual:0)+(y===stLife?stResidual:0);
+    var terminalEquity=terminalFull-(y===ry?remLoan:0);
+    var cf=patF+depr+vatInfo.cashBenefit-repCost+terminalFull;
     cfsF.push(cf);
-    var ecf=pat+depr-prPaid-repCost;
+    var ecf=pat+depr+vatInfo.cashBenefit-prPaid-repCost+terminalEquity;
     cfsE.push(ecf);
     cum+=cf;
-    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur});
+    rows.push({yr:y,gen:gen,rev:rev,totCost:totCost+repCost,tax:tax,pat:pat,cf:cf,cumCash:cum,vat:vat,sur:sur,vatBenefit:vatInfo.cashBenefit,replacement:repCost,terminal:terminalFull});
   }
-  cfsF[cfsF.length-1]+=deprBase*res;cfsE[cfsE.length-1]+=deprBase*res;
-  var totalGen=0,totalRev=0,totalCost=0,totalProfit=0,totalVat=0;
-  for(var i=0;i<rows.length;i++){totalGen+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;totalProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
-  return {totalInv:TI,loan:loan,equity:equity,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:totalProfit,totalVat:totalVat,roi:totalProfit/TI*100,roe:totalProfit/ry/equity*100,roa:totalProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
+  var totalGen=0,totalRev=0,totalCost=0,accountingProfit=0,totalVat=0;
+  for(var i=0;i<rows.length;i++){totalGen+=rows[i].gen;totalRev+=rows[i].rev;totalCost+=rows[i].totCost;accountingProfit+=rows[i].pat;totalVat+=rows[i].vat+rows[i].sur;}
+  var netCash=cfsF.reduce(function(a,v){return a+v;},0);
+  return {totalInv:TI,loan:loan,equity:equity,genY1:genY1,totalGen:totalGen,totalRev:totalRev,totalCost:totalCost,totalProfit:netCash,totalVat:totalVat,roi:netCash/TI*100,roe:equity>0?accountingProfit/ry/equity*100:null,roa:accountingProfit/ry/TI*100,irrFull:irr(cfsF),irrEq:irr(cfsE),npvFull:npv(disc,cfsF),payback:payback(cfsF),rows:rows};
 }
 
 
@@ -466,6 +484,11 @@ function ival(id){var e=el(id);return e?parseInt(e.value)||0:0;}
 function vdef(id,def){var e=el(id);if(!e)return def;var v=parseFloat(e.value);return isNaN(v)?def:v;}
 function idef(id,def){var e=el(id);if(!e)return def;var v=parseInt(e.value);return isNaN(v)?def:v;}
 function setText(id,t){var e=el(id);if(e)e.textContent=t;}
+function updatePrintTitle(){
+  var field=el('locProjectName'),title=document.querySelector('.print-title');
+  if(!field||!title)return;
+  title.textContent=(field.value.trim()?field.value.trim()+' — ':'')+'NrgOpt 项目测算报告';
+}
 function fmtWan(v){return Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+' 万元';}
 var _infoCardData=null;
 function syncInfoCard(){
@@ -491,7 +514,8 @@ function getP(){
     maintFee:vdef('inpMaintFee',0.04), maintEscal:vdef('inpMaintEscal',1)/100,
     insRate:vdef('inpInsRate',0.1),
     vatRate:idef('inpVatRate',13)/100,
-    taxFreeYr:idef('inpTaxFreeYr',3), taxHalfYr:idef('inpTaxHalfYr',3),
+    vatRefundRate:0,
+    taxFreeYr:idef('inpTaxFreeYr',0), taxHalfYr:idef('inpTaxHalfYr',0),
     taxRate:vdef('inpTaxRate',25)/100,
     invReplace:vdef('inpInvReplace',0.2), invYear:idef('inpInvYear',12),
     discount:vdef('inpDiscount',10)/100
@@ -520,7 +544,8 @@ function getPCI(){
     maintFee:vdef('inpMaintFee',0.015),maintEscal:vdef('inpMaintEscal',1)/100,
     insRate:vdef('inpInsRate',0.15),
     vatRate:idef('inpVatRate',13)/100,
-    taxFreeYr:idef('inpTaxFreeYr',3),taxHalfYr:idef('inpTaxHalfYr',3),
+    vatRefundRate:0,
+    taxFreeYr:idef('inpTaxFreeYr',0),taxHalfYr:idef('inpTaxHalfYr',0),
     taxRate:vdef('inpTaxRate',25)/100,
     invReplace:vdef('inpBatReplace',0.3),invYear:idef('inpBatYear',10),
     discount:vdef('inpDiscount',10)/100
@@ -532,6 +557,7 @@ function getPIS(){
     capacity:vdef('inpHyStCap',50),duration:vdef('inpDurationIs',2),unitCost:vdef('inpStUC',0.9),
     leasePrice:vdef('inpLeasePrice',300),leaseRate:vdef('inpLeaseRate',85),
     spread:vdef('inpSpreadIs',0.5),cycles:vdef('inpCyclesIs',1.5),opDays:idef('inpOpDaysIs',330),
+    valleyPrice:vdef('inpValleyPriceIs',0.35),
     freqReg:vdef('inpFreqReg',50),
     rte:vdef('inpRteIs',88),
     runYears:idef('inpStLife',20),
@@ -543,7 +569,8 @@ function getPIS(){
     maintFee:vdef('inpMaintFee',0.015),maintEscal:vdef('inpMaintEscal',1)/100,
     insRate:vdef('inpInsRate',0.15),
     vatRate:idef('inpVatRate',13)/100,
-    taxFreeYr:idef('inpTaxFreeYr',3),taxHalfYr:idef('inpTaxHalfYr',3),
+    vatRefundRate:0,
+    taxFreeYr:idef('inpTaxFreeYr',0),taxHalfYr:idef('inpTaxHalfYr',0),
     taxRate:vdef('inpTaxRate',25)/100,
     invReplace:vdef('inpBatReplace',0.3),invYear:idef('inpBatYear',10),
     discount:vdef('inpDiscount',8)/100
@@ -560,8 +587,10 @@ function getPHybrid(){
   p.stUC=vdef('inpStUC',0.8);
   p.stLife=idef('inpStLife',15);
   p.stDepr=idef('inpStDepr',8);
+  p.storageDegrad=vdef('inpDegrad',1.5)/100;
   p.hyStCap=vdef('inpHyStCap',0.2);
   p.rte=vdef('inpRte',88);
+  p.dod=vdef('inpDod',85); // Bug #3 fix: pass DOD to calcHybrid
   p.batReplace=vdef('inpBatReplace',0.3);p.batYear=idef('inpBatYear',10);
   return p;
 }
@@ -582,7 +611,7 @@ function update(){
     var ciKwh=ciCap*1000*ciDur,ciDays=idef('inpOpDays',330);
     var ciRte=vdef('inpRte',88)/100;
     var ciDod=vdef('inpDod',85)/100;
-    var ciDaily=ciKwh*ciDod*ciRte*vdef('inpCycles',2)/1000;
+    var ciDaily=ciKwh*ciDod*ciRte*vdef('inpCycles',2)/10000;
     var sy=el('ciSysSize');if(sy)sy.textContent=ciCap.toFixed(2)+' MW x '+ciDur.toFixed(1)+'h = '+Math.round(ciKwh)+' kWh';
     var dd=el('ciDailyDis');if(dd)dd.textContent=ciDaily.toFixed(1)+' 万kWh';
     var od=el('ciOpDays');if(od)od.textContent=ciDays+' 天';
@@ -608,8 +637,8 @@ function update(){
     var dmSave=dmMode==='demand'?(ciCap*1000)*dmRed*dmCharge*12/10000:0;
     var dailyTotal=baseArb+dmSave/opD;
     setText('dispArbitrage','套利'+baseArb.toFixed(2)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1)+'万/年':'')+(' ≈ '+dailyTotal.toFixed(2)+' 万元/天'));
-    var idealThru=kWh*cyc*opD*rte2/1000;
-    setText('dispGenPerW',(idealThru/ciCap).toFixed(2)+' 万kWh/kW');
+    var idealThru=kWh*cyc*opD*rte2/10000;
+    setText('dispGenPerW',(idealThru/ciCap/1000).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
     var omT=vdef('inpMgmtFee',0.01)+vdef('inpMaintFee',0.015);
     setText('dispOmTotal',omT.toFixed(3)+' 元/W');
@@ -626,11 +655,13 @@ function update(){
     var isRte2=vdef('inpRteIs',88)/100,isSpread=vdef('inpSpreadIs',0.5);
     var isCycles=vdef('inpCyclesIs',1.5),isOpD=idef('inpOpDaysIs',330);
     var isLeaseRev=isCap*vdef('inpLeasePrice',300)*vdef('inpLeaseRate',85)/100/10;
-    var isArbRev=(isCap*isDur)*isRte2*isCycles*isSpread/10*isOpD;
+    // Bug #1 fix: same corrected formula as calcIS — RTE only on discharge side
+    var isValleyP=vdef('inpValleyPriceIs',0.35),isPeakP=isSpread+isValleyP;
+    var isArbRev=(isCap*isDur)*isCycles*(isRte2*isPeakP-isValleyP)/10*isOpD;
     var isFreqRev=isCap*vdef('inpFreqReg',50);
     setText('dispIsDailyRev','租赁'+isLeaseRev.toFixed(0)+'+套利'+isArbRev.toFixed(0)+'+调频'+isFreqRev.toFixed(0)+' ≈ '+(isLeaseRev+isArbRev+isFreqRev).toFixed(0)+' 万元/年');
-    setText('dispGenPerW',(isKwh*isCycles*isOpD*isRte2/1000/isCap).toFixed(2)+' 万kWh/kW');
-    setText('dispSunHours',Math.round(isKwh*isCycles*isOpD*isRte2/1000));
+    setText('dispGenPerW',(isKwh*isCycles*isOpD*isRte2/10000/isCap/1000).toFixed(2)+' 万kWh/kW');
+    setText('dispSunHours',Math.round(isKwh*isCycles*isOpD*isRte2/10000));
     setText('dispOmTotal',(vdef('inpMgmtFee',0.01)+vdef('inpMaintFee',0.015)).toFixed(3)+' 元/W');
     // Metric labels
     var g1i=el('resGenY1');if(g1i&&g1i.parentElement){var bl=g1i.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年放电量';}
@@ -652,10 +683,11 @@ function update(){
     var hyGen=computeGen(),hyGenY1=hyCap*hyGen*100*(1-(val('inpDegradY1')||1)/100);
     var hyExcess=hyGenY1*(1-(val('inpSelfUse')||90)/100);
     var hyStKwh=hyStMw*1000*hyDur;
-    var hyMaxDay=hyStKwh*(val('inpRte')||88)/100*(val('inpCycles')||2)/10000;
-    var hyActDay=Math.min(hyExcess/365,hyMaxDay);
+    var hyRte=(val('inpRte')||88)/100;
+    var hyMaxDay=hyStKwh*hyRte*(val('inpCycles')||2)/10000;
+    var hyActDay=Math.min(hyExcess*hyRte/365,hyMaxDay);
     setText('dispSunHours',Math.round(hyExcess));
-    setText('dispArbitrage','余电'+hyExcess.toFixed(1)+'万kWh 储能消纳≈'+hyActDay.toFixed(1)+'万/天');
+    setText('dispArbitrage','余电'+hyExcess.toFixed(1)+'万kWh 年放电≈'+(hyActDay*365).toFixed(1)+'万kWh');
   }else{
     // Restore PV metric labels
     var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年总发电量';}
@@ -672,6 +704,12 @@ function update(){
 
   // Sync storage discount with PV discount
   var ds=el('inpDiscountSt');if(ds){var dv=el('inpDiscount');if(dv&&parseFloat(ds.value)!==parseFloat(dv.value)){ds.value=dv.value;var ns=el('numDiscountSt');if(ns)ns.value=dv.value;var disp=el('dispDiscountSt');if(disp)disp.textContent=Math.round(parseFloat(dv.value))+'%';}}
+  var warning=el('loanWarning');
+  if(warning){
+    var activeLife=currentTab==='pv'?idef('inpRunYears',25):currentTab==='hy'?idef('inpRunYears',25):idef('inpStLife',20);
+    var activeLoan=idef('inpLoanYears',10);
+    warning.textContent=activeLoan>activeLife?'⚠ 贷款年限超过运营年限，模型已在期末一次性扣除未偿本金。':'';
+  }
   // 按变压器容量计费时显示容量单价行
   var dmModeC=el('inpDemandMode')?el('inpDemandMode').value:'demand';
   var capRowC=el('capacityRow');if(capRowC)capRowC.style.display=dmModeC==='capacity'?'':'none';
@@ -686,16 +724,17 @@ function update(){
   }catch(e){console.error('calc error:',e);R=null;}
   if(!R)return;
   var fm=function(v){return v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v).toString();};
-  setText('resIrrFull',(R.irrFull*100).toFixed(2)+'%');
-  setText('resIrrEq',(R.irrEq*100).toFixed(2)+'%');
+  var fp=function(v,d){return Number.isFinite(v)?v.toFixed(d==null?1:d):'—';};
+  setText('resIrrFull',R.irrFull==null?'—':(R.irrFull*100).toFixed(2)+'%');
+  setText('resIrrEq',R.irrEq==null?'—':(R.irrEq*100).toFixed(2)+'%');
   el('resIrrEq').style.color='#38bdf8';
   var npvTxt=R.npvFull<10?R.npvFull.toFixed(1):Math.round(R.npvFull).toString();
   setText('resNpv',npvTxt);
   setText('resDiscount',Math.round(val('inpDiscount'))+'%');
   setText('resPayback',R.payback?R.payback.toFixed(1):'—');
-  setText('resRoi',R.roi.toFixed(1)+'%');
-  setText('resRoe',R.roe.toFixed(1)+'%');
-  setText('resRoa',R.roa.toFixed(1)+'%');
+  setText('resRoi',fp(R.roi)+'%');
+  setText('resRoe',R.roe==null?'—':fp(R.roe)+'%');
+  setText('resRoa',fp(R.roa)+'%');
   setText('resTotalInv',fm(R.totalInv));
   setText('resLoan',fm(R.loan));
   setText('resTotalRev',fm(R.totalRev));
@@ -733,6 +772,8 @@ var _bindings=[];
 function bindDual(sliderId,numId,dispId,fmt){
   var s=el(sliderId),n=el(numId),d=el(dispId);
   if(!s||!n)return;
+  var row=s.closest('.pr'),label=row&&row.querySelector('.pr-label span:first-child');
+  if(label){s.setAttribute('aria-label',label.textContent+'滑块');n.setAttribute('aria-label',label.textContent+'数值');}
   _bindings.push({slider:s,disp:d,fmt:fmt});
   function sync(v){var vv=parseFloat(v);s.value=vv;n.value=vv;if(d)d.textContent=typeof fmt==='function'?fmt(vv):vv.toFixed(2);}
   s.addEventListener('input',function(){sync(s.value);update();});
@@ -828,6 +869,17 @@ function init(){
   function uPerDay(v){return v.toFixed(1)+' 次/天';}
   function uDays(v){return Math.round(v)+' 天';}
 
+  var staticLabels={
+    latDeg:'纬度度数',latMin:'纬度分数',latSec:'纬度秒数',latSign:'南北纬',
+    lonDeg:'经度度数',lonMin:'经度分数',lonSec:'经度秒数',lonSign:'东西经',locCityName:'城市名',
+    inpRepayMethod:'还款方式',provincePreset:'省份电价预设',inpSpTime:'尖峰时段',inpSpPrice:'尖峰电价',inpSpHours:'尖峰小时',
+    inpPeakTime:'高峰时段',inpPeakPrice:'高峰电价',inpPeakHours:'高峰小时',inpFlatTime:'平段时段',inpFlatPrice:'平段电价',inpFlatHours:'平段小时',
+    inpValleyTime:'谷段时段',inpValleyPrice:'谷段电价',inpValleyHours:'谷段小时',inpDemandMode:'需量计费方式',
+    inpDemandCharge:'需量电费',inpDemandReduction:'需量削减比例',inpTransCapacity:'变压器容量单价',inpValleyPriceIs:'独立储能谷段电价',
+    inpSpreadIs:'独立储能峰谷价差',inpPeakHoursIs:'独立储能峰时小时',inpFreqReg:'调频收入'
+  };
+  for(var labelId in staticLabels){var labelEl=el(labelId);if(labelEl)labelEl.setAttribute('aria-label',staticLabels[labelId]);}
+
 
   bindDual('inpCapacity','numCapacity','dispCapacity',uMW);
   bindDual('inpUnitCost','numUnitCost','dispUnitCost',function(v){return v.toFixed(2)+' 元/瓦';});
@@ -896,6 +948,7 @@ bindDual('inpDuration','numDuration','dispDuration',uH);
   if(hyDurEl)hyDurEl.addEventListener('input',function(){var ids=activeDurIds(),a=el(ids[0]),an=el(ids[1]);if(a)a.value=hyDurEl.value;if(an)an.value=hyDurEl.value;update();});
   if(hyDurNum)hyDurNum.addEventListener('change',function(){var ids=activeDurIds(),a=el(ids[0]),an=el(ids[1]);if(a)a.value=hyDurNum.value;if(an)an.value=hyDurNum.value;update();});
 
+  var projectName=el('locProjectName');if(projectName)projectName.addEventListener('input',updatePrintTitle);
   initBTT();switchTab('pv');update();
   window.addEventListener('resize',function(){if(R)drawChart(R.rows);});
 }
@@ -904,7 +957,7 @@ window.downloadPDF=function(){
   var name=el('locProjectName').value.trim();
   var titleEl=document.querySelector('.print-title');
   var tnames={pv:'光伏项目测算报告',ci:'工商业储能项目测算报告',is:'独立储能项目测算报告',hy:'光储一体化项目测算报告'};
-  titleEl.innerHTML=(name?name+'<br>':'')+'NrgOpt '+(tnames[currentTab]||'项目测算报告');
+  titleEl.textContent=(name?name+' — ':'')+'NrgOpt '+(tnames[currentTab]||'项目测算报告');
   window.print();
 };
 

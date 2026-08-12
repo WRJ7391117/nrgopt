@@ -9,15 +9,14 @@
 <!-- Open Graph -->
 <meta property="og:title" content="NRGOpt — 碳成本管理决策工具">
 <meta property="og:description" content="算清碳排放的真实成本 · 光伏储能投资决策">
-<meta property="og:url" content="https://nrgopt.com">
+<meta property="og:url" content="https://www.nrgopt.com/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:site_name" content="NRGOpt">
 
-<link rel="canonical" href="https://nrgopt.com">
-<link rel="alternate" hreflang="en" href="https://nrgopt.com">
-<link rel="alternate" hreflang="zh" href="https://nrgopt.com">
-<link rel="alternate" hreflang="x-default" href="https://nrgopt.com">
+<link rel="canonical" href="https://www.nrgopt.com/">
+<link rel="alternate" hreflang="zh-CN" href="https://www.nrgopt.com/">
+<link rel="alternate" hreflang="x-default" href="https://www.nrgopt.com/">
 
 <script type="application/ld+json">
 {
@@ -25,12 +24,12 @@
   "@type": "WebSite",
   "name": "NRGOpt",
   "description": "碳成本管理决策工具",
-  "url": "https://nrgopt.com",
+  "url": "https://www.nrgopt.com/",
   "email": "7391117@qq.com"
 }
 </script>
 
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
 <body>
@@ -39,7 +38,7 @@
 
 <nav class="nav" role="navigation" aria-label="主导航">
   <div class="nav-inner">
-    <a href="/" class="nav-logo" aria-label="NRGOpt 首页">
+    <a href="/" class="nav-logo" aria-label="NrgOpt 碳成本 首页">
       Nrg<span class="primary">Opt</span>
       <span class="sub">碳成本</span>
     </a>
@@ -108,13 +107,13 @@
     <div class="card-grid">
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">📊</div>
-        <h3>碳成本诊断</h3>
-        <p>输入工厂用电量、所在省、行业 → 5 分钟出结果：你的碳排放基线是多少、按当前碳价一年要花多少钱、跟行业平均水平比是高了还是低了。</p>
+        <h3>新能源投资测算</h3>
+        <p>输入装机规模、当地资源、电价与融资条件，测算光伏、储能和光储项目的逐年现金流、IRR 与回收期。</p>
       </div>
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">☀️</div>
-        <h3>降碳方案决策</h3>
-        <p>投光伏+储能 vs 继续交碳税，哪个划算？方案 A 不做投资 vs 方案 B 投资光储，10 年净节省一目了然。帮你用投资逻辑做降碳决策，而不是被动合规。</p>
+        <h3>降碳方案初筛</h3>
+        <p>用统一的参数模型比较光伏、工商业储能、独立储能与光储一体化项目，先判断方案是否值得进入详细可研。</p>
       </div>
       <div class="card">
         <div style="font-size:2rem;margin-bottom:10px;">🔗</div>
@@ -136,8 +135,8 @@
     <div class="card-grid">
       <div class="card" onclick="location.href='calculator.html'" style="cursor:pointer">
         <div style="font-size:2rem;margin-bottom:10px;">🌍</div>
-        <h3>碳成本测算</h3>
-        <p>用电量 → 碳排放 → 碳关税/碳成本 → 光储方案 → 10 年净节省。一步到位。</p>
+        <h3>新能源投资测算</h3>
+        <p>光伏、工商业储能、独立储能和光储一体化项目的参数化现金流测算。</p>
       </div>
       <div class="card" onclick="location.href='calculator.html'" style="cursor:pointer">
         <div style="font-size:2rem;margin-bottom:10px;">☀️</div>
@@ -219,6 +218,10 @@
         <label for="formCompany"><span>公司</span></label>
         <input type="text" id="formCompany" name="company" autocomplete="organization">
       </div>
+      <div class="form-group" aria-hidden="true" style="position:absolute;left:-10000px">
+        <label for="formWebsite">网站</label>
+        <input type="text" id="formWebsite" name="website" tabindex="-1" autocomplete="off">
+      </div>
       <div class="form-group">
         <label for="formMessage"><span>留言</span></label>
         <textarea id="formMessage" name="message" rows="5" required placeholder="出口什么产品？年用电量大概多少？您面临什么问题？"></textarea>
@@ -233,9 +236,10 @@
 <footer role="contentinfo">
   <div class="container">
     <p>© 2026 NRGOpt — 碳成本管理决策工具</p>
+    <p><a href="privacy.html">隐私说明</a></p>
   </div>
 </footer>
 
-<script src="js/script.js?v=2"></script>
+<script src="js/script.js?v=3"></script>
 </body>
 </html>

@@ -1,7 +1,10 @@
 {
   "name": "nrgopt",
   "private": true,
+  "scripts": {
+    "test": "node tests/model-regression.js && node tests/api-regression.js"
+  },
   "dependencies": {
-    "nodemailer": "^6.9.0"
+    "nodemailer": "^9.0.5"
   }
 }

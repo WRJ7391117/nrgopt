@@ -10,16 +10,19 @@
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
   const { address, lat, lon } = req.query || {};
   let latitude = parseFloat(lat), longitude = parseFloat(lon);
 
   // Step 1: geocode address if lat/lon not provided
-  if ((!latitude || !longitude) && address) {
+  if ((!Number.isFinite(latitude) || !Number.isFinite(longitude)) && address) {
     try {
       const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
       const geoResp = await fetch(geoUrl, { headers: { 'User-Agent': 'NrgOpt-IRR/1.0' } });
+      if (!geoResp.ok) throw new Error(`HTTP ${geoResp.status}`);
       const geoData = await geoResp.json();
       if (geoData.length > 0) {
         latitude = parseFloat(geoData[0].lat);
@@ -32,8 +35,11 @@ export default async function handler(req, res) {
     }
   }
 
-  if (!latitude || !longitude) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return res.status(400).json({ ok: false, error: 'Provide address or lat/lon' });
+  }
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return res.status(400).json({ ok: false, error: 'Coordinates out of range' });
   }
 
   // Step 2: fetch NASA POWER irradiance data (use recent year)
@@ -41,79 +47,16 @@ export default async function handler(req, res) {
   try {
     const powerUrl = `https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${longitude.toFixed(4)}&latitude=${latitude.toFixed(4)}&start=${recentYear}&end=${recentYear}&format=JSON`;
     const powerResp = await fetch(powerUrl);
+    if (!powerResp.ok) throw new Error(`HTTP ${powerResp.status}`);
     const powerData = await powerResp.json();
     const vals = powerData?.properties?.parameter?.ALLSKY_SFC_SW_DWN;
     if (!vals) throw new Error('No irradiance data returned');
 
     let sum = 0, count = 0;
-    for (const m in vals) { sum += vals[m]; count++; }
-    const monthlyAvg = count > 0 ? sum / count : 0;
-    let irradiance = Math.round(monthlyAvg * 365);
-
-    if (irradiance < 500 || irradiance > 3000) throw new Error('Irradiance out of range: ' + irradiance);
-
-    // Tilt factor based on latitude
-    const al = Math.abs(latitude);
-    let tilt = al < 10 ? 1.0 : al > 40 ? (1.1 + Math.min(0.15, (al - 40) / 100)) : 1.05;
-    // System efficiency based on latitude
-    let se = Math.round(100 - 14 - (al > 35 ? 0 : 3) - (al < 25 ? 2 : 0));
-
-    // Fine-tune by longitude
-    if (longitude > 115) irradiance -= 50;
-    else if (longitude < 100) irradiance += 100;
-    if (latitude < 30 && longitude > 110) irradiance -= 50;
-    if (latitude > 40 && longitude < 90) irradiance += 100;
-
-    return res.status(200).json({
-      ok: true,
-      lat: latitude,
-      lon: longitude,
-      irradiance,
-      tilt: parseFloat(tilt.toFixed(2)),
-      efficiency: se,
-      source: 'NASA POWER + latitude lookup'
-    });
-  } catch (e) {
-    return res.status(502).json({ ok: false, error: 'NASA POWER API failed: ' + e.message });
-  }
-}
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  const { address, lat, lon } = req.query || {};
-  let latitude = parseFloat(lat), longitude = parseFloat(lon);
-
-  // Step 1: geocode address if lat/lon not provided
-  if ((!latitude || !longitude) && address) {
-    try {
-      const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-      const geoResp = await fetch(geoUrl, { headers: { 'User-Agent': 'NrgOpt-IRR/1.0' } });
-      const geoData = await geoResp.json();
-      if (geoData.length > 0) {
-        latitude = parseFloat(geoData[0].lat);
-        longitude = parseFloat(geoData[0].lon);
-      } else {
-        return res.status(404).json({ ok: false, error: 'Address not found. Try coordinates like: 31.23,121.47' });
-      }
-    } catch (e) {
-      return res.status(502).json({ ok: false, error: 'Geocoding failed: ' + e.message });
+    for (const m in vals) {
+      const value = Number(vals[m]);
+      if (Number.isFinite(value) && value > 0 && value < 20) { sum += value; count++; }
     }
-  }
-
-  if (!latitude || !longitude) {
-    return res.status(400).json({ ok: false, error: 'Provide address or lat/lon' });
-  }
-
-  // Step 2: fetch NASA POWER irradiance data
-  try {
-    const powerUrl = `https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${longitude.toFixed(4)}&latitude=${latitude.toFixed(4)}&start=2020&end=2020&format=JSON`;
-    const powerResp = await fetch(powerUrl);
-    const powerData = await powerResp.json();
-    const vals = powerData?.properties?.parameter?.ALLSKY_SFC_SW_DWN;
-    if (!vals) throw new Error('No irradiance data returned');
-
-    let sum = 0, count = 0;
-    for (const m in vals) { sum += vals[m]; count++; }
     const monthlyAvg = count > 0 ? sum / count : 0;
     let irradiance = Math.round(monthlyAvg * 365);
 

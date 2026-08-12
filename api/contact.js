@@ -10,17 +10,32 @@
 import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  const allowedOrigins = new Set(['https://nrgopt.com', 'https://www.nrgopt.com']);
+  if (allowedOrigins.has(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
-  const { name, email, company, message } = req.body || {};
+  const { name, email, company, message, website } = req.body || {};
+  if (website) return res.status(200).json({ ok: true });
   if (!name || !email || !message) {
     return res.status(400).json({ ok: false, error: 'Name, email, and message are required.' });
+  }
+  const clean = {
+    name: String(name).trim(),
+    email: String(email).trim(),
+    company: String(company || '').trim(),
+    message: String(message).trim(),
+  };
+  if (clean.name.length > 100 || clean.email.length > 254 || clean.company.length > 200 || clean.message.length > 5000) {
+    return res.status(400).json({ ok: false, error: 'Input is too long.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.email)) {
+    return res.status(400).json({ ok: false, error: 'Invalid email address.' });
   }
 
   // Validate environment config
@@ -50,17 +65,18 @@ export default async function handler(req, res) {
     await transporter.sendMail({
       from: `"NrgOpt Contact" <${smtpUser}>`,
       to: contactTo,
-      subject: `NrgOpt 咨询来自 ${name}`,
+      subject: `NrgOpt 咨询来自 ${clean.name.replace(/[\r\n]/g, ' ')}`,
+      replyTo: clean.email,
       html: [
         '<div style="font-family:sans-serif;max-width:600px;margin:0 auto">',
         '<h2 style="color:#0284c7">NrgOpt — New Inquiry</h2>',
         '<table style="width:100%;border-collapse:collapse">',
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Name</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(name)}</td></tr>`,
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Email</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(email)}</td></tr>`,
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Company</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(company || '-')}</td></tr>`,
+        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Name</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(clean.name)}</td></tr>`,
+        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Email</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(clean.email)}</td></tr>`,
+        `<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666">Company</td><td style="padding:8px;border-bottom:1px solid #eee">${esc(clean.company || '-')}</td></tr>`,
         '</table>',
         '<h3 style="margin-top:20px;color:#333">Message</h3>',
-        `<p style="background:#f5f5f5;padding:16px;border-radius:8px;white-space:pre-wrap">${esc(message)}</p>`,
+        `<p style="background:#f5f5f5;padding:16px;border-radius:8px;white-space:pre-wrap">${esc(clean.message)}</p>`,
         '<hr style="border:none;border-top:1px solid #eee;margin-top:24px">',
         '<p style="color:#999;font-size:12px">Sent from nrgopt.com contact form</p>',
         '</div>',

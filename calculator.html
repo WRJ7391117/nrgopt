@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Project Calculator — NrgOpt</title>
-<meta name="description" content="Online distributed PV project calculator">
-<meta property="og:title" content="NrgOpt PV Project Calculator">
-<link rel="canonical" href="https://nrgopt.com/calculator">
-<link rel="stylesheet" href="css/style.css?v=2">
-<link rel="stylesheet" href="css/calculator.css?v=8">
+<title>新能源项目投资测算 — NRGOpt</title>
+<meta name="description" content="光伏、工商业储能、光储一体化和独立储能项目的现金流、IRR、NPV与回收期测算。">
+<meta property="og:title" content="NRGOpt 新能源项目投资测算">
+<link rel="canonical" href="https://www.nrgopt.com/calculator.html">
+<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/calculator.css?v=11">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>⚡</text></svg>">
 </head>
 <body>
 <a href="#calcMain" class="skip-link">跳转到计算器</a>
 
-<nav class="nav" role="navigation">
+<nav class="nav" role="navigation" aria-label="主导航">
   <div class="nav-inner">
     <a href="/" class="nav-logo">Nrg<span class="primary">Opt</span><span class="sub">项目测算</span></a>
     <ul class="nav-links"><li><a href="/">← 返回首页</a></li><li><a href="#" onclick="downloadPDF();return false" class="btn-pdf">📄 下载PDF</a></li></ul>
@@ -25,6 +25,7 @@
     </div>
   </div>
 </nav>
+<main>
 <section class="calc-hero" id="calcMain"><div class="container"><h1>新能源项目 <span class="hl">投资测算</span></h1><p class="hero-sub">光伏 · 独立储能 · 工商业储能 · 光储一体化</p></div></section>
 
 <div class="tab-bar">
@@ -39,7 +40,7 @@
 <div class="info-card">
   <div class="loc-row">
     <label class="loc-label">项目名称</label>
-    <input type="text" id="locProjectName" placeholder="选填" class="loc-input" style="width:100%; max-width:400px" oninput="var n=this.value.trim();var t=document.querySelector('.print-title');t.innerHTML=(n?n+'<br>':'')+'NrgOpt 项目测算报告'">
+    <input type="text" id="locProjectName" aria-label="项目名称" placeholder="选填" class="loc-input" style="width:100%; max-width:400px">
   </div>
   <div data-tab-group="pv">
     <div class="loc-section-label">获取位置辐照数据</div>
@@ -129,7 +130,7 @@
 <div class="print-sec">二、核心指标</div>
 <div class="metric-band row4">
   <div class="band-card"><div class="band-label">回收周期</div><div class="band-value" id="resPayback" style="color:var(--gold)">—</div><div class="band-sub">年</div></div>
-  <div class="band-card"><div class="band-label">ROI</div><div class="band-value" id="resRoi">—</div><div class="band-sub">总利润÷总投资</div></div>
+  <div class="band-card"><div class="band-label">ROI</div><div class="band-value" id="resRoi">—</div><div class="band-sub">全周期净现金收益÷总投资</div></div>
   <div class="band-card"><div class="band-label">ROE</div><div class="band-value" id="resRoe">—</div><div class="band-sub">年均净利÷资本金</div></div>
   <div class="band-card"><div class="band-label">ROA</div><div class="band-value" id="resRoa">—</div><div class="band-sub">年均净利÷总资产</div></div>
 </div>
@@ -150,8 +151,8 @@
 <div class="metric-band row3">
   <div class="band-card"><div class="band-label">总收入</div><div class="band-value" id="resTotalRev">—</div><div class="band-sub">各年营业收入合计</div></div>
   <div class="band-card"><div class="band-label">总增值税</div><div class="band-value" id="resTotalVat">—</div><div class="band-sub">实缴增值税+城建教育附加</div></div>
-  <div class="band-card"><div class="band-label">总成本</div><div class="band-value" id="resTotalCost">—</div><div class="band-sub">折旧+利息+运维+保险</div></div>
-  <div class="band-card"><div class="band-label">总利润</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub">总收入-总成本-税金及附加-所得税</div></div>
+  <div class="band-card"><div class="band-label">总成本</div><div class="band-value" id="resTotalCost">—</div><div class="band-sub">折旧+利息+运维+保险+设备更换</div></div>
+  <div class="band-card"><div class="band-label">净现金收益</div><div class="band-value" id="resTotalProfit">—</div><div class="band-sub">与期末累计全投资现金流一致</div></div>
 </div>
 
 <!-- PART 2: PARAMETERS -->
@@ -198,6 +199,7 @@
         <div class="pr"><div class="pr-label"><span>贷款利率</span><span class="pr-val" id="dispLoanRate"></span></div><div class="dual-input"><input type="range" id="inpLoanRate" min="2" max="8" step="0.1" value="3.0"><input type="text" inputmode="decimal" id="numLoanRate" step="0.1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span>贷款年限</span><span class="pr-val" id="dispLoanYears"></span></div><div class="dual-input"><input type="range" id="inpLoanYears" min="5" max="20" step="1" value="10"><input type="text" inputmode="decimal" id="numLoanYears" step="1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span>还款方式</span><span class="pr-val" id="dispRepayMethod"></span></div><select id="inpRepayMethod" class="repay-select" onchange="update()"><option value="equal-principal">等额本金</option><option value="equal-installment">等额本息</option><option value="bullet">先息后本</option></select></div>
+        <div class="pr-note" id="loanWarning" role="status" aria-live="polite"></div>
       </div>
     </div>
   </div>
@@ -247,6 +249,7 @@
         <div class="pr"><div class="pr-label"><span>容量租赁单价</span><span class="pr-val" id="dispLeasePrice"></span></div><div class="dual-input"><input type="range" id="inpLeasePrice" min="100" max="500" step="10" value="300"><input type="text" inputmode="decimal" id="numLeasePrice" step="10" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span>租赁率</span><span class="pr-val" id="dispLeaseRate"></span></div><div class="dual-input"><input type="range" id="inpLeaseRate" min="50" max="100" step="5" value="85"><input type="text" inputmode="decimal" id="numLeaseRate" step="5" class="num-field"></div></div>
         <div class="pr-note" style="margin-bottom:4px;font-weight:600;color:var(--text)"><span>⚡ 电力市场收入</span></div>
+        <div class="tou-row"><span class="tou-label" style="color:#3b82f6">谷段电价</span><input type="text" inputmode="decimal" id="inpValleyPriceIs" class="tou-price" value="0.35" onchange="update()"><span class="tou-unit"> 元/kWh</span></div>
         <div class="tou-row"><span class="tou-label" style="color:#f59e0b">峰谷价差</span><input type="text" inputmode="decimal" id="inpSpreadIs" class="tou-price" value="0.5" onchange="update()"><span class="tou-unit"> 元/kWh</span><input type="text" inputmode="decimal" id="inpPeakHoursIs" class="tou-hour" value="6" onchange="update()"><span class="tou-unit"> h</span></div>
         <div class="tou-row"><span class="tou-label" style="color:#a78bfa">调频收入</span><input type="text" inputmode="decimal" id="inpFreqReg" class="tou-price" value="50" onchange="update()"><span class="tou-unit"> 万元/MW/年</span></div>
         <div class="pr"><div class="pr-label"><span>每日充放次数</span><span class="pr-val" id="dispCyclesIs"></span></div><div class="dual-input"><input type="range" id="inpCyclesIs" min="0.5" max="3" step="0.5" value="1.5"><input type="text" inputmode="decimal" id="numCyclesIs" step="0.5" class="num-field"></div></div>
@@ -284,9 +287,9 @@
       <div class="param-group-body">
         <div class="pr"><div class="pr-label"><span>增值税率</span><span class="pr-val" id="dispVatRate"></span></div><div class="dual-input"><input type="range" id="inpVatRate" min="9" max="17" step="1" value="13"><input type="text" inputmode="decimal" id="numVatRate" step="1" class="num-field"></div></div>
         <div class="pr"><div class="pr-label"><span>所得税率</span><span class="pr-val" id="dispTaxRate"></span></div><div class="dual-input"><input type="range" id="inpTaxRate" min="15" max="25" step="1" value="25"><input type="text" inputmode="decimal" id="numTaxRate" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span>免税年数</span><span class="pr-val" id="dispTaxFreeYr"></span></div><div class="dual-input"><input type="range" id="inpTaxFreeYr" min="0" max="6" step="1" value="3"><input type="text" inputmode="decimal" id="numTaxFreeYr" step="1" class="num-field"></div></div>
-        <div class="pr"><div class="pr-label"><span>减半年数</span><span class="pr-val" id="dispTaxHalfYr"></span></div><div class="dual-input"><input type="range" id="inpTaxHalfYr" min="0" max="6" step="1" value="3"><input type="text" inputmode="decimal" id="numTaxHalfYr" step="1" class="num-field"></div></div>
-        <div class="pr-note">默认: 前3年0% / 中3年12.5% / 之后25%</div>
+        <div class="pr"><div class="pr-label"><span>免税年数</span><span class="pr-val" id="dispTaxFreeYr"></span></div><div class="dual-input"><input type="range" id="inpTaxFreeYr" min="0" max="6" step="1" value="0"><input type="text" inputmode="decimal" id="numTaxFreeYr" step="1" class="num-field"></div></div>
+        <div class="pr"><div class="pr-label"><span>减半年数</span><span class="pr-val" id="dispTaxHalfYr"></span></div><div class="dual-input"><input type="range" id="inpTaxHalfYr" min="0" max="6" step="1" value="0"><input type="text" inputmode="decimal" id="numTaxHalfYr" step="1" class="num-field"></div></div>
+        <div class="pr-note">默认不假定税收优惠；确认项目适用后再填写。</div>
       </div>
     </div>
 <div class="param-group open">
@@ -305,7 +308,7 @@
 <div class="print-sec">六、逐年现金流图</div>
 <div class="chart-band">
   <div class="chart-card">
-    <h3>📊 逐年现金流（万元）</h3>
+    <h2>📊 逐年现金流（万元）</h2>
     <div style="position:relative"><canvas id="cfChart"></canvas><div id="chartTooltip" style="display:none;position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:4px 8px;font-size:0.75rem;color:var(--text);white-space:nowrap;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)"></div></div>
   </div>
 </div>
@@ -314,14 +317,15 @@
 <div class="print-sec">七、现金流明细</div>
 <div class="table-band">
   <div class="table-card">
-    <h3>📋 现金流明细（万元）</h3>
+    <h2>📋 现金流明细（万元）</h2>
     <table><thead><tr><th>年</th><th>发电量</th><th>收入</th><th>成本</th><th>所得税</th><th>净利</th><th>CF</th><th>累计</th></tr></thead><tbody id="cfTableBody"></tbody></table>
   </div>
 </div>
 
-<p class="calc-disclaimer">⚠️ 标准参数化模型（三免三减半+即征即退50%+逆变器更换），仅供参考。</p>
+<p class="calc-disclaimer">⚠️ 标准参数化初筛模型。税收优惠默认参数须结合项目主体、地区和最新政策确认；结果不替代可行性研究、税务或投资意见。</p>
+</main>
 
-<script src="js/theme.js?v=2"></script>
-<script src="js/calculator.js?v=44"></script>
+<script src="js/theme.js?v=3"></script>
+<script src="js/calculator.js?v=45"></script>
 </body>
 </html>
