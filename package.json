@@ -2,7 +2,7 @@
   "name": "nrgopt",
   "private": true,
   "scripts": {
-    "test": "node tests/model-regression.js && node tests/api-regression.js"
+    "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js"
   },
   "dependencies": {
     "nodemailer": "^9.0.5"

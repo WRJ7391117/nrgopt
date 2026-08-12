@@ -91,6 +91,11 @@
       "permanent": true
     },
     {
+      "source": "/carbon",
+      "destination": "/carbon.html",
+      "permanent": true
+    },
+    {
       "source": "/about",
       "destination": "/about.html",
       "permanent": true

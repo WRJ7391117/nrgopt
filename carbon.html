@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业碳排放与碳成本测算 — NRGOpt</title>
+<meta name="description" content="测算企业Scope 1、Scope 2碳排放、内部碳成本和CBAM出口成本情景，并评估光伏绿电的减排效果。">
+<link rel="canonical" href="https://www.nrgopt.com/carbon.html">
+<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/carbon.css?v=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🌍</text></svg>">
+</head>
+<body>
+<a href="#carbonMain" class="skip-link">跳到碳测算</a>
+<nav class="nav" role="navigation" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="NrgOpt 碳测算 首页">Nrg<span class="primary">Opt</span><span class="sub">碳测算</span></a>
+    <ul class="nav-links">
+      <li><a href="/"><span>首页</span></a></li>
+      <li><a href="carbon.html"><span>碳测算</span></a></li>
+      <li><a href="calculator.html"><span>项目测算</span></a></li>
+      <li><a href="barriers.html"><span>壁垒</span></a></li>
+      <li><a href="/#contact"><span>联系</span></a></li>
+    </ul>
+    <div class="nav-tools"><button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="切换主题"><svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button></div>
+  </div>
+</nav>
+<main id="carbonMain">
+  <section class="carbon-hero"><div class="container"><h1>把碳排放变成一笔<span class="hl">看得懂的账</span></h1><p class="hero-sub">先算排放基线和成本暴露，再看光伏、绿电能降低多少。输入数据只在浏览器内计算，无需注册。</p></div></section>
+
+  <div class="carbon-mode-bar" role="tablist" aria-label="碳测算类型">
+    <button type="button" class="carbon-mode-btn active" data-mode="enterprise" role="tab" aria-selected="true" onclick="switchCarbonMode('enterprise')">🏭 企业 / 供应链碳账</button>
+    <button type="button" class="carbon-mode-btn" data-mode="cbam" role="tab" aria-selected="false" onclick="switchCarbonMode('cbam')">🇪🇺 CBAM 出口情景</button>
+  </div>
+
+  <section class="carbon-shell" data-carbon-mode="enterprise">
+    <div class="carbon-intro"><strong>适用：</strong>企业 Scope 1 + 外购电力 Scope 2 初筛、供应链碳数据准备和内部碳价决策。全国碳市场参考成本只对你填写的直接排放和配额缺口做情景计算，不等同于正式履约结果。</div>
+    <div class="carbon-grid">
+      <section class="carbon-panel" aria-labelledby="ent-input-title">
+        <div class="carbon-panel-header"><h2 id="ent-input-title">企业碳账参数</h2><p>请用最近一个完整年度的数据</p></div>
+        <div class="carbon-fields">
+          <div class="carbon-field"><label for="entDirect">Scope 1 直接排放（吨 CO₂e/年）</label><input id="entDirect" type="number" min="0" step="1" value="2000"><small>燃料燃烧、工业过程等直接排放。没有数据可先填 0，但总排放会被低估。</small></div>
+          <div class="carbon-field"><label for="entElectricity">年外购电量（万 kWh）</label><input id="entElectricity" type="number" min="0" step="1" value="5000"></div>
+          <div class="carbon-field"><label for="entGridFactor">电力排放因子（吨 CO₂/MWh）</label><input id="entGridFactor" type="number" min="0" step="0.0001" value="0.5366"><small>示例采用公开全国平均口径。正式披露时请按报告期、地区和适用方法学替换。</small></div>
+          <div class="carbon-field"><div class="carbon-field-label"><label for="entGreenShare">已有合格绿电占比</label><span class="carbon-field-value" id="entGreenShareValue">0%</span></div><input id="entGreenShare" type="range" min="0" max="100" step="1" value="0"><small>只有符合你所采用核算标准的电力属性证明才应计入。</small></div>
+          <div class="carbon-field"><label for="entInternalPrice">内部 / 供应链参考碳价（元/吨）</label><input id="entInternalPrice" type="number" min="0" step="1" value="100"></div>
+          <div class="carbon-field"><div class="carbon-field-label"><label for="entAllowanceGap">全国碳市场配额缺口情景</label><span class="carbon-field-value" id="entAllowanceGapValue">5%</span></div><input id="entAllowanceGap" type="range" min="0" max="100" step="1" value="5"></div>
+          <div class="carbon-field"><label for="entAllowancePrice">配额价格情景（元/吨）</label><input id="entAllowancePrice" type="number" min="0" step="1" value="90"></div>
+          <div class="carbon-field"><label for="entPvGeneration">拟建光伏首年发电量（万 kWh）</label><input id="entPvGeneration" type="number" min="0" step="1" value="120"><small>可从 NRGOpt 项目测算结果中填入；0 表示暂不比较减排方案。</small></div>
+          <div class="carbon-field"><div class="carbon-field-label"><label for="entPvSelfUse">光伏自用比例</label><span class="carbon-field-value" id="entPvSelfUseValue">90%</span></div><input id="entPvSelfUse" type="range" min="0" max="100" step="1" value="90"></div>
+        </div>
+      </section>
+      <section class="carbon-panel" aria-labelledby="ent-result-title" aria-live="polite">
+        <div class="carbon-panel-header"><h2 id="ent-result-title">年度测算结果</h2><p>单位口径在每张卡片下方标明</p></div>
+        <div class="carbon-results">
+          <div class="carbon-result"><div class="carbon-result-label">Scope 1 直接排放</div><div class="carbon-result-value" id="entScope1">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">Scope 2 外购电力排放</div><div class="carbon-result-value" id="entScope2">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result primary"><div class="carbon-result-label">当前排放基线</div><div class="carbon-result-value" id="entTotal">—</div><div class="carbon-result-unit">Scope 1 + Scope 2，吨 CO₂e / 年</div></div>
+          <div class="carbon-result warning"><div class="carbon-result-label">内部碳成本暴露</div><div class="carbon-result-value" id="entInternalCost">—</div><div class="carbon-result-unit">万元 / 年</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">全国碳市场履约情景</div><div class="carbon-result-value" id="entComplianceCost">—</div><div class="carbon-result-unit">万元 / 年，仅 Scope 1 配额缺口</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">光伏预计减排</div><div class="carbon-result-value" id="entAvoided">—</div><div class="carbon-result-unit">吨 CO₂e / 年，仅作用 Scope 2</div></div>
+          <div class="carbon-result primary"><div class="carbon-result-label">实施后排放</div><div class="carbon-result-value" id="entAfterTotal">—</div><div class="carbon-result-unit">吨 CO₂e / 年，降幅 <span id="entReductionRate">—</span></div></div>
+          <div class="carbon-result primary"><div class="carbon-result-label">内部碳成本年节省</div><div class="carbon-result-value" id="entSaving">—</div><div class="carbon-result-unit">万元 / 年</div></div>
+          <div class="carbon-explain"><strong>边界说明：</strong>这是 Scope 1 与外购电力 Scope 2 的经营决策初筛，不包含采购、物流、员工通勤等 Scope 3，也不替代 ISO 14064、GHG Protocol 或主管部门规定下的正式盘查与核证。</div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="carbon-shell" data-carbon-mode="cbam" hidden>
+    <div class="carbon-intro"><strong>适用：</strong>向欧盟出口 CBAM 覆盖产品的成本敏感性分析。请优先使用产品级核证数据；不同商品、年份、默认值、免费配额调整及间接排放边界存在差异，本页不生成申报文件。</div>
+    <div class="carbon-grid">
+      <section class="carbon-panel" aria-labelledby="cbam-input-title">
+        <div class="carbon-panel-header"><h2 id="cbam-input-title">CBAM 情景参数</h2><p>默认数字仅为演示情景，请替换为你的产品数据</p></div>
+        <div class="carbon-fields">
+          <div class="carbon-field"><label for="cbamProduct">出口产品</label><select id="cbamProduct"><option>钢铁产品</option><option>铝产品</option><option>水泥</option><option>化肥</option><option>氢</option><option>电力</option><option>其他待核对 CN 编码产品</option></select><small>是否覆盖应以具体 CN 编码和当期法规为准。</small></div>
+          <div class="carbon-field"><label for="cbamExportQty">年出口欧盟数量（吨产品）</label><input id="cbamExportQty" type="number" min="0" step="1" value="10000"></div>
+          <div class="carbon-field"><label for="cbamDirectIntensity">直接嵌入排放强度（吨 CO₂e/吨产品）</label><input id="cbamDirectIntensity" type="number" min="0" step="0.001" value="1.8"><small>示例值。应使用适用方法学下的核证实际值或主管机构公布的默认值。</small></div>
+          <div class="carbon-field"><label for="cbamIndirectIntensity">间接嵌入排放强度（吨 CO₂e/吨产品）</label><input id="cbamIndirectIntensity" type="number" min="0" step="0.001" value="0.35"><small>示例值。并非所有产品或核算阶段都以同样方式纳入间接排放。</small></div>
+          <div class="carbon-field"><div class="carbon-field-label"><label for="cbamLiableShare">应付排放比例情景</label><span class="carbon-field-value" id="cbamLiableShareValue">2.5%</span></div><input id="cbamLiableShare" type="range" min="0" max="100" step="0.5" value="2.5"><small>用于模拟免费配额逐步退出后的应付比例；请按核算年度核对。</small></div>
+          <div class="carbon-field"><label for="cbamEuPrice">EU ETS 碳价情景（欧元/吨）</label><input id="cbamEuPrice" type="number" min="0" step="1" value="80"></div>
+          <div class="carbon-field"><label for="cbamExchangeRate">人民币/欧元汇率</label><input id="cbamExchangeRate" type="number" min="0" step="0.01" value="7.8"></div>
+          <div class="carbon-field"><label for="cbamPaidPrice">原产国已有效支付碳价（元/吨）</label><input id="cbamPaidPrice" type="number" min="0" step="1" value="0"><small>只有满足 CBAM 扣减条件并可提供证明的已付碳价才应填写。</small></div>
+          <div class="carbon-field"><div class="carbon-field-label"><label for="cbamIndirectReduction">间接排放可核证降幅情景</label><span class="carbon-field-value" id="cbamIndirectReductionValue">30%</span></div><input id="cbamIndirectReduction" type="range" min="0" max="100" step="1" value="30"><small>只有适用 CBAM 方法学认可的减排及电力证据才可用于正式核算。</small></div>
+        </div>
+      </section>
+      <section class="carbon-panel" aria-labelledby="cbam-result-title" aria-live="polite">
+        <div class="carbon-panel-header"><h2 id="cbam-result-title">年度成本情景</h2><p>透明展示直接与间接排放的贡献</p></div>
+        <div class="carbon-results">
+          <div class="carbon-result"><div class="carbon-result-label">直接嵌入排放</div><div class="carbon-result-value" id="cbamScope1">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">间接嵌入排放</div><div class="carbon-result-value" id="cbamScope2">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result primary"><div class="carbon-result-label">总嵌入排放</div><div class="carbon-result-value" id="cbamEmbedded">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">应付排放情景</div><div class="carbon-result-value" id="cbamPayable">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result warning"><div class="carbon-result-label">年度 CBAM 成本</div><div class="carbon-result-value" id="cbamAnnualCost">—</div><div class="carbon-result-unit">万元 / 年</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">抵扣后单位碳成本</div><div class="carbon-result-value" id="cbamNetUnitCost">—</div><div class="carbon-result-unit">元 / 吨 CO₂e</div></div>
+          <div class="carbon-result"><div class="carbon-result-label">间接排放预计减少</div><div class="carbon-result-value" id="cbamAvoided">—</div><div class="carbon-result-unit">吨 CO₂e / 年</div></div>
+          <div class="carbon-result primary"><div class="carbon-result-label">减排后 CBAM 成本</div><div class="carbon-result-value" id="cbamAfterCost">—</div><div class="carbon-result-unit">万元 / 年，节省 <span id="cbamSaving">—</span> 万元</div></div>
+          <div class="carbon-explain"><strong>边界说明：</strong>光伏、绿电通常只影响间接嵌入排放，不能降低钢铁、水泥、化肥、制氢等工艺产生的直接排放。CBAM 实际成本由商品 CN 编码、核算年度、核证数据、EU ETS 价格、免费配额调整和获认可的原产国已付碳价共同决定。</div>
+        </div>
+      </section>
+    </div>
+  </section>
+  <p class="carbon-source">决策初筛工具，不构成碳核查、CBAM 申报、法律、税务或投资意见。排放因子、碳价和政策会变化，正式使用前请核对当期主管机构文件。</p>
+</main>
+<footer role="contentinfo"><div class="container"><p>© 2026 NRGOpt — 碳成本管理决策工具</p><p><a href="privacy.html">隐私说明</a></p></div></footer>
+<script src="js/theme.js?v=3"></script>
+<script src="js/carbon-calculator.js?v=1"></script>
+</body>
+</html>
