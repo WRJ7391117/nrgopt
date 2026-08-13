@@ -46,6 +46,12 @@ assert.ok(ci.genY1 > 15 && ci.genY1 < 25, `CI annual discharge should be about 1
 assert.ok(ci.rows[10].gen > ci.rows[9].gen, 'battery replacement should reset degradation after year 10');
 assert.ok(Math.abs(ci.rows.at(-1).cumCash - ci.totalProfit) < 1e-8, 'CI summary must reconcile');
 
+const capacityBilling = { ...storage(), demandMode: 'capacity' };
+const capacityBillingResult = ctx.calcCI(capacityBilling);
+const changedCapacityPrice = ctx.calcCI({ ...capacityBilling, transCapacity: 999 });
+assert.ok(capacityBillingResult.totalRev < ci.totalRev, 'capacity billing must not include maximum-demand savings');
+assert.equal(changedCapacityPrice.totalRev, capacityBillingResult.totalRev, 'unsupported transformer-capacity savings must not silently affect results');
+
 const noReplacement = { ...storage(), invReplace: 0 };
 const ciNoReplacement = ctx.calcCI(noReplacement);
 assert.ok(ciNoReplacement.rows[10].gen < ciNoReplacement.rows[9].gen, 'zero replacement cost must not reset battery degradation');

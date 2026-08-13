@@ -92,6 +92,8 @@
 .tou-price:focus,.tou-hour:focus { outline:none; border-color:var(--accent); }
 
 .pr-note { font-size:0.62rem; color:var(--text-dim); margin-top:1px; line-height:1.2; }
+.validation-note { min-height:0.9rem; margin:4px 0 8px; }
+.validation-note.is-warning { color:#f59e0b; font-weight:600; }
 .pr-sub { font-size:0.62rem; color:var(--text-dim); margin-bottom:2px; }
 .pr-sub span { color:var(--accent); font-weight:600; }
 

@@ -24,13 +24,13 @@
       icon.innerHTML =
         '<circle cx="12" cy="12" r="5"/>' +
         '<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
-      btn.setAttribute('aria-label', 'Switch to light mode');
-      btn.title = 'Light mode';
+      btn.setAttribute('aria-label', '切换到浅色模式');
+      btn.title = '浅色模式';
     } else {
       icon.innerHTML =
         '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-      btn.setAttribute('aria-label', 'Switch to dark mode');
-      btn.title = 'Dark mode';
+      btn.setAttribute('aria-label', '切换到深色模式');
+      btn.title = '深色模式';
     }
   }
 
@@ -49,7 +49,7 @@
   function createBackToTop() {
     var btn = document.createElement('button');
     btn.className = 'back-to-top';
-    btn.setAttribute('aria-label', 'Back to top');
+    btn.setAttribute('aria-label', '返回顶部');
     btn.innerHTML = '&#8593;';
     btn.addEventListener('click', function () {
       window.scrollTo({ top: 0, behavior: 'smooth' });

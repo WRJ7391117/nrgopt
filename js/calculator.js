@@ -20,6 +20,10 @@ function switchTab(tab){
     else if(tab==='hy')show=(g==='hy'||g==='pv'||g==='ci'||g.indexOf(',ci')>=0||g.indexOf('ci,')>=0||g.indexOf(',pv')>=0||g.indexOf('pv,')>=0);
     groups[j].style.display=show?'':'none';
   }
+  var tabOnly=document.querySelectorAll('[data-only-tab]');
+  for(var k=0;k<tabOnly.length;k++){
+    tabOnly[k].style.display=tabOnly[k].getAttribute('data-only-tab')===tab?'':'none';
+  }
   // Set tab-appropriate defaults
   if(tab==='ci'){
     // C&I storage defaults: 20yr life, 8yr depr, higher insurance, battery replacement Y10
@@ -635,8 +639,11 @@ function update(){
     var dmMode=el('inpDemandMode')?el('inpDemandMode').value:'demand';
     var dmCharge=vdef('inpDemandCharge',40),dmRed=vdef('inpDemandReduction',30)/100;
     var dmSave=dmMode==='demand'?(ciCap*1000)*dmRed*dmCharge*12/10000:0;
-    var dailyTotal=baseArb+dmSave/opD;
-    setText('dispArbitrage','套利'+baseArb.toFixed(2)+(dmMode==='demand'?'+需量'+dmSave.toFixed(1)+'万/年':'')+(' ≈ '+dailyTotal.toFixed(2)+' 万元/天'));
+    var annualArb=baseArb*opD;
+    var firstYearFactor=batteryHealth(1,vdef('inpDegradY1',2.5)/100,vdef('inpDegrad',1.5)/100,cyc,opD,6000,0);
+    var firstYearArb=annualArb*firstYearFactor,firstYearDemand=dmSave*firstYearFactor;
+    var annualTotal=firstYearArb+firstYearDemand;
+    setText('dispArbitrage','套利 '+firstYearArb.toFixed(1)+(dmMode==='demand'?' + 需量 '+firstYearDemand.toFixed(1):'')+' ≈ '+annualTotal.toFixed(1)+' 万元/年');
     var idealThru=kWh*cyc*opD*rte2/10000;
     setText('dispGenPerW',(idealThru/ciCap/1000).toFixed(2)+' 万kWh/kW');
     setText('dispSunHours',Math.round(idealThru));
@@ -687,7 +694,7 @@ function update(){
     var hyMaxDay=hyStKwh*hyRte*(val('inpCycles')||2)/10000;
     var hyActDay=Math.min(hyExcess*hyRte/365,hyMaxDay);
     setText('dispSunHours',Math.round(hyExcess));
-    setText('dispArbitrage','余电'+hyExcess.toFixed(1)+'万kWh 年放电≈'+(hyActDay*365).toFixed(1)+'万kWh');
+    setText('dispHybridDispatch','余电 '+hyExcess.toFixed(1)+' 万kWh，年放电约 '+(hyActDay*365).toFixed(1)+' 万kWh');
   }else{
     // Restore PV metric labels
     var g1r=el('resGenY1');if(g1r&&g1r.parentElement){var bl=g1r.parentElement.querySelector('.band-label');if(bl)bl.textContent='首年总发电量';}
@@ -710,9 +717,20 @@ function update(){
     var activeLoan=idef('inpLoanYears',10);
     warning.textContent=activeLoan>activeLife?'⚠ 贷款年限超过运营年限，模型已在期末一次性扣除未偿本金。':'';
   }
-  // 按变压器容量计费时显示容量单价行
+  var touTotal=vdef('inpSpHours',0)+vdef('inpPeakHours',0)+vdef('inpFlatHours',0)+vdef('inpValleyHours',0);
+  var touWarning=el('touHoursWarning');
+  if(touWarning){
+    var invalidTou=Math.abs(touTotal-24)>0.001;
+    touWarning.textContent=invalidTou?'⚠ 尖峰、高峰、平段和谷段合计 '+touTotal.toFixed(1)+' 小时，应为 24 小时。':'';
+    touWarning.classList.toggle('is-warning',invalidTou);
+    var touHourIds=['inpSpHours','inpPeakHours','inpFlatHours','inpValleyHours'];
+    for(var th=0;th<touHourIds.length;th++){var touInput=el(touHourIds[th]);if(touInput)touInput.setAttribute('aria-invalid',invalidTou?'true':'false');}
+  }
+  // 容量计费缺少可审计的节省公式，暂不纳入模型或暴露无效参数。
   var dmModeC=el('inpDemandMode')?el('inpDemandMode').value:'demand';
-  var capRowC=el('capacityRow');if(capRowC)capRowC.style.display=dmModeC==='capacity'?'':'none';
+  var demandRowC=el('demandRow');if(demandRowC)demandRowC.style.display=dmModeC==='demand'?'':'none';
+  var capRowC=el('capacityRow');if(capRowC)capRowC.style.display='none';
+  var capacityNote=el('capacityModeNote');if(capacityNote){var capacityUnsupported=dmModeC==='capacity';capacityNote.textContent=capacityUnsupported?'当前模型暂不计入变压器容量电费节省；结果仅包含峰谷套利收益。':'';capacityNote.classList.toggle('is-warning',capacityUnsupported);}
   // Update storage total capacity display (duration 按当前tab取生效的输入)
   var stMw=vdef('inpHyStCap',0.2);var stDur=currentTab==='is'?vdef('inpDurationIs',2):vdef('inpDuration',vdef('inpHyDur',2));var stTot=el('dispStTotalKwh');if(stTot)stTot.textContent=(stMw*stDur).toFixed(1)+' MWh';
 
@@ -743,8 +761,7 @@ function update(){
   setText('resTotalVat',fm(R.totalVat));
   setText('resGenY1',fm(R.genY1));
   setText('resGenTotal',fm(R.totalGen));
-  var genUnit=currentTab==='ci'?' 万度电':' 万度电';
-  setText('dispGenY1Total',fm(R.genY1)+genUnit);
+  setText('dispGenY1Total',fm(R.genY1)+' 万度电');
   var cap=vdef('inpCapacity',0),uc=vdef('inpUnitCost',0);
   setText('dispPvTotalInv',fmtWan(cap*uc*100));
   var stCap=vdef('inpHyStCap',0),stUc=vdef('inpStUC',0);
@@ -757,6 +774,7 @@ function update(){
   setText('dispTotalEquipInv',fmtWan(totalEquip));
 
   var tb=el('cfTableBody');if(!tb)return;
+  setText('cfEnergyHeader',(currentTab==='ci'||currentTab==='is')?'放电量':'发电量');
   tb.innerHTML='';
   var tGen=0,tRev=0,tCost=0,tTax=0,tPat=0,tCf=0;
   for(var i=0;i<R.rows.length;i++){
@@ -828,7 +846,7 @@ function drawChart(rows){
 }
 
 function initBTT(){
-  var btn=document.createElement('button');btn.className='back-to-top';btn.setAttribute('aria-label','Back to top');btn.innerHTML='&#8593;';
+  var btn=document.createElement('button');btn.className='back-to-top';btn.setAttribute('aria-label','返回顶部');btn.innerHTML='&#8593;';
   btn.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});document.body.appendChild(btn);
   window.addEventListener('scroll',function(){btn.classList.toggle('visible',window.scrollY>500);},{passive:true});
 }
