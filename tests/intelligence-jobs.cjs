@@ -13,7 +13,8 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     reserveBudget: async () => reservationId, settleBudget: async () => true, releaseBudget: async () => true,
     save: async () => ({ source, reused: false }), recordFailure: async () => {}, evidence: async () => ({ source, bytes: Buffer.from('Official source evidence.') }),
     beginExtraction: async () => {}, saveExtraction: async () => source, saveCandidate: async () => ({ id: 'candidate-1' }),
-    findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {}
+    findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
+    providerConfigs: async () => []
   };
   const store = { calls };
   for (const [name, fn] of Object.entries(methods)) store[name] = async (...args) => { calls.push([name, ...args]); return fn(...args); };

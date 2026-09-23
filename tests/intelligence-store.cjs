@@ -22,7 +22,7 @@ const SOURCE = {
 // This models only the REST contract used here, including PostgREST projection.
 // It does not exercise Supabase authentication, RLS, SQL constraints or Storage.
 function backend() {
-  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
+  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], providerConfigs: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
   const json = (value, status = 200) => new Response(JSON.stringify(value), { status });
   state.fetch = async (input, init) => {
     const url = new URL(input);
@@ -32,6 +32,19 @@ function backend() {
       if (url.pathname.endsWith('/token')) return json({ access_token: 'test-token', user: { id: 'owner-a' } });
       if (url.pathname.endsWith('/user')) return json({ id: 'owner-a', email: 'admin@example.com' });
       return new Response(null, { status: 204 });
+    }
+    if (url.pathname === '/rest/v1/intelligence_provider_configs') {
+      if (method === 'POST') {
+        const record = JSON.parse(init.body);
+        const index = state.providerConfigs.findIndex(row => row.owner_id === record.owner_id && row.capability === record.capability);
+        if (index >= 0) state.providerConfigs[index] = { ...state.providerConfigs[index], ...record };
+        else state.providerConfigs.push({ ...record });
+        return json([{ ...record }], index >= 0 ? 200 : 201);
+      }
+      const owner = url.searchParams.get('owner_id')?.slice(3);
+      const select = url.searchParams.get('select') || '*';
+      return json(state.providerConfigs.filter(row => !owner || row.owner_id === owner).map(row =>
+        select === '*' ? { ...row } : Object.fromEntries(select.split(',').map(key => [key, row[key] ?? null]))));
     }
     if (url.pathname === '/rest/v1/rpc/enqueue_intelligence_archive') {
       const input = JSON.parse(init.body);
@@ -296,6 +309,20 @@ test('operations exposes recent owner-scoped jobs, item checkpoints and budget s
   assert.equal(result.notifications[0].status, 'unknown');
   assert.ok(calls.every(url => url.searchParams.get('owner_id') === 'eq.owner-a'));
   assert.equal(calls[1].searchParams.get('job_run_id'), 'in.(job-a)');
+});
+
+test('provider configuration is owner-scoped and stored only through the service role', async () => {
+  const state = backend();
+  const record = { owner_id: 'owner-a', capability: 'discovery', provider: 'custom-search',
+    endpoint: 'https://search.example/v1/messages', model: 'search-v2', currency: 'USD', reserve_micro: 1000,
+    cross_check_reserve_micro: null, api_key_ciphertext: 'v1.encrypted-value-for-test', updated_at: '2026-09-23T00:00:00.000Z' };
+  assert.deepEqual(await state.store.saveProviderConfig('owner-a', record), record);
+  assert.deepEqual(await state.store.providerConfigs('owner-a'), [record]);
+  assert.deepEqual(await state.store.providerConfigs('owner-b'), []);
+  await assert.rejects(state.store.saveProviderConfig('owner-b', record), { code: 'invalid_request', status: 400 });
+  const requests = state.calls.filter(call => call.url.pathname.endsWith('/intelligence_provider_configs'));
+  assert.ok(requests.every(call => call.headers.apikey === ENV.SUPABASE_SERVICE_ROLE_KEY));
+  assert.ok(requests.every(call => call.headers.Authorization === `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`));
 });
 
 test('Auth uses the anon key and the user token; database calls use only the service role', async () => {

@@ -7,8 +7,8 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
-const { loginPage, sourcesPage, overviewPage } = require('../lib/intelligence/pages.cjs');
-const { providerSettings } = require('../lib/intelligence/provider-config.cjs');
+const { loginPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
+const { providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
@@ -20,6 +20,7 @@ const messages = {
   model_not_configured: '情报分析服务尚未配置。', model_auth_failed: '情报分析服务密钥无效或无权调用。', model_unavailable: '情报分析服务暂时不可用，请稍后重试。',
   extraction_invalid: '模型返回内容未通过证据校验，未保存本次结果。', discovery_not_configured: '来源发现服务尚未配置。',
   discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
+  provider_config_not_configured: '网页配置加密尚未启用。', provider_api_key_required: '首次保存此配置时必须填写 API Key。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
   scheduler_disabled: '自动扫描尚未启用。', scheduler_unauthorized: '自动扫描凭据无效。',
   archive_disabled: '归档节点尚未接入。', archive_unauthorized: '归档凭据无效。',
@@ -42,8 +43,8 @@ function primarySource(url, country) {
 function discoveryQuery(country) {
   return `${countries[country]} latest renewable energy power grid storage hydrogen procurement tender award contract project announcement. Return original publications only from: ${primaryHosts[country].join(', ')}`;
 }
-async function discoverCountry(country, env, discoveryFactory) {
-  const discovery = await discoveryFactory(providerSettings(env).discovery)({ query: discoveryQuery(country) });
+async function discoverCountry(country, profile, discoveryFactory) {
+  const discovery = await discoveryFactory(profile)({ query: discoveryQuery(country) });
   const sources = discovery.results.filter(item => primarySource(item.url, country)).map(item => ({ ...item, source_level: 'primary' }));
   if (!sources.length) throw failure('discovery_unavailable', 502);
   return { ...discovery, results: undefined, sources };
@@ -70,8 +71,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'page', 'overview-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -118,7 +119,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
         const result = await runDailyJobItem({ store, owner: config.adminId, jobId: scheduled.jobId, env,
-          discover: country => discoverCountry(country, env, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory });
+          discover: (country, profile) => discoverCountry(country, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory });
         const job = await store.jobRun(config.adminId, scheduled.jobId);
         if (['succeeded', 'partial', 'failed', 'budget_paused', 'manual_paused'].includes(job.run.status)) {
           await store.enqueueNotification(config.adminId, 'daily', `daily:${scheduled.scheduleKey}`, {
@@ -181,7 +182,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       let body = req.body;
       if (post) {
-        if (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > 8192) throw failure('invalid_request', 400);
+        const bodyLimit = action === 'save-provider-settings' ? 12000 : 8192;
+        if (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > bodyLimit) throw failure('invalid_request', 400);
       }
       if (action === 'login') {
         if (typeof body.email !== 'string' || body.email.length > 254 || typeof body.password !== 'string' || !body.password || body.password.length > 1024) throw failure('invalid_request', 400);
@@ -196,19 +198,34 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null }));
       if (action === 'overview-page') return html(overviewPage());
+      if (action === 'settings-page') return html(settingsPage());
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id), candidate: await store.candidateBySource(req.query.id, user.id) });
       if (action === 'overview') return res.status(200).json({ candidates: await store.candidates(user.id) });
       if (action === 'operations') return res.status(200).json({ ...(await store.operations(user.id)),
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes });
+      if (action === 'provider-settings') return res.status(200).json({
+        profiles: publicProviderSettings(env, await store.providerConfigs(user.id)), writable: config.writes
+      });
+      if (action === 'save-provider-settings') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const existingRows = await store.providerConfigs(user.id);
+        const existing = existingRows.find(item => item.capability === body.capability) || null;
+        const saved = await store.saveProviderConfig(user.id, providerConfigRecord({
+          env, owner: user.id, capability: body.capability, input: body, existing
+        }));
+        const profiles = publicProviderSettings(env, existingRows.filter(item => item.capability !== saved.capability).concat(saved));
+        return res.status(200).json({ profile: profiles.find(item => item.capability === saved.capability) });
+      }
       if (action === 'discover') {
         if (!config.writes) throw failure('writes_disabled', 403);
         if (!countries[body.country]) throw failure('invalid_request', 400);
-        const discoveryProvider = providerSettings(env).discovery;
+        const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
-          budgetKey: discoveryProvider.reserveKey, providerMissingCode: 'discovery_not_configured', env,
-          call: () => discoverCountry(body.country, env, discoveryFactory) });
+          budgetKey: discoveryProvider.reserveKey, reserveMicro: discoveryProvider.reserveMicro,
+          providerMissingCode: 'discovery_not_configured', env,
+          call: () => discoverCountry(body.country, discoveryProvider, discoveryFactory) });
         return res.status(200).json({ country: body.country, sources: discovery.sources });
       }
       if (action === 'annotate') {
@@ -239,8 +256,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['page', 'overview-page', 'detail-page'].includes(action)) {
-        const target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}` : action === 'overview-page' ? '/intelligence/overview' : '/intelligence';
+      if (error.code === 'auth_required' && ['page', 'overview-page', 'settings-page', 'detail-page'].includes(action)) {
+        const target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
+          : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence';
         res.setHeader('Location', `/intelligence/login?returnTo=${encodeURIComponent(target)}`);
         return res.status(303).end();
       }

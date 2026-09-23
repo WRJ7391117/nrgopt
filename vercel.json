@@ -82,6 +82,7 @@
   "rewrites": [
     { "source": "/intelligence/login", "destination": "/api/intelligence?action=login-page" },
     { "source": "/intelligence/overview", "destination": "/api/intelligence?action=overview-page" },
+    { "source": "/intelligence/settings", "destination": "/api/intelligence?action=settings-page" },
     { "source": "/intelligence", "destination": "/api/intelligence?action=page" },
     { "source": "/intelligence/sources/:id", "destination": "/api/intelligence?action=detail-page&id=:id" }
   ],

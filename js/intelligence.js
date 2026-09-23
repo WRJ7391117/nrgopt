@@ -17,7 +17,7 @@
     element.dataset.tone = tone || '';
   }
   function safeReturnTo(value) {
-    return value === '/intelligence' || value === '/intelligence/overview' || detailPath.test(value || '') ? value : '/intelligence';
+    return value === '/intelligence' || value === '/intelligence/overview' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname));
@@ -328,6 +328,33 @@
     byId('job-empty').hidden = result.runs.length !== 0;
     status('automation-status', result.runs.length ? '最近 ' + result.runs.length + ' 个计划任务。失败、重试和预算暂停会在下方保留。' : '尚无自动扫描记录。');
   }
+  function moneyInput(value) {
+    if (!Number.isSafeInteger(Number(value)) || Number(value) <= 0) return '';
+    return (Number(value) / 1000000).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+  }
+  function fillProviderForm(profile, writable) {
+    var form = document.querySelector('.intel-provider-form[data-capability="' + profile.capability + '"]');
+    if (!form) return;
+    form.elements.provider.value = profile.provider || '';
+    form.elements.endpoint.value = profile.endpoint || '';
+    form.elements.model.value = profile.model || '';
+    form.elements.currency.value = profile.currency || 'CNY';
+    form.elements.reserve.value = moneyInput(profile.reserve_micro);
+    if (form.elements.cross_check_reserve) form.elements.cross_check_reserve.value = moneyInput(profile.cross_check_reserve_micro);
+    form.elements.api_key.value = '';
+    var labels = { saved: '密钥已安全保存', environment: '当前使用服务器密钥', none: '密钥尚未配置' };
+    var keyState = byId(profile.capability + '-key-state');
+    keyState.textContent = labels[profile.key_source] || labels.none;
+    keyState.dataset.state = profile.key_configured ? 'checked' : 'unverified';
+    form.querySelector('button[type="submit"]').disabled = !writable;
+  }
+  async function loadProviderSettings() {
+    try {
+      var result = await api('provider-settings');
+      result.profiles.forEach(function (profile) { fillProviderForm(profile, result.writable); });
+      status('settings-page-status', result.writable ? '当前配置已读取。修改后保存，下一次调用立即生效。' : '当前环境禁止写入，配置仅供查看。', result.writable ? 'success' : '');
+    } catch (error) { status('settings-page-status', error.message, 'error'); }
+  }
   async function loadOverview() {
     status('page-status', '正在读取情报候选…');
     try {
@@ -419,6 +446,35 @@
   var importForm = byId('import-form');
   var discoveryForm = byId('discovery-form');
   var overviewList = byId('candidate-list');
+  var providerForms = document.querySelectorAll('.intel-provider-form');
+  providerForms.forEach(function (form) {
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var capability = form.dataset.capability;
+      var button = form.querySelector('button[type="submit"]');
+      var reserveMicro = Math.round(Number(form.elements.reserve.value) * 1000000);
+      var crossCheckReserveMicro = form.elements.cross_check_reserve
+        ? Math.round(Number(form.elements.cross_check_reserve.value) * 1000000) : null;
+      var payload = {
+        capability,
+        provider: form.elements.provider.value.trim(),
+        endpoint: form.elements.endpoint.value.trim(),
+        model: form.elements.model.value.trim(),
+        currency: form.elements.currency.value,
+        reserve_micro: reserveMicro,
+        cross_check_reserve_micro: crossCheckReserveMicro,
+        api_key: form.elements.api_key.value,
+      };
+      button.disabled = true;
+      status(capability + '-settings-status', '正在加密并保存配置…');
+      try {
+        var result = await api('save-provider-settings', payload);
+        fillProviderForm(result.profile, true);
+        status(capability + '-settings-status', '配置已保存，下一次调用将使用新配置。', 'success');
+      } catch (error) { status(capability + '-settings-status', error.message, 'error'); }
+      finally { button.disabled = false; }
+    });
+  });
   if (discoveryForm) {
     discoveryForm.addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -521,6 +577,7 @@
       if (match) await loadDetail(match[1]);
       else if (importForm) await loadSources();
       else if (overviewList) await loadOverview();
+      else if (providerForms.length) await loadProviderSettings();
     } catch (error) { status('page-status', error.message, 'error'); }
   })();
 })();

@@ -3,11 +3,12 @@ const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const { createHandler } = require('../api/intelligence.js');
 const { failure } = require('../lib/intelligence/store.cjs');
-const { providerSettings } = require('../lib/intelligence/provider-config.cjs');
+const { providerSettings, providerSettingsWithSaved } = require('../lib/intelligence/provider-config.cjs');
 
 const id = '11111111-1111-4111-8111-111111111111';
 const admin = '22222222-2222-4222-8222-222222222222';
 const env = { SUPABASE_URL: 'https://project.example', SUPABASE_ANON_KEY: 'test-anon', SUPABASE_SERVICE_ROLE_KEY: 'test-service', NRGOPT_ADMIN_USER_ID: admin, NRGOPT_APP_ORIGIN: 'https://preview.example', NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', DEEPSEEK_API_KEY: 'test-deepseek-key',
+  NRGOPT_PROVIDER_CONFIG_KEY: Buffer.alloc(32, 7).toString('base64'),
   NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000', NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '2000',
   NRGOPT_DEEPSEEK_CROSS_CHECK_RESERVE_MICROCNY: '1000' };
 const source = { id, title: '<script>untrusted</script>', status: 'pending_extraction' };
@@ -44,6 +45,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
     candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, findCandidatePeers: async () => [], saveCrossCheck: async () => ({}),
+    providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
@@ -73,13 +75,13 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
 
 test('private pages redirect, data and evidence deny unauthenticated access before upstream calls', async () => {
   const { request, calls } = setup();
-  for (const action of ['page', 'overview-page', 'detail-page']) {
+  for (const action of ['page', 'overview-page', 'settings-page', 'detail-page']) {
     const response = await request(action, { loggedIn: false });
     assert.equal(response.code, 303);
     assert.match(response.headers.location, /^\/intelligence\/login\?returnTo=/);
     assert.equal(response.body, undefined);
   }
-  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
+  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
   assert.deepEqual(calls, []);
 });
 
@@ -107,7 +109,7 @@ test('wrong allowed user and revoked or invalid upstream session cannot access p
 
 test('mutations reject cross-origin or missing origin; bad methods cause no work', async () => {
   const { request, calls } = setup();
-  for (const action of ['login', 'logout', 'import', 'annotate', 'extract', 'discover']) {
+  for (const action of ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings']) {
     for (const origin of ['https://attacker.example', undefined]) assert.equal((await request(action, { method: 'POST', body: {}, headers: { origin } })).code, 403);
     assert.equal((await request(action)).code, 405);
   }
@@ -330,12 +332,67 @@ test('provider-neutral pages describe capabilities instead of fixed vendors', as
   const { request } = setup();
   const sources = await request('page');
   const detail = await request('detail-page');
+  const settingsPage = await request('settings-page');
   assert.match(sources.body, /已配置的联网来源发现服务/);
   assert.match(sources.body, /已配置的情报分析服务/);
   assert.match(detail.body, /情报分析服务 · 单一来源分析/);
   assert.ok(!sources.body.includes('MiniMax'));
   assert.ok(!sources.body.includes('DeepSeek'));
   assert.ok(!detail.body.includes('DeepSeek'));
+  assert.match(settingsPage.body, /模型服务配置/);
+  assert.match(settingsPage.body, /API Key 是只写字段/);
+  assert.match(settingsPage.body, /人民币 CNY/);
+  assert.match(settingsPage.body, /美元 USD/);
+});
+
+test('private settings save an encrypted write-only key and override the environment profile', async () => {
+  const rows = [];
+  let discoveryOptions;
+  const configured = setup({ overrides: {
+    providerConfigs: async () => rows,
+    saveProviderConfig: async (_owner, record) => {
+      const index = rows.findIndex(item => item.capability === record.capability);
+      if (index >= 0) rows[index] = record; else rows.push(record);
+      return record;
+    }
+  }, discoveryFactory: options => {
+    discoveryOptions = options;
+    return async () => ({ provider: options.provider, model: options.model, search_count: 1, usage: {},
+      results: [{ title: 'Official award', url: 'https://www.spa.gov.sa/en/N1' }] });
+  } });
+  const input = { capability: 'discovery', provider: 'custom-search', endpoint: 'https://search.example/v1/messages',
+    model: 'search-v2', currency: 'USD', reserve_micro: 125000, cross_check_reserve_micro: null, api_key: 'private-browser-key' };
+  const saved = await configured.request('save-provider-settings', { method: 'POST', body: input });
+  assert.equal(saved.code, 200);
+  assert.equal(saved.body.profile.key_source, 'saved');
+  assert.equal(saved.body.profile.key_configured, true);
+  assert.ok(!JSON.stringify(saved.body).includes(input.api_key));
+  assert.ok(!rows[0].api_key_ciphertext.includes(input.api_key));
+  const resolved = providerSettingsWithSaved(env, rows, admin);
+  assert.equal(resolved.discovery.apiKey, input.api_key);
+  assert.equal(resolved.discovery.provider, input.provider);
+  assert.equal(resolved.discovery.currency, 'USD');
+  assert.equal(resolved.discovery.reserveMicro, input.reserve_micro);
+  const discovery = await configured.request('discover', { method: 'POST', body: { country: 'SA' } });
+  assert.equal(discovery.code, 200);
+  assert.equal(discoveryOptions.apiKey, input.api_key);
+  assert.equal(discoveryOptions.endpoint, input.endpoint);
+  assert.equal(discoveryOptions.model, input.model);
+  const reservation = configured.calls.find(call => call.name === 'reserveBudget');
+  assert.equal(reservation.args[3], 'USD');
+  assert.equal(reservation.args[5], input.reserve_micro);
+
+  const ciphertext = rows[0].api_key_ciphertext;
+  const updated = await configured.request('save-provider-settings', { method: 'POST', body: { ...input, model: 'search-v3', api_key: '' } });
+  assert.equal(updated.body.profile.model, 'search-v3');
+  assert.equal(rows[0].api_key_ciphertext, ciphertext);
+  const read = await configured.request('provider-settings');
+  assert.equal(read.body.profiles.find(item => item.capability === 'discovery').key_source, 'saved');
+  assert.ok(!JSON.stringify(read.body).includes(input.api_key));
+
+  const invalid = await configured.request('save-provider-settings', { method: 'POST', body: { ...input, endpoint: 'http://search.example/messages' } });
+  assert.equal(invalid.code, 400);
+  assert.equal(rows.length, 1);
 });
 
 test('generic provider environment overrides legacy keys and request metadata', async () => {
