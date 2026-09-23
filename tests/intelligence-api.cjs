@@ -97,6 +97,12 @@ test('login cookie is secure, HttpOnly and bounded; tokens and keys never enter 
 });
 
 test('wrong allowed user and revoked or invalid upstream session cannot access private data', async () => {
+  const invalidCredentials = setup({ overrides: { login: async () => { throw failure('auth_required', 401); } } });
+  const rejected = await invalidCredentials.request('login', { method: 'POST', loggedIn: false,
+    body: { email: 'local@example.test', password: 'wrong-password' } });
+  assert.equal(rejected.code, 401);
+  assert.deepEqual(rejected.body, { error: 'login_failed', message: '邮箱或密码错误，或账号尚未确认。' });
+
   const wrong = setup({ overrides: { login: async () => ({ user: { id: 'other' }, access_token: 'token' }), user: async () => ({ id: 'other' }) } });
   const login = await wrong.request('login', { method: 'POST', body: { email: 'other@example.test', password: 'test-password' } });
   assert.equal(login.code, 403); assert.equal(login.headers['set-cookie'], undefined);

@@ -12,7 +12,7 @@ const { providerSettingsForOwner, publicProviderSettings, providerConfigRecord }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
-  auth_required: '请登录后查看。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
+  auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
@@ -187,7 +187,12 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'login') {
         if (typeof body.email !== 'string' || body.email.length > 254 || typeof body.password !== 'string' || !body.password || body.password.length > 1024) throw failure('invalid_request', 400);
-        const result = await store.login(body.email.trim(), body.password);
+        let result;
+        try { result = await store.login(body.email.trim(), body.password); }
+        catch (error) {
+          if (error.code === 'auth_required') throw failure('login_failed', 401);
+          throw error;
+        }
         if (!result?.user || result.user.id !== config.adminId) throw failure('forbidden', 403);
         if (typeof result.access_token !== 'string' || !/^[A-Za-z0-9._-]+$/.test(result.access_token)) throw failure('upstream_unavailable');
         res.setHeader('Set-Cookie', sessionCookie(result.access_token, Math.min(Number(result.expires_in) || 3600, 3600), env));
