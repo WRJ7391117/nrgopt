@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createDeepSeekExtractor, validateExtraction, ENDPOINT } = require('../lib/intelligence/deepseek.cjs');
+const { createDeepSeekExtractor, validateExtraction, exactEvidenceQuote, ENDPOINT } = require('../lib/intelligence/deepseek.cjs');
 
 const sourceText = 'The world added 510 gigawatts of renewable capacity in 2023. This was 50% more than in 2022.';
 const valid = {
@@ -25,6 +25,13 @@ test('fabricated or paraphrased evidence quote rejects the whole extraction', ()
   const fabricated = structuredClone(valid);
   fabricated.known_facts[0].evidence_quote = 'The source definitely announced a GCC procurement contract.';
   assert.throws(() => validateExtraction(fabricated, sourceText), { code: 'extraction_invalid', status: 422 });
+});
+
+test('typographic quote differences resolve back to exact source characters', () => {
+  const source = 'The project’s award – worth SAR 9 billion – was announced.';
+  const quote = exactEvidenceQuote(source, "The project's award - worth SAR 9 billion - was announced.");
+  assert.equal(quote, source);
+  assert.equal(exactEvidenceQuote(source, 'The project award was announced.'), null);
 });
 
 test('GCC candidate requires an occurrence country and exact evidence for entities and project', () => {
@@ -73,6 +80,7 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.equal(request.init.headers.Authorization, 'Bearer private-test-key');
   assert.equal(request.init.redirect, 'error');
   assert.equal(request.body.model, 'deepseek-flash');
+  assert.equal(request.body.temperature, 0);
   assert.deepEqual(request.body.thinking, { type: 'disabled' });
   assert.equal(request.body.max_tokens, 4000);
   assert.ok(request.body.messages.some(message => message.content.includes('<source>')));
