@@ -8,7 +8,7 @@ const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
 const { loginPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
-const { providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
+const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
@@ -217,8 +217,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         const existingRows = await store.providerConfigs(user.id);
         const existing = existingRows.find(item => item.capability === body.capability) || null;
+        const environmentProfile = providerSettings(env)[body.capability];
         const saved = await store.saveProviderConfig(user.id, providerConfigRecord({
-          env, owner: user.id, capability: body.capability, input: body, existing
+          env, owner: user.id, capability: body.capability, input: body, existing,
+          fallbackApiKey: environmentProfile?.apiKey || null
         }));
         const profiles = publicProviderSettings(env, existingRows.filter(item => item.capability !== saved.capability).concat(saved));
         return res.status(200).json({ profile: profiles.find(item => item.capability === saved.capability) });
@@ -228,7 +230,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!countries[body.country]) throw failure('invalid_request', 400);
         const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
-          budgetKey: discoveryProvider.reserveKey, reserveMicro: discoveryProvider.reserveMicro,
+          budgetKey: discoveryProvider.budgetKey, budgetLimitMicro: discoveryProvider.budgetLimitMicro,
           providerMissingCode: 'discovery_not_configured', env,
           call: () => discoverCountry(body.country, discoveryProvider, discoveryFactory) });
         return res.status(200).json({ country: body.country, sources: discovery.sources });

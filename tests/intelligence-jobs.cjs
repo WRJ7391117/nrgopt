@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COUNTRIES, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, sourceItem } = require('../lib/intelligence/jobs.cjs');
+const { automaticCallReserve } = require('../lib/intelligence/budget.cjs');
 
 const sourceId = '11111111-1111-4111-8111-111111111111';
 
@@ -35,9 +36,17 @@ test('daily schedule uses the configured timezone and stable six-country item ke
   assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey, COUNTRIES.map(code => `discover:${code}`)]);
 });
 
+test('the server derives a bounded call reservation from each service monthly limit', () => {
+  assert.equal(automaticCallReserve('discovery', 'CNY', 10_000_000), 2_000_000);
+  assert.equal(automaticCallReserve('extraction', 'CNY', 10_000_000), 1_000_000);
+  assert.equal(automaticCallReserve('cross_check', 'CNY', 10_000_000), 500_000);
+  assert.equal(automaticCallReserve('discovery', 'USD', 200_000), 200_000);
+  assert.equal(automaticCallReserve('extraction', 'EUR', 10_000_000), null);
+});
+
 test('missing or exhausted discovery budget pauses before calling MiniMax', async () => {
   for (const setup of [{ env: {}, reservationId: 'reservation-1', error: 'budget_not_configured' },
-    { env: { NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000' }, reservationId: null, error: 'budget_exhausted' }]) {
+    { env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000' }, reservationId: null, error: 'budget_exhausted' }]) {
     const store = fakeStore({ reservationId: setup.reservationId });
     let called = false;
     const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: setup.env,
@@ -51,7 +60,7 @@ test('missing or exhausted discovery budget pauses before calling MiniMax', asyn
 test('duplicate discovery URLs enqueue one source item and finish only discovery', async () => {
   const store = fakeStore();
   const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1',
-    env: { NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1200' }, ...dependencies,
+    env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1200' }, ...dependencies,
     discover: async () => ({ sources: [{ url: 'https://official.example/a' }, { url: 'https://official.example/a#duplicate' }],
       model: 'MiniMax-M3', search_count: 1, usage: { input_tokens: 10, output_tokens: 5 } }) });
   assert.equal(result.status, 'succeeded');
@@ -123,7 +132,7 @@ test('successful extraction finishes only its claimed item', async () => {
   const item = { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } };
   const store = fakeStore({ item });
   const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1',
-    env: { NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '2000' }, discover: async () => [], ...dependencies });
+    env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000' }, discover: async () => [], ...dependencies });
   assert.equal(result.status, 'succeeded');
   assert.ok(store.calls.some(call => call[0] === 'saveExtraction'));
   assert.equal(store.calls.filter(call => call[0] === 'finishJobItem').length, 1);
@@ -134,7 +143,7 @@ test('failed extraction retries only its item and records a stable source failur
   const item = { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } };
   const store = fakeStore({ item });
   const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1',
-    env: { NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '2000' }, discover: async () => [], ...dependencies,
+    env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000' }, discover: async () => [], ...dependencies,
     modelFactory: () => async () => { throw new Error('private provider detail'); } });
   assert.equal(result.status, 'retry');
   assert.deepEqual(store.calls.find(call => call[0] === 'failExtraction').slice(1), [sourceId, 'owner-a', 'model_unavailable']);

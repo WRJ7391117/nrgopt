@@ -292,11 +292,12 @@
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已启用；每次触发最多消费一个国家任务' : '未启用；不会自动调用来源发现服务';
     var symbols = { CNY: '¥', USD: '$' };
+    var budgetNames = { discovery: '来源发现', analysis: '情报分析' };
     var budgets = (result.budgets || []).filter(function (budget) { return budget.enabled; });
     byId('budget-state').textContent = budgets.length
       ? budgets.map(function (budget) {
         var symbol = symbols[budget.currency] || budget.currency + ' ';
-        return budget.currency + ' 上限 ' + symbol + (Number(budget.limit_micro) / 1000000).toFixed(2)
+        return (budgetNames[budget.capability] || budget.capability) + '：月度上限 ' + symbol + (Number(budget.limit_micro) / 1000000).toFixed(2)
           + ' · 已用 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2)
           + ' · 已预留 ' + symbol + (Number(budget.reserved_micro) / 1000000).toFixed(2);
       }).join('；')
@@ -339,8 +340,7 @@
     form.elements.endpoint.value = profile.endpoint || '';
     form.elements.model.value = profile.model || '';
     form.elements.currency.value = profile.currency || 'CNY';
-    form.elements.reserve.value = moneyInput(profile.reserve_micro);
-    if (form.elements.cross_check_reserve) form.elements.cross_check_reserve.value = moneyInput(profile.cross_check_reserve_micro);
+    form.elements.budget_limit.value = moneyInput(profile.budget_limit_micro);
     form.elements.api_key.value = '';
     var labels = { saved: '密钥已安全保存', environment: '当前使用服务器密钥', none: '密钥尚未配置' };
     var keyState = byId(profile.capability + '-key-state');
@@ -452,17 +452,14 @@
       event.preventDefault();
       var capability = form.dataset.capability;
       var button = form.querySelector('button[type="submit"]');
-      var reserveMicro = Math.round(Number(form.elements.reserve.value) * 1000000);
-      var crossCheckReserveMicro = form.elements.cross_check_reserve
-        ? Math.round(Number(form.elements.cross_check_reserve.value) * 1000000) : null;
+      var budgetLimitMicro = Math.round(Number(form.elements.budget_limit.value) * 1000000);
       var payload = {
         capability,
         provider: form.elements.provider.value.trim(),
         endpoint: form.elements.endpoint.value.trim(),
         model: form.elements.model.value.trim(),
         currency: form.elements.currency.value,
-        reserve_micro: reserveMicro,
-        cross_check_reserve_micro: crossCheckReserveMicro,
+        budget_limit_micro: budgetLimitMicro,
         api_key: form.elements.api_key.value,
       };
       button.disabled = true;

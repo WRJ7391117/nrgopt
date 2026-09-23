@@ -9,20 +9,19 @@ const id = '11111111-1111-4111-8111-111111111111';
 const admin = '22222222-2222-4222-8222-222222222222';
 const env = { SUPABASE_URL: 'https://project.example', SUPABASE_ANON_KEY: 'test-anon', SUPABASE_SERVICE_ROLE_KEY: 'test-service', NRGOPT_ADMIN_USER_ID: admin, NRGOPT_APP_ORIGIN: 'https://preview.example', NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', DEEPSEEK_API_KEY: 'test-deepseek-key',
   NRGOPT_PROVIDER_CONFIG_KEY: Buffer.alloc(32, 7).toString('base64'),
-  NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000', NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '2000',
-  NRGOPT_DEEPSEEK_CROSS_CHECK_RESERVE_MICROCNY: '1000' };
+  NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000', NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000' };
 const source = { id, title: '<script>untrusted</script>', status: 'pending_extraction' };
 
 test('provider settings accept generic profiles and keep legacy fallbacks', () => {
   const generic = providerSettings({ NRGOPT_DISCOVERY_API_KEY: 'discovery-key', NRGOPT_DISCOVERY_PROVIDER: 'search-service',
     NRGOPT_DISCOVERY_ENDPOINT: 'https://search.example/v1/messages', NRGOPT_DISCOVERY_MODEL: 'search-v2', NRGOPT_DISCOVERY_CURRENCY: 'USD',
-    NRGOPT_DISCOVERY_RESERVE_MICRO: '1200', NRGOPT_ANALYSIS_API_KEY: 'analysis-key', NRGOPT_ANALYSIS_PROVIDER: 'analysis-service',
+    NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1200', NRGOPT_ANALYSIS_API_KEY: 'analysis-key', NRGOPT_ANALYSIS_PROVIDER: 'analysis-service',
     NRGOPT_ANALYSIS_ENDPOINT: 'https://analysis.example/v1/chat/completions', NRGOPT_ANALYSIS_MODEL: 'analysis-v2', NRGOPT_ANALYSIS_CURRENCY: 'USD',
-    NRGOPT_ANALYSIS_RESERVE_MICRO: '2300', NRGOPT_CROSS_CHECK_RESERVE_MICRO: '900' });
+    NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2300' });
   assert.deepEqual(generic.discovery, { apiKey: 'discovery-key', provider: 'search-service', endpoint: 'https://search.example/v1/messages',
-    model: 'search-v2', currency: 'USD', reserveKey: 'NRGOPT_DISCOVERY_RESERVE_MICRO' });
+    model: 'search-v2', currency: 'USD', budgetKey: 'NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 1200 });
   assert.deepEqual(generic.analysis, { apiKey: 'analysis-key', provider: 'analysis-service', endpoint: 'https://analysis.example/v1/chat/completions',
-    model: 'analysis-v2', currency: 'USD', reserveKey: 'NRGOPT_ANALYSIS_RESERVE_MICRO', crossCheckReserveKey: 'NRGOPT_CROSS_CHECK_RESERVE_MICRO' });
+    model: 'analysis-v2', currency: 'USD', budgetKey: 'NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 2300 });
   const legacy = providerSettings({ MINIMAX_API_KEY: 'legacy-discovery', DEEPSEEK_API_KEY: 'legacy-analysis' });
   assert.equal(legacy.discovery.apiKey, 'legacy-discovery');
   assert.equal(legacy.analysis.apiKey, 'legacy-analysis');
@@ -35,7 +34,7 @@ test('provider settings accept generic profiles and keep legacy fallbacks', () =
     NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000' });
   assert.equal(incomplete.discovery.apiKey, null);
   assert.equal(incomplete.discovery.endpoint, null);
-  assert.equal(incomplete.discovery.reserveKey, 'NRGOPT_DISCOVERY_RESERVE_MICRO');
+  assert.equal(incomplete.discovery.budgetKey, 'NRGOPT_DISCOVERY_RESERVE_MICRO');
 });
 
 function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory, crossCheckFactory, discoveryFactory, notificationFactory } = {}) {
@@ -158,7 +157,7 @@ test('MiniMax discovers official source links without requiring the user to know
 
 test('paid manual calls stop before providers when budget is absent or exhausted', async () => {
   for (const current of [
-    { environment: { ...env, NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '' }, overrides: {}, code: 503, error: 'budget_not_configured' },
+    { environment: { ...env, NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '' }, overrides: {}, code: 503, error: 'budget_not_configured' },
     { environment: env, overrides: { reserveBudget: async () => null }, code: 409, error: 'budget_exhausted' }
   ]) {
     let providerCalled = false;
@@ -359,6 +358,8 @@ test('provider-neutral pages describe capabilities instead of fixed vendors', as
   assert.match(settingsPage.body, /API Key 是只写字段/);
   assert.match(settingsPage.body, /人民币 CNY/);
   assert.match(settingsPage.body, /美元 USD/);
+  assert.match(settingsPage.body, /每月金额上限/);
+  assert.ok(!settingsPage.body.includes('单次预留上限'));
 });
 
 test('private settings save an encrypted write-only key and override the environment profile', async () => {
@@ -377,7 +378,7 @@ test('private settings save an encrypted write-only key and override the environ
       results: [{ title: 'Official award', url: 'https://www.spa.gov.sa/en/N1' }] });
   } });
   const input = { capability: 'discovery', provider: 'custom-search', endpoint: 'https://search.example/v1/messages',
-    model: 'search-v2', currency: 'USD', reserve_micro: 125000, cross_check_reserve_micro: null, api_key: 'private-browser-key' };
+    model: 'search-v2', currency: 'USD', budget_limit_micro: 125000, api_key: 'private-browser-key' };
   const saved = await configured.request('save-provider-settings', { method: 'POST', body: input });
   assert.equal(saved.code, 200);
   assert.equal(saved.body.profile.key_source, 'saved');
@@ -388,7 +389,7 @@ test('private settings save an encrypted write-only key and override the environ
   assert.equal(resolved.discovery.apiKey, input.api_key);
   assert.equal(resolved.discovery.provider, input.provider);
   assert.equal(resolved.discovery.currency, 'USD');
-  assert.equal(resolved.discovery.reserveMicro, input.reserve_micro);
+  assert.equal(resolved.discovery.budgetLimitMicro, input.budget_limit_micro);
   const discovery = await configured.request('discover', { method: 'POST', body: { country: 'SA' } });
   assert.equal(discovery.code, 200);
   assert.equal(discoveryOptions.apiKey, input.api_key);
@@ -396,7 +397,7 @@ test('private settings save an encrypted write-only key and override the environ
   assert.equal(discoveryOptions.model, input.model);
   const reservation = configured.calls.find(call => call.name === 'reserveBudget');
   assert.equal(reservation.args[3], 'USD');
-  assert.equal(reservation.args[5], input.reserve_micro);
+  assert.equal(reservation.args[5], input.budget_limit_micro);
 
   const ciphertext = rows[0].api_key_ciphertext;
   const updated = await configured.request('save-provider-settings', { method: 'POST', body: { ...input, model: 'search-v3', api_key: '' } });
@@ -411,10 +412,28 @@ test('private settings save an encrypted write-only key and override the environ
   assert.equal(rows.length, 1);
 });
 
+test('first web save can retain an existing server key without asking the user to enter it again', async () => {
+  let savedRecord;
+  const environment = { ...env, MINIMAX_API_KEY: 'existing-server-key' };
+  const configured = setup({ environment, overrides: {
+    providerConfigs: async () => [],
+    saveProviderConfig: async (_owner, record) => { savedRecord = record; return record; }
+  } });
+  const response = await configured.request('save-provider-settings', { method: 'POST', body: {
+    capability: 'discovery', provider: 'minimax', endpoint: 'https://api.minimaxi.com/anthropic/v1/messages',
+    model: 'MiniMax-M3', currency: 'CNY', budget_limit_micro: 10_000_000, api_key: ''
+  } });
+  assert.equal(response.code, 200);
+  assert.equal(response.body.profile.key_source, 'saved');
+  assert.ok(savedRecord.api_key_ciphertext);
+  assert.ok(!savedRecord.api_key_ciphertext.includes(environment.MINIMAX_API_KEY));
+  assert.equal(providerSettingsWithSaved(environment, [savedRecord], admin).discovery.apiKey, environment.MINIMAX_API_KEY);
+});
+
 test('generic provider environment overrides legacy keys and request metadata', async () => {
   const customEnv = { ...env, NRGOPT_DISCOVERY_API_KEY: 'generic-discovery-key', NRGOPT_DISCOVERY_PROVIDER: 'search-service',
     NRGOPT_DISCOVERY_ENDPOINT: 'https://search.example/v1/messages', NRGOPT_DISCOVERY_MODEL: 'search-v2',
-    NRGOPT_DISCOVERY_CURRENCY: 'CNY', NRGOPT_DISCOVERY_RESERVE_MICRO: '1000' };
+    NRGOPT_DISCOVERY_CURRENCY: 'CNY', NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000' };
   let options;
   const { request } = setup({ environment: customEnv, discoveryFactory: value => { options = value; return async () => ({
     provider: value.provider, model: value.model, search_count: 1, usage: {}, results: [
