@@ -223,6 +223,18 @@ test('settings require configuration, default to read-only, and disable producti
   assert.equal(settings({ ...ENV, SUPABASE_URL: 'http://127.0.0.1:54321' }).url, 'http://127.0.0.1:54321');
 });
 
+test('preview settings allow only the configured origin and Vercel-provided preview hosts', () => {
+  const config = settings({ ...ENV, VERCEL_ENV: 'preview', VERCEL_URL: 'nrgopt-commit-team.vercel.app',
+    VERCEL_BRANCH_URL: 'nrgopt-git-branch-team.vercel.app' });
+  assert.deepEqual(config.origins, [
+    ENV.NRGOPT_APP_ORIGIN,
+    'https://nrgopt-commit-team.vercel.app',
+    'https://nrgopt-git-branch-team.vercel.app'
+  ]);
+  const invalid = settings({ ...ENV, VERCEL_ENV: 'preview', VERCEL_URL: 'attacker.example' });
+  assert.deepEqual(invalid.origins, [ENV.NRGOPT_APP_ORIGIN]);
+});
+
 test('organization aliases normalize only explicit legal-name and acronym variants', () => {
   assert.deepEqual(organizationKeys('ACWA Power Company (ACWA)'), ['acwa power', 'acwa']);
   assert.deepEqual(organizationKeys('Public Investment Fund (PIF)'), ['public investment fund', 'pif']);

@@ -117,6 +117,16 @@ test('mutations reject cross-origin or missing origin; bad methods cause no work
   assert.deepEqual(calls, []);
 });
 
+test('login accepts the current Vercel preview origin without weakening cross-origin rejection', async () => {
+  const previewOrigin = 'https://nrgopt-commit-team.vercel.app';
+  const previewEnv = { ...env, VERCEL_ENV: 'preview', VERCEL_URL: 'nrgopt-commit-team.vercel.app' };
+  const { request } = setup({ environment: previewEnv });
+  assert.equal((await request('login', { method: 'POST', body: { email: 'local@example.test', password: 'valid-password' },
+    headers: { origin: previewOrigin } })).code, 200);
+  assert.equal((await request('login', { method: 'POST', body: { email: 'local@example.test', password: 'valid-password' },
+    headers: { origin: 'https://attacker.example' } })).code, 403);
+});
+
 test('MiniMax discovers official source links without requiring the user to know a URL', async () => {
   let options;
   let input;

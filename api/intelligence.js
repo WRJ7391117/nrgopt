@@ -173,7 +173,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const token = sessionToken(req, env);
       if (!token && !['login', 'logout'].includes(action)) throw failure('auth_required', 401);
       const config = settings(env);
-      if (post && req.headers.origin !== config.origin) throw failure('origin_rejected', 403);
+      if (post && !config.origins.includes(req.headers.origin)) throw failure('origin_rejected', 403);
       const store = storeFactory(config);
       if (action === 'logout') {
         res.setHeader('Set-Cookie', sessionCookie('', 0, env));
