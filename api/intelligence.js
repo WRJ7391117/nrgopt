@@ -8,6 +8,7 @@ const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
 const { loginPage, sourcesPage, overviewPage } = require('../lib/intelligence/pages.cjs');
+const { providerSettings } = require('../lib/intelligence/provider-config.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
@@ -16,9 +17,9 @@ const messages = {
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
     archive_queue_failed: '原件已保存，但归档任务登记失败；请重试保存这条来源。',
-  model_not_configured: 'DeepSeek 尚未配置。', model_auth_failed: 'DeepSeek 密钥无效或无权调用。', model_unavailable: 'DeepSeek 暂时不可用，请稍后重试。',
-  extraction_invalid: '模型返回内容未通过证据校验，未保存本次结果。', minimax_not_configured: 'MiniMax 来源发现尚未配置。',
-  minimax_auth_failed: 'MiniMax 密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
+  model_not_configured: '情报分析服务尚未配置。', model_auth_failed: '情报分析服务密钥无效或无权调用。', model_unavailable: '情报分析服务暂时不可用，请稍后重试。',
+  extraction_invalid: '模型返回内容未通过证据校验，未保存本次结果。', discovery_not_configured: '来源发现服务尚未配置。',
+  discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
   scheduler_disabled: '自动扫描尚未启用。', scheduler_unauthorized: '自动扫描凭据无效。',
   archive_disabled: '归档节点尚未接入。', archive_unauthorized: '归档凭据无效。',
@@ -42,7 +43,7 @@ function discoveryQuery(country) {
   return `${countries[country]} latest renewable energy power grid storage hydrogen procurement tender award contract project announcement. Return original publications only from: ${primaryHosts[country].join(', ')}`;
 }
 async function discoverCountry(country, env, discoveryFactory) {
-  const discovery = await discoveryFactory({ apiKey: env.MINIMAX_API_KEY })({ query: discoveryQuery(country) });
+  const discovery = await discoveryFactory(providerSettings(env).discovery)({ query: discoveryQuery(country) });
   const sources = discovery.results.filter(item => primarySource(item.url, country)).map(item => ({ ...item, source_level: 'primary' }));
   if (!sources.length) throw failure('discovery_unavailable', 502);
   return { ...discovery, results: undefined, sources };
@@ -204,8 +205,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'discover') {
         if (!config.writes) throw failure('writes_disabled', 403);
         if (!countries[body.country]) throw failure('invalid_request', 400);
-        const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: 'CNY',
-          budgetKey: 'NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY', providerMissingCode: 'minimax_not_configured', env,
+        const discoveryProvider = providerSettings(env).discovery;
+        const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
+          budgetKey: discoveryProvider.reserveKey, providerMissingCode: 'discovery_not_configured', env,
           call: () => discoverCountry(body.country, env, discoveryFactory) });
         return res.status(200).json({ country: body.country, sources: discovery.sources });
       }

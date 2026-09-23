@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const { createHandler } = require('../api/intelligence.js');
 const { failure } = require('../lib/intelligence/store.cjs');
+const { providerSettings } = require('../lib/intelligence/provider-config.cjs');
 
 const id = '11111111-1111-4111-8111-111111111111';
 const admin = '22222222-2222-4222-8222-222222222222';
@@ -10,6 +11,31 @@ const env = { SUPABASE_URL: 'https://project.example', SUPABASE_ANON_KEY: 'test-
   NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000', NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '2000',
   NRGOPT_DEEPSEEK_CROSS_CHECK_RESERVE_MICROCNY: '1000' };
 const source = { id, title: '<script>untrusted</script>', status: 'pending_extraction' };
+
+test('provider settings accept generic profiles and keep legacy fallbacks', () => {
+  const generic = providerSettings({ NRGOPT_DISCOVERY_API_KEY: 'discovery-key', NRGOPT_DISCOVERY_PROVIDER: 'search-service',
+    NRGOPT_DISCOVERY_ENDPOINT: 'https://search.example/v1/messages', NRGOPT_DISCOVERY_MODEL: 'search-v2', NRGOPT_DISCOVERY_CURRENCY: 'USD',
+    NRGOPT_DISCOVERY_RESERVE_MICRO: '1200', NRGOPT_ANALYSIS_API_KEY: 'analysis-key', NRGOPT_ANALYSIS_PROVIDER: 'analysis-service',
+    NRGOPT_ANALYSIS_ENDPOINT: 'https://analysis.example/v1/chat/completions', NRGOPT_ANALYSIS_MODEL: 'analysis-v2', NRGOPT_ANALYSIS_CURRENCY: 'USD',
+    NRGOPT_ANALYSIS_RESERVE_MICRO: '2300', NRGOPT_CROSS_CHECK_RESERVE_MICRO: '900' });
+  assert.deepEqual(generic.discovery, { apiKey: 'discovery-key', provider: 'search-service', endpoint: 'https://search.example/v1/messages',
+    model: 'search-v2', currency: 'USD', reserveKey: 'NRGOPT_DISCOVERY_RESERVE_MICRO' });
+  assert.deepEqual(generic.analysis, { apiKey: 'analysis-key', provider: 'analysis-service', endpoint: 'https://analysis.example/v1/chat/completions',
+    model: 'analysis-v2', currency: 'USD', reserveKey: 'NRGOPT_ANALYSIS_RESERVE_MICRO', crossCheckReserveKey: 'NRGOPT_CROSS_CHECK_RESERVE_MICRO' });
+  const legacy = providerSettings({ MINIMAX_API_KEY: 'legacy-discovery', DEEPSEEK_API_KEY: 'legacy-analysis' });
+  assert.equal(legacy.discovery.apiKey, 'legacy-discovery');
+  assert.equal(legacy.analysis.apiKey, 'legacy-analysis');
+  const invalid = providerSettings({ NRGOPT_DISCOVERY_ENDPOINT: 'http://search.example/messages',
+    NRGOPT_ANALYSIS_CURRENCY: 'EUR', NRGOPT_ANALYSIS_PROVIDER: 'invalid provider' });
+  assert.equal(invalid.discovery.endpoint, null);
+  assert.equal(invalid.analysis.currency, null);
+  assert.equal(invalid.analysis.provider, null);
+  const incomplete = providerSettings({ NRGOPT_DISCOVERY_PROVIDER: 'custom-search', MINIMAX_API_KEY: 'legacy-discovery',
+    NRGOPT_MINIMAX_DISCOVERY_RESERVE_MICROCNY: '1000' });
+  assert.equal(incomplete.discovery.apiKey, null);
+  assert.equal(incomplete.discovery.endpoint, null);
+  assert.equal(incomplete.discovery.reserveKey, 'NRGOPT_DISCOVERY_RESERVE_MICRO');
+});
 
 function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory, crossCheckFactory, discoveryFactory, notificationFactory } = {}) {
   const calls = [];
@@ -106,6 +132,8 @@ test('MiniMax discovers official source links without requiring the user to know
   assert.equal(response.body.sources[0].url, 'https://www.spa.gov.sa/en/N1');
   assert.equal(response.body.sources[0].source_level, 'primary');
   assert.equal(options.apiKey, 'test-minimax-key');
+  assert.equal(options.provider, 'minimax');
+  assert.equal(options.model, 'MiniMax-M3');
   assert.match(input.query, /Saudi Arabia/);
   assert.equal((await request('discover', { method: 'POST', body: { country: 'US' } })).code, 400);
 });
@@ -296,6 +324,34 @@ test('model extraction reads saved evidence, records processing and persists onl
   assert.deepEqual(calls.find(call => call.name === 'beginExtraction').args, [id, admin]);
   assert.equal(calls.find(call => call.name === 'saveExtraction').args[3], saved.content_sha256);
   assert.deepEqual(calls.find(call => call.name === 'saveCandidate').args, [id, admin, extraction, saved.content_sha256]);
+});
+
+test('provider-neutral pages describe capabilities instead of fixed vendors', async () => {
+  const { request } = setup();
+  const sources = await request('page');
+  const detail = await request('detail-page');
+  assert.match(sources.body, /已配置的联网来源发现服务/);
+  assert.match(sources.body, /已配置的情报分析服务/);
+  assert.match(detail.body, /情报分析服务 · 单一来源分析/);
+  assert.ok(!sources.body.includes('MiniMax'));
+  assert.ok(!sources.body.includes('DeepSeek'));
+  assert.ok(!detail.body.includes('DeepSeek'));
+});
+
+test('generic provider environment overrides legacy keys and request metadata', async () => {
+  const customEnv = { ...env, NRGOPT_DISCOVERY_API_KEY: 'generic-discovery-key', NRGOPT_DISCOVERY_PROVIDER: 'search-service',
+    NRGOPT_DISCOVERY_ENDPOINT: 'https://search.example/v1/messages', NRGOPT_DISCOVERY_MODEL: 'search-v2',
+    NRGOPT_DISCOVERY_CURRENCY: 'CNY', NRGOPT_DISCOVERY_RESERVE_MICRO: '1000' };
+  let options;
+  const { request } = setup({ environment: customEnv, discoveryFactory: value => { options = value; return async () => ({
+    provider: value.provider, model: value.model, search_count: 1, usage: {}, results: [
+      { title: 'Official award', url: 'https://www.spa.gov.sa/en/N1' }
+    ] }); } });
+  assert.equal((await request('discover', { method: 'POST', body: { country: 'SA' } })).code, 200);
+  assert.equal(options.apiKey, 'generic-discovery-key');
+  assert.equal(options.provider, 'search-service');
+  assert.equal(options.endpoint, 'https://search.example/v1/messages');
+  assert.equal(options.model, 'search-v2');
 });
 
 test('a plausible second source is cross-checked and linked without requiring human approval', async () => {

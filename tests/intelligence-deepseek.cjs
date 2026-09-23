@@ -83,6 +83,22 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
 
 test('missing key and upstream authentication errors expose stable codes', async () => {
   assert.throws(() => createDeepSeekExtractor({}), { code: 'model_not_configured', status: 503 });
+  assert.throws(() => createDeepSeekExtractor({ apiKey: 'key', endpoint: null }), { code: 'model_not_configured', status: 503 });
   const extract = createDeepSeekExtractor({ apiKey: 'bad', fetchImpl: async () => new Response('private provider detail', { status: 401 }) });
   await assert.rejects(extract({ title: '', url: 'https://source.example', sourceText }), { code: 'model_auth_failed', status: 502 });
+});
+
+test('analysis provider accepts configured identity, model and endpoint', async () => {
+  let request;
+  const extract = createDeepSeekExtractor({ apiKey: 'key', provider: 'custom-analysis', model: 'analysis-v2',
+    endpoint: 'https://analysis.example/v1/chat/completions', fetchImpl: async (input, init) => {
+      request = { input, body: JSON.parse(init.body) };
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(valid) } }] }));
+    } });
+  const result = await extract({ title: 'Energy', url: 'https://source.example', sourceText });
+  assert.equal(request.input, 'https://analysis.example/v1/chat/completions');
+  assert.equal(request.body.model, 'analysis-v2');
+  assert.equal(request.body.thinking, undefined);
+  assert.equal(result.provider, 'custom-analysis');
+  assert.equal(result.model, 'analysis-v2');
 });

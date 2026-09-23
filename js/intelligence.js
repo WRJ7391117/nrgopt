@@ -137,7 +137,7 @@
     });
     byId('extraction-hypotheses-section').hidden = !hypotheses.children.length;
     byId('extraction-caution').textContent = extraction.caution_zh;
-    byId('extraction-meta').textContent = '成熟度：' + extraction.maturity + ' · 模型：' + (source.extraction_provider || 'deepseek') + ' / ' + (source.extraction_model || 'deepseek-flash') + ' · 生成时间：' + dateLabel(source.extracted_at);
+    byId('extraction-meta').textContent = '成熟度：' + extraction.maturity + ' · 模型：' + (source.extraction_provider || '未记录') + ' / ' + (source.extraction_model || '未记录') + ' · 生成时间：' + dateLabel(source.extracted_at);
   }
   function linkValue(id, value) {
     var container = byId(id);
@@ -290,7 +290,7 @@
     byId('candidate-empty').hidden = groupedCandidates.length !== 0;
   }
   function renderOperations(result) {
-    byId('scheduler-state').textContent = result.scheduler_enabled ? '已启用；每次触发最多消费一个国家任务' : '未启用；不会自动调用 MiniMax';
+    byId('scheduler-state').textContent = result.scheduler_enabled ? '已启用；每次触发最多消费一个国家任务' : '未启用；不会自动调用来源发现服务';
     var symbols = { CNY: '¥', USD: '$' };
     var budgets = (result.budgets || []).filter(function (budget) { return budget.enabled; });
     byId('budget-state').textContent = budgets.length
@@ -424,7 +424,7 @@
       event.preventDefault();
       var button = discoveryForm.querySelector('button[type="submit"]');
       button.disabled = true;
-      status('discovery-status', 'MiniMax 正在搜索最新官方来源…');
+      status('discovery-status', '来源发现服务正在搜索最新官方来源…');
       byId('discovery-results').replaceChildren();
       try {
         var result = await api('discover', { country: byId('discovery-country').value });
@@ -504,7 +504,7 @@
       var match = location.pathname.match(detailPath);
       if (!match) return;
       extractButton.disabled = true;
-      status('extraction-status', 'DeepSeek 正在阅读原文并核对证据，请稍候…');
+      status('extraction-status', '情报分析服务正在阅读原文并核对证据，请稍候…');
       try {
         var result = await api('extract', {}, match[1]);
         sourceStatus(byId('source-status'), result.source);

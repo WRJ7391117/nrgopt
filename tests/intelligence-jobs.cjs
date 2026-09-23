@@ -87,12 +87,22 @@ test('usage pricing settles the measured CNY estimate instead of the whole reser
   const store = fakeStore();
   await runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY', budgetKey: 'RESERVE',
     providerMissingCode: 'model_not_configured', env: { RESERVE: '10000' }, call: async () => ({
-      model: 'deepseek-flash', usage: { prompt_tokens: 1000, completion_tokens: 100, prompt_cache_hit_tokens: 200, prompt_cache_miss_tokens: 800 }
+      provider: 'deepseek', model: 'deepseek-flash', usage: { prompt_tokens: 1000, completion_tokens: 100, prompt_cache_hit_tokens: 200, prompt_cache_miss_tokens: 800 }
     }) });
   const settled = store.calls.find(call => call[0] === 'settleBudget');
   assert.deepEqual(settled.slice(1, 5), ['owner-a', 'reservation-1', 2408, 'estimated']);
   assert.equal(settled[5].provider, 'deepseek');
   assert.equal(settled[5].pricingVersion, 'deepseek-flash-cn-peak-2026-09-22');
+});
+
+test('unknown provider pricing settles the configured reservation ceiling', async () => {
+  const store = fakeStore();
+  await runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'USD', budgetKey: 'RESERVE',
+    providerMissingCode: 'model_not_configured', env: { RESERVE: '10000' }, call: async () => ({
+      provider: 'custom-analysis', model: 'analysis-v2', usage: { prompt_tokens: 1000, completion_tokens: 100 }
+    }) });
+  assert.deepEqual(store.calls.find(call => call[0] === 'settleBudget').slice(1, 5),
+    ['owner-a', 'reservation-1', 10000, 'estimated']);
 });
 
 test('missing extraction budget keeps saved evidence and pauses before DeepSeek', async () => {
