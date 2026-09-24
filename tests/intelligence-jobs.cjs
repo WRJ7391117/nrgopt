@@ -15,7 +15,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     syncProviderBalance: async () => true,
     save: async () => ({ source, reused: false }), recordFailure: async () => {}, evidence: async () => ({ source, bytes: Buffer.from('Official source evidence.') }),
     beginExtraction: async () => {}, saveExtraction: async () => source, saveCandidate: async () => ({ id: 'candidate-1' }),
-    findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
+    previousExtractedSource: async () => null, findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
     providerConfigs: async () => []
   };
   const store = { calls };
@@ -269,7 +269,8 @@ test('cross-check work uses saved evidence and does not repeat a persisted relat
   let related = false;
   store.candidateBySource = async id => ({ id: id === sourceId ? 'left' : 'right',
     related_sources: related ? [{ related_candidate_id: 'right' }] : [] });
-  store.get = async id => ({ extraction_zh: { summary_zh: id } });
+  store.get = async id => ({ final_url: id === sourceId ? 'https://left.example/a' : 'https://right.example/b',
+    content_sha256: id, extraction_zh: { summary_zh: id } });
   let checked = 0;
   const options = { store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '1000' }, ...dependencies,
     crossCheckFactory: () => async ({ left, right }) => {
@@ -320,4 +321,48 @@ test('daily scan revisits active watched URLs with the same deduplicated source 
   assert.equal(items.length, 1);
   assert.equal(items[0].item_key, sourceItem({ url: 'https://official.example/watch' }, null).item_key);
   assert.deepEqual(items[0].checkpoint, { url: 'https://official.example/watch', watch: true });
+});
+
+test('template-only source changes reuse verified model input without another paid extraction', async () => {
+  const previousId = '22222222-2222-4222-8222-222222222222';
+  const text = 'The official report states that the project is under construction.';
+  const extraction = { summary_zh: '项目正在建设。', why_it_matters_zh: '关注项目建设进度。',
+    known_facts: [{ claim_zh: '项目正在建设。', evidence_quote: text }], unknowns_zh: ['投运日期未披露。'],
+    hypotheses: [], next_signals_zh: ['观察投运公告。'], maturity: 'background',
+    classification: { disposition: 'source_only', countries: [], radars: [], organizations: [], project: null, procurement: null } };
+  for (const changed of [false, true]) {
+    const store = fakeStore({ item: { id: 'item-extract', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
+    const previous = { id: previousId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/html',
+      content_sha256: 'b'.repeat(64), extraction_source_sha256: 'b'.repeat(64), extraction_status: 'extracted', extraction_zh: extraction,
+      extraction_provider: 'deepseek', extraction_model: 'old-model', extracted_at: '2026-09-23T00:00:00Z' };
+    store.previousExtractedSource = async () => previous;
+    store.evidence = async id => ({ source: id === previousId ? previous : {
+      id: sourceId, title: previous.title, final_url: previous.final_url, content_type: 'text/html', content_sha256: 'a'.repeat(64)
+    }, bytes: Buffer.from(`<script>nonce-${id}</script><main>${text}${changed && id === sourceId ? ' New project stage.' : ''}</main>`) });
+    let calls = 0;
+    const result = await runDailyJobItem({ store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' }, ...dependencies,
+      modelFactory: () => async () => { calls++; return { extraction, provider: 'deepseek', model: 'new-model', usage: {} }; } });
+    assert.equal(result.status, 'succeeded');
+    assert.equal(calls, changed ? 1 : 0);
+    const saved = store.calls.find(call => call[0] === 'saveExtraction');
+    assert.equal(saved[4], 'a'.repeat(64));
+    if (!changed) {
+      assert.equal(saved[3].extraction.reused_from_source_id, previousId);
+      assert.equal(saved[3].extractedAt, previous.extracted_at);
+      assert.equal(saved[3].model, 'old-model');
+      assert.ok(!store.calls.some(call => call[0] === 'reserveBudget'));
+    }
+  }
+});
+
+test('already queued cross-check skips another version from the same publisher', async () => {
+  const peerId = '22222222-2222-4222-8222-222222222222';
+  const store = fakeStore({ item: { id: 'item-cross', job_run_id: 'job-1', item_key: `cross:${sourceId}:${peerId}`, attempts: 1,
+    checkpoint: { left_source_id: sourceId, right_source_id: peerId } } });
+  store.candidateBySource = async id => ({ id, related_sources: [] });
+  store.get = async id => ({ final_url: id === sourceId ? 'https://www.official.example/a' : 'https://official.example/b', content_sha256: id });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: {}, ...dependencies,
+    crossCheckFactory: () => { throw Error('same publisher must not count as independent'); } });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(!store.calls.some(call => ['reserveBudget', 'saveCrossCheck'].includes(call[0])));
 });

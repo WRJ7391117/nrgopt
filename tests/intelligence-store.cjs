@@ -78,7 +78,7 @@ function backend() {
         state.records.push({ ...record });
         return json([{ ...record }], 201);
       }
-      const matches = state.records.filter(row => ['id', 'owner_id', 'final_url', 'content_sha256', 'status'].every(key => {
+      const matches = state.records.filter(row => ['id', 'owner_id', 'final_url', 'content_sha256', 'status', 'extraction_status'].every(key => {
         const condition = url.searchParams.get(key);
         return !condition || (condition.startsWith('in.(') ? condition.slice(4, -1).split(',').includes(row[key]) : condition.startsWith('neq.') ? row[key] !== condition.slice(4) : condition === `eq.${row[key]}`);
       }));
@@ -549,6 +549,11 @@ test('strict project peers are cross-linked and exposed as one independently sup
   assert.equal(peers.length, 1);
   assert.equal(peers[0].id, first.id);
   assert.equal(peers[0].extraction_zh.known_facts[0].claim_zh, '容量一致。');
+  const secondRecord = state.records.find(row => row.id === second.source_id);
+  const originalUrl = secondRecord.final_url;
+  secondRecord.final_url = SOURCE.finalUrl;
+  assert.equal((await state.store.findCandidatePeers(second, 'owner-a')).length, 0);
+  secondRecord.final_url = originalUrl;
   await state.store.saveCrossCheck(second.id, first.id, 'owner-a', {
     matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '两份来源披露相同容量。' }], conflicting_facts: []
   });

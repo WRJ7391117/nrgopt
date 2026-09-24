@@ -152,7 +152,8 @@
     });
     byId('extraction-hypotheses-section').hidden = !hypotheses.children.length;
     byId('extraction-caution').textContent = extraction.caution_zh;
-    byId('extraction-meta').textContent = '成熟度：' + extraction.maturity + ' · 模型：' + (source.extraction_provider || '未记录') + ' / ' + (source.extraction_model || '未记录') + ' · 生成时间：' + dateLabel(source.extracted_at);
+    byId('extraction-meta').textContent = (extraction.reused_from_source_id ? '正文未变，沿用已有分析 · ' : '')
+      + '成熟度：' + extraction.maturity + ' · 模型：' + (source.extraction_provider || '未记录') + ' / ' + (source.extraction_model || '未记录') + ' · 生成时间：' + dateLabel(source.extracted_at);
   }
   function linkValue(id, value) {
     var container = byId(id);
