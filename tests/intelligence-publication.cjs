@@ -75,3 +75,22 @@ test('QNA article date comes from its saved header attribute, not the URL or rel
   assert.equal(conflict.publication_date, null);
   assert.equal(conflict.publication_method, 'conflicting_metadata');
 });
+
+test('ONA article date requires its own dateline and matching publisher byline', () => {
+  const article = (lead, byline = '22 January 2026') => '<div class="post-item"><article class="post-content"><div class="back-home-news-child">'
+    + `<!--h5><span class="author-name skew25"> ${byline} </span></h5>--><p>Article title</p><p>${lead}</p></div></article></div>`;
+  const url = 'https://omannews.gov.om/topics/en/79/show/126638';
+  const result = parse(article('Muscat, 22 Jan 2026 (ONA) --- Project signed.')
+    + '<aside><p>Related item: 24 Sep 2026 (ONA) --- Other news.</p></aside>', url);
+  assert.equal(result.publication_date, '2026-01-22');
+  assert.equal(result.publication_method, 'metadata');
+  assert.equal(result.published_at, null);
+  assert.match(result.publication_evidence, /publisher_dateline: 2026-01-22/);
+  assert.equal(parse(article('Muscat, 22 Jan (ONA) --- Project signed.', '22 January 2025'), url).publication_date, '2025-01-22');
+  assert.equal(parse(article('Muscat, 22 Jan (ONA) --- Project signed.', '23 January 2026'), url).publication_date, null);
+  assert.equal(parse(article('A future event is planned for 22 Jan 2026.'), url).publication_date, null);
+  assert.equal(parse(article('Muscat, 22 Jan (ONA) --- Project signed.'), 'https://omannews.gov.om.evil.example/').publication_date, null);
+  const conflict = parse(article('Muscat, 22 Jan 2026 (ONA) --- Project signed.', '22 January 2025'), url);
+  assert.equal(conflict.publication_date, null);
+  assert.equal(conflict.publication_method, 'conflicting_metadata');
+});
