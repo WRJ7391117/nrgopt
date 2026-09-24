@@ -76,8 +76,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -228,6 +228,17 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'operations') return res.status(200).json({ ...(await store.operations(user.id)),
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes });
       if (action === 'provider-history') return res.status(200).json(await store.providerHistory(user.id));
+      if (action === 'notification-settings') return res.status(200).json({ settings: await store.notificationSettings(user.id), writable: config.writes,
+        delivery_enabled: env.NRGOPT_FEISHU_ENABLED === '1' && Boolean(env.FEISHU_WEBHOOK_URL) });
+      if (action === 'save-notification-settings') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const { quiet_enabled, quiet_start_hour, quiet_end_hour, timezone, flash_breaks_quiet } = body;
+        if (typeof quiet_enabled !== 'boolean' || typeof flash_breaks_quiet !== 'boolean' ||
+            ![quiet_start_hour, quiet_end_hour].every(hour => Number.isInteger(hour) && hour >= 0 && hour <= 23) ||
+            quiet_start_hour === quiet_end_hour || !['Asia/Shanghai', 'Asia/Riyadh', 'Asia/Dubai', 'UTC'].includes(timezone)) throw failure('invalid_request', 400);
+        return res.status(200).json({ settings: await store.saveNotificationSettings(user.id,
+          { quiet_enabled, quiet_start_hour, quiet_end_hour, timezone, flash_breaks_quiet }) });
+      }
       if (action === 'provider-settings') return res.status(200).json({
         profiles: publicProviderSettings(env, await store.providerConfigs(user.id)), writable: config.writes
       });

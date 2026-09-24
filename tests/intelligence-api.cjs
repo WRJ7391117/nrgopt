@@ -47,6 +47,8 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     logout: async () => {}, list: async () => [source], get: async () => source,
     candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
+    notificationSettings: async () => ({ quiet_enabled: true, quiet_start_hour: 23, quiet_end_hour: 7, timezone: 'Asia/Shanghai', flash_breaks_quiet: false }),
+    saveNotificationSettings: async (_owner, record) => record,
     providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
@@ -86,8 +88,28 @@ test('private pages redirect, data and evidence deny unauthenticated access befo
     assert.match(response.headers.location, /^\/intelligence\/login\?returnTo=/);
     assert.equal(response.body, undefined);
   }
-  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
+  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
   assert.deepEqual(calls, []);
+});
+
+test('quiet-hour settings validate hours, timezone and owner without enabling delivery', async () => {
+  const { request, calls } = setup();
+  const read = await request('notification-settings');
+  assert.equal(read.body.delivery_enabled, false);
+  assert.equal(read.body.settings.quiet_start_hour, 23);
+  const input = { quiet_enabled: true, quiet_start_hour: 22, quiet_end_hour: 8, timezone: 'Asia/Riyadh', flash_breaks_quiet: false };
+  assert.equal((await request('save-notification-settings', { method: 'POST', body: { ...input, owner_id: 'other-owner' } })).code, 200);
+  assert.deepEqual(calls.find(call => call.name === 'saveNotificationSettings').args, [admin, input]);
+  for (const patch of [{ quiet_start_hour: 24 }, { quiet_end_hour: -1 }, { quiet_end_hour: 22 }, { quiet_start_hour: 22.5 },
+    { timezone: 'unsupported' }, { quiet_enabled: 'false' }, { flash_breaks_quiet: 1 }]) {
+    assert.equal((await request('save-notification-settings', { method: 'POST', body: { ...input, ...patch } })).code, 400);
+  }
+  assert.equal((await request('save-notification-settings', { method: 'POST', body: input, loggedIn: false })).code, 401);
+  assert.equal((await request('save-notification-settings', { method: 'POST', body: input, headers: { origin: 'https://other.example' } })).code, 403);
+  const disabled = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
+  assert.equal((await disabled.request('save-notification-settings', { method: 'POST', body: input })).code, 403);
+  assert.ok(!disabled.calls.some(call => call.name === 'saveNotificationSettings'));
+  assert.ok(!calls.some(call => ['claimNotification', 'finishNotification'].includes(call.name)));
 });
 
 test('source controls validate publisher, boolean, owner and write permission', async () => {

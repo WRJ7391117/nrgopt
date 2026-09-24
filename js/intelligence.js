@@ -503,6 +503,19 @@
       status('settings-page-status', result.writable ? '当前配置已读取。修改后保存，下一次调用立即生效。' : '当前环境禁止写入，配置仅供查看。', result.writable ? 'success' : '');
     } catch (error) { status('settings-page-status', error.message, 'error'); }
   }
+  function fillNotificationForm(settings) {
+    var form = byId('notification-settings-form');
+    ['quiet_enabled', 'flash_breaks_quiet'].forEach(function (name) { form.elements[name].checked = settings[name]; });
+    ['quiet_start_hour', 'quiet_end_hour', 'timezone'].forEach(function (name) { form.elements[name].value = settings[name]; });
+  }
+  async function loadNotificationSettings() {
+    try {
+      var result = await api('notification-settings');
+      fillNotificationForm(result.settings);
+      byId('notification-settings-form').querySelector('fieldset').disabled = !result.writable;
+      status('notification-settings-status', result.delivery_enabled ? '设置已读取。已在发送中的消息不受随后修改影响。' : '设置已读取。飞书发送尚未启用；保存静默时间不会启用发送。');
+    } catch (error) { status('notification-settings-status', error.message, 'error'); }
+  }
   async function loadOverview() {
     status('page-status', '正在读取情报候选…');
     try {
@@ -732,6 +745,26 @@
   var discoveryForm = byId('discovery-form');
   var overviewList = byId('candidate-list');
   var providerForms = document.querySelectorAll('.intel-provider-form');
+  var notificationForm = byId('notification-settings-form');
+  if (notificationForm) {
+    loadNotificationSettings();
+    notificationForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var button = notificationForm.querySelector('button[type="submit"]');
+      var fields = notificationForm.elements;
+      button.disabled = true;
+      try {
+        var result = await api('save-notification-settings', {
+          quiet_enabled: fields.quiet_enabled.checked, quiet_start_hour: Number(fields.quiet_start_hour.value),
+          quiet_end_hour: Number(fields.quiet_end_hour.value), timezone: fields.timezone.value,
+          flash_breaks_quiet: fields.flash_breaks_quiet.checked
+        });
+        fillNotificationForm(result.settings);
+        status('notification-settings-status', '已保存。后续消息按所选时区和静默时间发送；不会开启尚未启用的飞书发送。', 'success');
+      } catch (error) { status('notification-settings-status', error.message, 'error'); }
+      finally { button.disabled = false; }
+    });
+  }
   if (byId('source-controls')) loadSourceControls();
   providerForms.forEach(function (form) {
     form.addEventListener('submit', async function (event) {
