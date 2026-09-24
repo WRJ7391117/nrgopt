@@ -418,6 +418,14 @@
         setSourceLink(relatedLink, related.source_id);
         item.append(relatedLink);
       });
+      (candidate.grouped_sources || []).forEach(function (source) {
+        if (source.source_id === candidate.source_id || (candidate.related_sources || []).some(function (link) { return link.source_id === source.source_id; })) return;
+        var groupedLink = document.createElement('a');
+        groupedLink.className = 'intel-evidence-link';
+        groupedLink.textContent = '查看同范围关联链中的原文 →';
+        setSourceLink(groupedLink, source.source_id);
+        item.append(groupedLink);
+      });
       list.append(item);
     });
     byId('candidate-empty').hidden = filtered.length !== 0;

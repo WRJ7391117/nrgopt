@@ -822,6 +822,12 @@ test('five linked reprints form one overview item without claiming independent c
   const peer = detail.related_sources.find(link => link.source_id === 'reprint-1');
   assert.equal(peer.shared_quote_count, 0);
   assert.equal(peer.independence, 'unverified');
+  state.candidates.reverse();
+  const reordered = await state.store.candidates('owner-a');
+  assert.equal(reordered.length, 1, 'a hub arriving last must still group all equal-scope reprints');
+  assert.equal(reordered[0].grouped_sources.length, 5);
+  state.relations.push({ owner_id: 'owner-a', candidate_id: 'reprint-1', related_candidate_id: 'reprint-2', relation: 'supports', same_scope: false });
+  assert.equal((await state.store.candidates('owner-a')).length, 5, 'contradictory scope links must not create a transitive merge');
   assert.equal(state.records.length, 5, 'originals remain individually accessible');
   assert.ok(state.calls.every(call => call.method === 'GET'));
 });
