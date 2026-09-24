@@ -68,6 +68,15 @@ test('replays and terminal hypotheses do not call or charge the model', async ()
   }
 });
 
+test('same announcement with changed HTML or paraphrased analysis does not trigger paid reassessment', async () => {
+  const state = setup();
+  state.original.extraction_zh.known_facts = [{ ...fact, claim_zh: '同一事实的不同中文表述。' }];
+  state.original.final_url = state.current.final_url = 'https://official.example/notice';
+  state.original.title = state.current.title = 'Official notice';
+  await assessSavedHypothesis(state.args);
+  assert.deepEqual(state.calls, []);
+});
+
 test('stale extraction hash and fabricated quotation stop before provider billing', async () => {
   for (const type of ['hash', 'quote']) {
     const state = setup();
