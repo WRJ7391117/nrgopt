@@ -43,6 +43,8 @@ async function main() {
   assert.deepEqual(nama, { title: 'Adam Solar qualification', excerpt: 'Adam Solar qualification Qualification opens in Oman.' });
   const agency = extractDocument(Buffer.from('<title>Qatar news agency</title><meta property="og:title" content="MEEZA data centre contract"><header>Site navigation</header><main><div class="news-page-holder news-details-holder"><p>MEEZA awarded a construction contract.</p></div><p>Other project news</p></main>'), 'text/html');
   assert.deepEqual(agency, { title: 'MEEZA data centre contract', excerpt: 'MEEZA awarded a construction contract.' });
+  const dataCentre = extractDocument(Buffer.from('<main><section class="press-release-detail"><div class="content-sec"><h1>Data centre design certification</h1><p>100 MW total IT load.</p></div><div class="recent-release"><h4>Recent Press Release</h4><p>Unrelated technology agreement.</p></div></section></main>'), 'text/html');
+  assert.deepEqual(dataCentre, { title: 'Data centre design certification', excerpt: 'Data centre design certification 100 MW total IT load.' });
   const fallbackTitle = extractDocument(Buffer.from('<title>Acwa | </title><main><h3>Red Sea commercial operation</h3><p>Official fact.</p></main>'), 'text/html');
   assert.equal(fallbackTitle.title, 'Red Sea commercial operation');
   const emojiTitle = extractDocument(Buffer.from(`<title>${'a'.repeat(499)}😀extra</title>`), 'text/html').title;

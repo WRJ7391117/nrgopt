@@ -3,6 +3,17 @@ const assert = require('node:assert/strict');
 const { createDeepSeekExtractor, validateExtraction, exactEvidenceQuote, ENDPOINT } = require('../lib/intelligence/deepseek.cjs');
 const { validateNumericFacts, validateCommercialEvents } = require('../lib/intelligence/fact-context.cjs');
 
+test('IT load requires explicit IT evidence rather than a generic AI data-centre capacity', () => {
+  const fact = { evidence_quote: 'The 100 MW AI-optimized data center received a design certification.' };
+  const input = { object_zh: '数据中心', field_zh: 'IT负荷', value_text: '100', unit: 'MW', raw_text: '100 MW AI-optimized data center',
+    basis: 'it_load', basis_text: 'AI-optimized data center', evidence_fact_number: 1 };
+  assert.throws(() => validateNumericFacts([input], [fact]), { code: 'extraction_invalid_numeric_fact' });
+  const quote = '100 MW total IT load: Engineered to support hyperscale and AI workloads at scale.';
+  const result = validateNumericFacts([{ ...input, raw_text: '100 MW total IT load', basis_text: 'total IT load' }], [{ evidence_quote: quote }]);
+  assert.equal(result[0].basis, 'it_load');
+  assert.equal(result[0].value, 100);
+});
+
 const sourceText = 'The world added 510 gigawatts of renewable capacity in 2023. This was 50% more than in 2022.';
 const valid = {
   numeric_facts: [], commercial_events: [],
