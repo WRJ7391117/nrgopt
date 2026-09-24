@@ -687,3 +687,30 @@ test('reimporting identical evidence fills previously missing dates without chan
   assert.equal(result.source.fetched_at, '2026-09-22T00:00:00Z');
   assert.equal(state.objects.size, 1);
 });
+
+test('version history is scoped to the owner and URL, exposing only hash-bound stage evidence', async () => {
+  const versions = [
+    { id: 'new', title: 'New', final_url: 'https://source.example/news', content_sha256: 'a'.repeat(64), extraction_source_sha256: 'a'.repeat(64),
+      extraction_status: 'extracted', fetched_at: '2026-09-24T00:00:00Z', publication_date: '2026-09-23',
+      extraction_zh: { maturity: 'contract', classification: { project: { name_zh: '测试项目', stage_zh: '签约', evidence_fact_number: 1 }, procurement: null },
+        known_facts: [{ claim_zh: '已签约。', evidence_quote: 'The project agreement was signed.' }] } },
+    { id: 'old', title: 'Old', final_url: 'https://source.example/news', content_sha256: 'b'.repeat(64), extraction_source_sha256: 'wrong',
+      extraction_status: 'extracted', fetched_at: '2026-09-23T00:00:00Z', publication_date: null,
+      extraction_zh: { maturity: 'procurement', classification: { project: { name_zh: '未校验', evidence_fact_number: 1 } }, known_facts: [{ evidence_quote: 'must not appear' }] } }
+  ];
+  const requests = [];
+  const store = createStore({ url: 'https://db.example', serviceKey: 'test-key' }, async input => {
+    const url = new URL(input); requests.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    return new Response(JSON.stringify(url.searchParams.has('id') ? [versions[0]] : versions));
+  });
+  const history = await store.sourceHistory('new', 'owner-a');
+  assert.equal(requests[1].searchParams.get('final_url'), 'eq.https://source.example/news');
+  assert.equal(requests[1].searchParams.get('order'), 'fetched_at.desc');
+  assert.equal(history[0].maturity, 'contract');
+  assert.equal(history[0].project_evidence.evidence_quote, 'The project agreement was signed.');
+  assert.equal(history[1].maturity, null);
+  assert.equal(history[1].project_evidence, null);
+  assert.equal(history[1].publication_date, null);
+  assert.ok(!JSON.stringify(history).includes('must not appear'));
+});

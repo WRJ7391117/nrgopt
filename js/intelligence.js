@@ -426,6 +426,41 @@
     } catch (error) { status('page-status', error.message, 'error'); }
     finally { button.disabled = false; }
   }
+  function renderSourceHistory(versions, currentId) {
+    var list = byId('source-history');
+    list.replaceChildren();
+    var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
+    versions.forEach(function (version, index) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      setSourceLink(link, version.id);
+      link.textContent = '获取：' + dateLabel(version.fetched_at) + (version.id === currentId ? '（当前查看）' : ' · 查看此版本');
+      var meta = document.createElement('p');
+      meta.textContent = '公布：' + publicationLabel(version) + ' · 阶段分析：' + (maturityLabels[version.maturity] || '尚无可用分析')
+        + (version.reused_from_source_id ? ' · 正文未变，沿用已有分析' : '');
+      item.append(link, meta);
+      var prior = versions[index + 1];
+      if (prior && prior.maturity && version.maturity && prior.maturity !== version.maturity) {
+        var change = document.createElement('p');
+        change.textContent = '分析记录变化：' + maturityLabels[prior.maturity] + ' → ' + maturityLabels[version.maturity] + '。请结合下方原文核对项目和采购范围。';
+        item.append(change);
+      }
+      [{ value: version.project, evidence: version.project_evidence, name: '项目', field: 'name_zh' },
+        { value: version.procurement, evidence: version.procurement_evidence, name: '采购包', field: 'package_zh' }].forEach(function (entry) {
+        if (!entry.value) return;
+        var label = document.createElement('p');
+        label.textContent = entry.name + '：' + entry.value[entry.field] + (entry.value.stage_zh ? ' · ' + entry.value.stage_zh : '');
+        item.append(label);
+        if (entry.evidence) {
+          var quote = document.createElement('blockquote');
+          quote.textContent = entry.evidence.claim_zh + '；原文：“' + entry.evidence.evidence_quote + '”';
+          item.append(quote);
+        }
+      });
+      list.append(item);
+    });
+    byId('source-history-section').hidden = !versions.length;
+  }
   async function loadDetail(id) {
     try {
       var result = await api('source', undefined, id);
@@ -445,6 +480,7 @@
       byId('annotation-count').textContent = Array.from(byId('annotation-note').value).length + ' / 2000';
       byId('annotation-time').textContent = source.annotation_updated_at ? '更新于 ' + dateLabel(source.annotation_updated_at) : '尚未填写';
       renderExtraction(source, result.candidate);
+      renderSourceHistory(result.history || [], id);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -607,6 +643,7 @@
         var result = await api('extract', {}, match[1]);
         sourceStatus(byId('source-status'), result.source);
         renderExtraction(result.source, result.candidate);
+        renderSourceHistory(result.history || [], match[1]);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });

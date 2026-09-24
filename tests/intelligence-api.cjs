@@ -44,7 +44,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
-    candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, sourceHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
@@ -305,6 +305,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   await request('source');
   assert.deepEqual(calls.find(call => call.name === 'get').args, [id, admin]);
   assert.deepEqual(calls.find(call => call.name === 'candidateBySource').args, [id, admin]);
+  assert.deepEqual(calls.find(call => call.name === 'sourceHistory').args, [id, admin]);
   await request('overview');
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   const operations = await request('operations');
