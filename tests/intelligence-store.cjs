@@ -563,6 +563,11 @@ test('strict project peers are cross-linked and exposed as one independently sup
   assert.equal(listed[0].related_sources.length, 1);
   assert.equal(listed[0].related_sources[0].relation, 'supports');
   assert.equal((await state.store.candidateBySource(firstSource.source.id, 'owner-a')).related_sources.length, 1);
+  secondRecord.final_url = SOURCE.finalUrl;
+  const correctedView = await state.store.candidates('owner-a');
+  assert.ok(correctedView.every(item => item.related_sources.length === 0 && item.evidence_status === 'sourced'));
+  assert.equal(state.relations.length, 2, 'historical records are retained without inflating independent evidence');
+
 });
 
 test('identical successful imports reuse the source without uploading evidence twice', async () => {
