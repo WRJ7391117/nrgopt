@@ -714,3 +714,25 @@ test('version history is scoped to the owner and URL, exposing only hash-bound s
   assert.equal(history[1].publication_date, null);
   assert.ok(!JSON.stringify(history).includes('must not appear'));
 });
+
+test('manual assessment can create or reuse a run without unsupported empty RPC keys', async () => {
+  for (const exists of [false, true]) {
+    const requests = [];
+    const store = createStore({ url: 'https://db.example', serviceKey: 'test' }, async (input, init) => {
+      const url = new URL(input); requests.push({ url, init });
+      assert.equal(url.pathname, '/rest/v1/intelligence_job_runs');
+      if (init.method === 'POST') {
+        assert.equal(init.headers.Prefer, 'resolution=ignore-duplicates,return=representation');
+        assert.deepEqual(JSON.parse(init.body), { owner_id: 'owner', job_type: 'daily_scan', schedule_key: '2026-09-24' });
+        return new Response(JSON.stringify(exists ? [] : [{ id: 'new-run' }]));
+      }
+      assert.equal(url.searchParams.get('owner_id'), 'eq.owner');
+      assert.equal(url.searchParams.get('job_type'), 'eq.daily_scan');
+      assert.equal(url.searchParams.get('schedule_key'), 'eq.2026-09-24');
+      return new Response(JSON.stringify([{ id: 'paused-existing-run' }]));
+    });
+    assert.equal(await store.enqueueJob('owner', 'daily_scan', '2026-09-24', []), exists ? 'paused-existing-run' : 'new-run');
+    assert.equal(requests.length, exists ? 2 : 1);
+    assert.ok(requests.every(r => r.init.method !== 'PATCH'));
+  }
+});
