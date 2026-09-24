@@ -268,7 +268,7 @@ test('cross-check work uses saved evidence and does not repeat a persisted relat
     checkpoint: { left_source_id: sourceId, right_source_id: peerId } } });
   let related = false;
   store.candidateBySource = async id => ({ id: id === sourceId ? 'left' : 'right',
-    related_sources: related ? [{ related_candidate_id: 'right' }] : [] });
+    related_sources: related ? [{ related_candidate_id: 'right', same_scope: false }] : [] });
   store.get = async id => ({ final_url: id === sourceId ? 'https://left.example/a' : 'https://right.example/b',
     content_sha256: id, extraction_zh: { summary_zh: id } });
   let checked = 0;

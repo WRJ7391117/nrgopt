@@ -462,6 +462,31 @@
     } catch (error) { status('page-status', error.message, 'error'); }
     finally { button.disabled = false; }
   }
+  function renderProjectTimeline(history) {
+    var list = byId('project-timeline');
+    if (!list) return;
+    list.replaceChildren();
+    var entries = history?.entries || [];
+    byId('project-timeline-section').hidden = entries.length < 2;
+    byId('project-identity').textContent = history?.identity_id ? '项目关联编号：' + history.identity_id
+      + ' · 已关联 ' + history.total + ' 条来源' + (history.total > entries.length ? '（展示前 100 条）' : '') : '';
+    entries.forEach(function (entry) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      setSourceLink(link, entry.source_id);
+      link.textContent = (entry.publication_date || '公告日期未知') + ' · ' + entry.title_zh;
+      var stage = document.createElement('p');
+      stage.textContent = '该来源阶段：' + (entry.project?.stage_zh || '未披露')
+        + (entry.procurement ? '；采购：' + entry.procurement.package_zh + ' · ' + entry.procurement.stage_zh : '');
+      item.append(link, stage);
+      [entry.project_evidence, entry.procurement_evidence].filter(Boolean).forEach(function (fact) {
+        var quote = document.createElement('blockquote');
+        quote.textContent = fact.claim_zh + '；原文：“' + fact.evidence_quote + '”';
+        item.append(quote);
+      });
+      list.append(item);
+    });
+  }
   function renderAnalysisRevisions(revisions) {
     var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
     var list = byId('analysis-revisions');
@@ -550,6 +575,7 @@
       renderExtraction(source, result.candidate);
       renderSourceHistory(result.history || [], id);
       renderAnalysisRevisions(result.revisions || []);
+      renderProjectTimeline(result.project_history);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -714,6 +740,7 @@
         renderExtraction(result.source, result.candidate);
         renderSourceHistory(result.history || [], match[1]);
         renderAnalysisRevisions(result.revisions || []);
+      renderProjectTimeline(result.project_history);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });
