@@ -298,7 +298,8 @@
       ? budgets.map(function (budget) {
         var symbol = symbols[budget.currency] || budget.currency + ' ';
         return (budgetNames[budget.capability] || budget.capability) + '：月度上限 ' + symbol + (Number(budget.limit_micro) / 1000000).toFixed(2)
-          + (budget.billing_mode === 'included' ? ' · 已购套餐，单次金额为 0' : ' · 服务商实扣 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2))
+          + (budget.billing_mode === 'included' ? ' · 已购套餐，单次金额为 0' : ' · 供应商累计已确认 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2)
+            + (budget.provider_balance_synced_at ? '（最近同步 ' + new Date(budget.provider_balance_synced_at).toLocaleString('zh-CN') + '）' : '（等待首次余额同步）'))
           + ' · 已预留 ' + symbol + (Number(budget.reserved_micro) / 1000000).toFixed(2);
       }).join('；')
       : '未配置或未启用；所有付费调用保持暂停';

@@ -252,6 +252,7 @@ test('job and budget RPC wrappers preserve PostgREST scalar and table response s
     reserve_intelligence_budget: '33333333-3333-4333-8333-333333333333',
     settle_intelligence_budget: true,
     release_intelligence_budget: true,
+    sync_intelligence_provider_balance: true,
     enqueue_intelligence_archive: '44444444-4444-4444-8444-444444444444',
     claim_intelligence_archive: [{ id: '55555555-5555-4555-8555-555555555555', source_id: 'source-a', content_sha256: 'a'.repeat(64) }],
     complete_intelligence_archive: true,
@@ -276,6 +277,7 @@ test('job and budget RPC wrappers preserve PostgREST scalar and table response s
     provider: 'deepseek', model: 'deepseek-flash', usage: { prompt_tokens: 100 }, pricingVersion: 'test-price'
   }), true);
   assert.equal(await store.releaseBudget('owner-a', responses.reserve_intelligence_budget), true);
+  assert.equal(await store.syncProviderBalance('owner-a', 'analysis', 'CNY', 8_980_000), true);
   assert.equal(await store.enqueueArchive('owner-a', 'source-a'), responses.enqueue_intelligence_archive);
   assert.deepEqual(await store.claimArchive('owner-a', 'mac-mini', 300), responses.claim_intelligence_archive[0]);
   assert.equal(await store.completeArchive('owner-a', responses.claim_intelligence_archive[0].id, 'mac-mini', 10, 'a'.repeat(64)), true);
@@ -287,10 +289,14 @@ test('job and budget RPC wrappers preserve PostgREST scalar and table response s
   assert.equal(calls[4].body.p_job_run_id, null);
   assert.equal(calls[4].body.p_currency, 'CNY');
   assert.equal(calls[4].body.p_reserve_micro, 1000);
-  assert.equal(calls[5].body.p_provider, 'deepseek');
-  assert.equal(calls[5].body.p_model, 'deepseek-flash');
-  assert.deepEqual(calls[5].body.p_usage, { prompt_tokens: 100 });
-  assert.equal(calls[5].body.p_pricing_version, 'test-price');
+  const settlement = calls.find(call => call.name === 'settle_intelligence_budget');
+  assert.equal(settlement.body.p_provider, 'deepseek');
+  assert.equal(settlement.body.p_model, 'deepseek-flash');
+  assert.deepEqual(settlement.body.p_usage, { prompt_tokens: 100 });
+  assert.equal(settlement.body.p_pricing_version, 'test-price');
+  assert.deepEqual(calls.find(call => call.name === 'sync_intelligence_provider_balance').body, {
+    p_owner_id: 'owner-a', p_capability: 'analysis', p_currency: 'CNY', p_balance_micro: 8_980_000
+  });
 });
 
 test('operations exposes recent owner-scoped jobs, item checkpoints and budget state', async () => {
@@ -331,7 +337,9 @@ test('provider configuration is owner-scoped and stored only through the service
   const record = { owner_id: 'owner-a', capability: 'discovery', provider: 'custom-search',
     endpoint: 'https://search.example/v1/messages', model: 'search-v2', currency: 'USD', billing_mode: 'balance', budget_limit_micro: 1000,
     budget_reserved_micro: 0, budget_spent_micro: 0, budget_period_start: '2026-09-01', budget_period_end: '2026-09-30',
-    budget_enabled: true, api_key_ciphertext: 'v1.encrypted-value-for-test', updated_at: '2026-09-23T00:00:00.000Z' };
+    budget_enabled: true, provider_balance_anchor_micro: null, provider_balance_anchor_spent_micro: null,
+    provider_balance_last_micro: null, provider_balance_synced_at: null,
+    api_key_ciphertext: 'v1.encrypted-value-for-test', updated_at: '2026-09-23T00:00:00.000Z' };
   assert.deepEqual(await state.store.saveProviderConfig('owner-a', record), record);
   assert.deepEqual(await state.store.providerConfigs('owner-a'), [record]);
   assert.deepEqual(await state.store.providerConfigs('owner-b'), []);

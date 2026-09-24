@@ -24,7 +24,7 @@ test('validated extraction keeps bounded Chinese fields and exact source evidenc
 test('fabricated or paraphrased evidence quote rejects the whole extraction', () => {
   const fabricated = structuredClone(valid);
   fabricated.known_facts[0].evidence_quote = 'The source definitely announced a GCC procurement contract.';
-  assert.throws(() => validateExtraction(fabricated, sourceText), { code: 'extraction_invalid', status: 422 });
+  assert.throws(() => validateExtraction(fabricated, sourceText), { code: 'extraction_invalid_known_fact_quote', status: 422 });
 });
 
 test('typographic quote differences resolve back to exact source characters', () => {
@@ -45,7 +45,7 @@ test('GCC candidate requires an occurrence country and exact evidence for entiti
   };
   assert.equal(validateExtraction(candidate, sourceText).classification.countries[0].code, 'SA');
   candidate.classification.project.evidence_fact_number = 2;
-  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid' });
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_project_evidence' });
 });
 
 test('formal project and procurement candidates require evidence-linked names', () => {
@@ -56,16 +56,16 @@ test('formal project and procurement candidates require evidence-linked names', 
     importance: 'high', evidence_status: 'sourced', urgency: 'research', title_zh: '沙特项目候选', organizations: [],
     project: { name_zh: '', stage_zh: '资格预审', evidence_fact_number: 1 }, procurement: null
   };
-  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid' });
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_project_evidence' });
   candidate.classification.project.name_zh = '项目候选';
   candidate.classification.procurement = { package_zh: '', stage_zh: '资格预审', deadline_text: '', evidence_fact_number: 1 };
-  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid' });
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_procurement_evidence' });
 });
 
 test('source-only background cannot silently carry radar or project claims', () => {
   const invalid = structuredClone(valid);
   invalid.classification.radars = ['project'];
-  assert.throws(() => validateExtraction(invalid, sourceText), { code: 'extraction_invalid' });
+  assert.throws(() => validateExtraction(invalid, sourceText), { code: 'extraction_invalid_source_only_consistency' });
 });
 
 test('DeepSeek request uses only its server key and returns validated JSON', async () => {

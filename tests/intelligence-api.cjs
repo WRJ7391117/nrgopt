@@ -52,6 +52,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     reserveBudget: async () => '44444444-4444-4444-8444-444444444444', settleBudget: async () => true, releaseBudget: async () => true,
+    syncProviderBalance: async () => true,
     claimArchive: async () => null, archiveJob: async () => null, completeArchive: async () => true, failArchive: async () => true,
     jobRun: async () => ({ run: { status: 'running' }, items: [] }), enqueueNotification: async () => '77777777-7777-4777-8777-777777777777',
     claimNotification: async () => null, finishNotification: async () => true,
@@ -471,12 +472,12 @@ test('model failures save only a stable failure state and never persist extracti
   const saved = { ...source, content_type: 'text/html', content_sha256: createHash('sha256').update(bytes).digest('hex') };
   const { request, calls } = setup({
     overrides: { evidence: async () => ({ source: saved, bytes }) },
-    modelFactory: () => async () => { throw Object.assign(new Error('private provider response'), { code: 'extraction_invalid', status: 422 }); }
+    modelFactory: () => async () => { throw Object.assign(new Error('private provider response'), { code: 'extraction_invalid_known_fact_quote', status: 422 }); }
   });
   const response = await request('extract', { method: 'POST', body: {} });
   assert.equal(response.code, 422);
-  assert.deepEqual(response.body, { error: 'extraction_invalid', message: '模型返回内容未通过证据校验，未保存本次结果。' });
-  assert.deepEqual(calls.find(call => call.name === 'failExtraction').args, [id, admin, 'extraction_invalid']);
+  assert.deepEqual(response.body, { error: 'extraction_invalid_known_fact_quote', message: '模型给出的原文引文与来源正文不一致，未保存本次结果。' });
+  assert.deepEqual(calls.find(call => call.name === 'failExtraction').args, [id, admin, 'extraction_invalid_known_fact_quote']);
   assert.ok(!calls.some(call => call.name === 'saveExtraction'));
   assert.ok(!JSON.stringify(response.body).includes('private provider response'));
 });

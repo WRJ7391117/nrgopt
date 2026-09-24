@@ -12,6 +12,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
     reserveBudget: async () => reservationId, settleBudget: async () => true, releaseBudget: async () => true,
+    syncProviderBalance: async () => true,
     save: async () => ({ source, reused: false }), recordFailure: async () => {}, evidence: async () => ({ source, bytes: Buffer.from('Official source evidence.') }),
     beginExtraction: async () => {}, saveExtraction: async () => source, saveCandidate: async () => ({ id: 'candidate-1' }),
     findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
@@ -94,13 +95,16 @@ test('unchanged extracted source finishes without another DeepSeek task', async 
   assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[4].unchanged, true);
 });
 
-test('provider balance delta is settled as actual spend', async () => {
+test('provider balance is synced before and after a paid call without estimating from tokens', async () => {
   const store = fakeStore();
   const balances = [1_000_000, 980_000];
   await runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY', budgetKey: 'RESERVE',
     env: { RESERVE: '100000' }, readBalance: async () => balances.shift(), call: async () => ({ ok: true }) });
-  const settled = store.calls.find(call => call[0] === 'settleBudget');
-  assert.deepEqual(settled.slice(1, 5), ['owner-a', 'reservation-1', 20_000, 'actual']);
+  assert.deepEqual(store.calls.filter(call => call[0] === 'syncProviderBalance').map(call => call.slice(1)), [
+    ['owner-a', 'analysis', 'CNY', 1_000_000], ['owner-a', 'analysis', 'CNY', 980_000]
+  ]);
+  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
 });
 
 test('included plan releases the reservation and never records monetary spend', async () => {
@@ -111,14 +115,15 @@ test('included plan releases the reservation and never records monetary spend', 
   assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
 });
 
-test('a failed pre-call balance sync releases the reservation and never calls the model', async () => {
+test('a failed pre-call balance sync does not reserve budget or call the model', async () => {
   const store = fakeStore();
   let called = false;
   await assert.rejects(runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY',
     budgetKey: 'RESERVE', env: { RESERVE: '10000' }, readBalance: async () => { throw new Error('private detail'); },
     call: async () => { called = true; } }), { code: 'billing_sync_unavailable' });
   assert.equal(called, false);
-  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'reserveBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'releaseBudget'));
   assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
 });
 
