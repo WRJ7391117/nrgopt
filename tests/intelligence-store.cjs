@@ -736,3 +736,18 @@ test('manual assessment can create or reuse a run without unsupported empty RPC 
     assert.ok(requests.every(r => r.init.method !== 'PATCH'));
   }
 });
+
+test('analysis revision reads verify source ownership and scope the history query', async () => {
+  const calls = [];
+  const store = createStore({ url: 'https://db.test', serviceKey: 'service' }, async input => {
+    const url = new URL(input); calls.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    if (url.pathname.endsWith('intelligence_sources')) return new Response(JSON.stringify([{ id: 'source' }]));
+    assert.equal(url.pathname, '/rest/v1/intelligence_analysis_revisions');
+    assert.equal(url.searchParams.get('source_id'), 'eq.source');
+    return new Response(JSON.stringify([{ id: 'revision', source_sha256: 'a'.repeat(64), extraction_zh: { summary_zh: '旧分析' } }]));
+  });
+  const revisions = await store.analysisRevisions('source', 'owner-a');
+  assert.equal(revisions[0].extraction_zh.summary_zh, '旧分析');
+  assert.equal(calls.length, 2);
+});

@@ -9,7 +9,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   const calls = [];
   const source = { id: sourceId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/plain', content_sha256: 'a'.repeat(64) };
   const methods = {
-    watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
+    reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
     reserveBudget: async () => reservationId, settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,

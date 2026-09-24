@@ -80,7 +80,7 @@ test('discovery keeps only allowed official hosts and accepts an empty result', 
 
 test('repeated daily triggers keep the first watch plan despite changes in the candidate pool', async () => {
   const items = new Map(); let reads = 0;
-  const store = { enqueueJob: async () => 'job', watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
+  const store = { enqueueJob: async () => 'job', reviewTracking: async () => ({}), watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
     watchSearchTargets: async () => { reads++; return [target()]; },
     enqueueJobItems: async (_owner, _job, values) => { values.forEach(v => { if (!items.has(v.item_key)) items.set(v.item_key, v); }); } };
   await enqueueDailyScan({ store, owner: 'owner', now });
@@ -155,7 +155,7 @@ test('watch target reads are owner-scoped and exclude inactive watches and unsav
   const store = createStore({ url: 'https://db.test', serviceKey: 'test' }, async input => {
     const url = new URL(input); calls.push(url); assert.equal(url.searchParams.get('owner_id'), 'eq.owner');
     let data;
-    if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('status'), 'in.(open,strengthened,weakened)'); assert.ok(url.searchParams.get('created_at').startsWith('gt.')); data = [{ ...h, candidate_id: 'candidate' }]; }
+    if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('status'), 'in.(open,strengthened,weakened)'); assert.ok(url.searchParams.get('review_due_at').startsWith('gt.')); data = [{ ...h, candidate_id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_candidates')) { assert.equal(url.searchParams.get('disposition'), 'eq.candidate'); data = [{ ...h.candidate, id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_watch_targets')) { assert.equal(url.searchParams.get('status'), 'eq.active'); data = [{ candidate_id: 'candidate', signal_zh: '关注进展' }]; }
     else { assert.equal(url.searchParams.get('status'), 'eq.pending_extraction'); data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Cedar solar project financing' }]; }
@@ -163,4 +163,10 @@ test('watch target reads are owner-scoped and exclude inactive watches and unsav
   });
   const result = await store.watchSearchTargets('owner', now);
   assert.equal(result.length, 1); assert.equal(result[0].candidate.source_id, sourceId); assert.equal(calls.length, 4);
+});
+
+test('renewed review dates keep an older hypothesis in the search rotation', () => {
+  const h = { ...target(), created_at: '2026-01-01T00:00:00Z', review_due_at: '2026-10-01T00:00:00Z' };
+  assert.equal(watchSearchPlan([h], '2026-09-24').length, 2);
+  assert.equal(watchSearchPlan([h], '2026-10-01').length, 0);
 });

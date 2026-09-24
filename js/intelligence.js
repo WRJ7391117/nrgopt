@@ -143,18 +143,24 @@
     });
     var hypotheses = byId('extraction-hypotheses');
     hypotheses.replaceChildren();
-    var hypothesisLabels = { open: '待验证', strengthened: '证据增强', weakened: '证据减弱', confirmed: '已证实', rejected: '已否定', dormant: '暂缓' };
+    var hypothesisLabels = { open: '待验证', strengthened: '证据增强', weakened: '证据减弱', confirmed: '已证实', rejected: '已否定', dormant: '休眠' };
     (tracking ? tracking.hypotheses : extraction.hypotheses || []).forEach(function (hypothesis) {
       var item = document.createElement('li');
       item.textContent = (hypothesis.status ? (hypothesisLabels[hypothesis.status] || hypothesis.status) + '：' : '')
         + (hypothesis.claim_zh || hypothesis.hypothesis_zh) + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
       if (hypothesis.created_at && ['open', 'strengthened', 'weakened'].includes(hypothesis.status)) {
-        var expires = Date.parse(hypothesis.created_at) + 90 * 86400000;
+        var expires = hypothesis.review_due_at ? Date.parse(hypothesis.review_due_at) : Date.parse(hypothesis.created_at) + 90 * 86400000;
         var windowNote = document.createElement('p');
         windowNote.className = 'intel-muted';
-        windowNote.textContent = Date.now() >= expires ? '主动搜索窗口已到期，待复查；没有新消息不代表假设被否定。'
-          : '主动搜索窗口至 ' + dateLabel(new Date(expires).toISOString()) + '；系统在每日限额内轮换搜索支持与反证。';
+        windowNote.textContent = Date.now() >= expires ? '已到复查时间，系统将在下次调度自动检查；没有新消息不代表假设被否定。'
+          : '下次自动复查：' + dateLabel(new Date(expires).toISOString()) + '；系统在每日限额内轮换搜索支持与反证。';
         item.append(windowNote);
+      }
+      if (hypothesis.status === 'dormant' && hypothesis.dormant_at) {
+        var dormantNote = document.createElement('p');
+        dormantNote.className = 'intel-muted';
+        dormantNote.textContent = dateLabel(hypothesis.dormant_at) + ' 自动转入休眠：90 天内没有新的、日期可验证的支持或反证。停止主动搜索，保留原文和判断记录；不代表假设被否定。';
+        item.append(dormantNote);
       }
       (hypothesis.assessments || []).forEach(function (assessment) {
         var detail = document.createElement('details');
@@ -456,6 +462,38 @@
     } catch (error) { status('page-status', error.message, 'error'); }
     finally { button.disabled = false; }
   }
+  function renderAnalysisRevisions(revisions) {
+    var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
+    var list = byId('analysis-revisions');
+    if (!list) return;
+    list.replaceChildren();
+    revisions.forEach(function (revision) {
+      var item = document.createElement('li');
+      var details = document.createElement('details');
+      var heading = document.createElement('summary');
+      var extraction = revision.extraction_zh;
+      heading.textContent = (revision.extracted_at ? dateLabel(revision.extracted_at) : '生成时间未记录')
+        + ' · ' + (revision.provider || '未记录服务商') + ' / ' + (revision.model || '未记录模型')
+        + ' · 阶段：' + (maturityLabels[extraction.maturity] || '未记录');
+      var summary = document.createElement('p');
+      summary.textContent = extraction.summary_zh || '';
+      var hash = document.createElement('p');
+      hash.className = 'intel-muted';
+      hash.textContent = '对应原件 SHA-256：' + revision.source_sha256;
+      details.append(heading, summary, hash);
+      (extraction.known_facts || []).forEach(function (fact) {
+        var quote = document.createElement('blockquote');
+        quote.textContent = fact.claim_zh + '；原文：“' + fact.evidence_quote + '”';
+        details.append(quote);
+      });
+      var inference = document.createElement('p');
+      inference.textContent = '当时的假设：' + (extraction.hypotheses || []).map(function (h) { return h.hypothesis_zh; }).join('；');
+      details.append(inference);
+      item.append(details);
+      list.append(item);
+    });
+    byId('analysis-revisions-section').hidden = !revisions.length;
+  }
   function renderSourceHistory(versions, currentId) {
     var list = byId('source-history');
     list.replaceChildren();
@@ -511,6 +549,7 @@
       byId('annotation-time').textContent = source.annotation_updated_at ? '更新于 ' + dateLabel(source.annotation_updated_at) : '尚未填写';
       renderExtraction(source, result.candidate);
       renderSourceHistory(result.history || [], id);
+      renderAnalysisRevisions(result.revisions || []);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -674,6 +713,7 @@
         sourceStatus(byId('source-status'), result.source);
         renderExtraction(result.source, result.candidate);
         renderSourceHistory(result.history || [], match[1]);
+        renderAnalysisRevisions(result.revisions || []);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });
