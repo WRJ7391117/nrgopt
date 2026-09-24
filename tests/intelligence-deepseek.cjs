@@ -34,6 +34,13 @@ test('validated extraction keeps bounded Chinese fields and exact source evidenc
   assert.equal(result.unknowns_zh.length, 1);
 });
 
+test('a single-source model cannot award cross-check, conflict or correction status', () => {
+  for (const status of ['checked', 'conflict', 'corrected']) {
+    const result = validateExtraction({ ...valid, classification: { ...valid.classification, evidence_status: status } }, sourceText);
+    assert.equal(result.classification.evidence_status, 'sourced');
+  }
+});
+
 test('fabricated or paraphrased evidence quote rejects the whole extraction', () => {
   const fabricated = structuredClone(valid);
   fabricated.known_facts[0].evidence_quote = 'The source definitely announced a GCC procurement contract.';

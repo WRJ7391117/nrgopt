@@ -802,6 +802,41 @@ test('source detail counts identical related originals once and uses the latest 
   assert.equal(state.relations.length, 2);
 });
 
+test('five linked reprints form one overview item without claiming independent confirmation', async () => {
+  const state = backend();
+  const quote = 'The owner announced that the new data centre has 100 MW of total IT load, with twenty data halls.';
+  for (let index = 0; index < 5; index++) {
+    const id = `reprint-${index}`;
+    state.records.push({ id, owner_id: 'owner-a', final_url: `https://publisher-${index}.example/news`, content_sha256: id,
+      extraction_zh: { known_facts: [{ evidence_quote: quote }] } });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', evidence_status: 'checked' });
+    if (index) state.relations.push({ owner_id: 'owner-a', candidate_id: 'reprint-0', related_candidate_id: id,
+      relation: 'supports', same_scope: true, matching_facts_zh: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '同一项目表述一致。' }] });
+  }
+  const listed = await state.store.candidates('owner-a');
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].related_sources.length, 4);
+  assert.ok(listed[0].related_sources.every(link => link.independence === 'unverified' && link.shared_quote_count === 1));
+  state.records[1].extraction_zh.known_facts[0].evidence_quote = 'A differently worded report is not proof of independent reporting either.';
+  const detail = await state.store.candidateBySource('reprint-0', 'owner-a');
+  const peer = detail.related_sources.find(link => link.source_id === 'reprint-1');
+  assert.equal(peer.shared_quote_count, 0);
+  assert.equal(peer.independence, 'unverified');
+  assert.equal(state.records.length, 5, 'originals remain individually accessible');
+  assert.ok(state.calls.every(call => call.method === 'GET'));
+});
+
+test('legacy model evidence labels do not survive without a current saved comparison', async () => {
+  const state = backend();
+  for (const status of ['checked', 'conflict', 'corrected']) {
+    state.records.push({ id: status, owner_id: 'owner-a', final_url: `https://${status}.example/news`, content_sha256: status });
+    state.candidates.push({ id: status, source_id: status, owner_id: 'owner-a', disposition: 'candidate', evidence_status: status });
+  }
+  assert.ok((await state.store.candidates('owner-a')).every(item => item.evidence_status === 'sourced'));
+  assert.equal((await state.store.candidateBySource('checked', 'owner-a')).evidence_status, 'sourced');
+  assert.deepEqual(state.candidates.map(item => item.evidence_status), ['checked', 'conflict', 'corrected'], 'history is unchanged');
+});
+
 test('reimporting identical evidence fills previously missing dates without changing first fetch time', async () => {
   const state = backend();
   const item = { ...SOURCE, finalUrl: 'https://spa.gov.sa/en/N2266456', excerpt: 'Riyadh, February 20, 2025, SPA -- Project.' };

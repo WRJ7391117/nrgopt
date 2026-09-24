@@ -114,7 +114,7 @@
     var radarLabels = { trigger: '触发雷达', demand: '需求雷达', project: '项目雷达' };
     var countryLabels = { SA: '沙特阿拉伯', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
     var importanceLabels = { low: '低', medium: '中', high: '高', critical: '重大' };
-    var evidenceLabels = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '部分事实已交叉核对', conflict: '有冲突', corrected: '已更正' };
+    var evidenceLabels = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '跨来源内容已比对', conflict: '有冲突', corrected: '已更正' };
     var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
     var urgencyLabels = { none: '无即时行动', research: '待研究', prepare: '需准备', deadline: '截止临近' };
     byId('extraction-classification').hidden = !classification;
@@ -148,6 +148,29 @@
       item.append(claim, quote);
       facts.append(item);
     });
+    var relatedList = byId('extraction-related-sources');
+    relatedList.replaceChildren();
+    (candidate?.related_sources || []).forEach(function (related) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      link.textContent = related.relation === 'conflicts' ? '查看冲突来源 →' : '查看关联来源 →';
+      setSourceLink(link, related.source_id);
+      var note = document.createElement('p');
+      note.textContent = related.shared_quote_count
+        ? related.shared_quote_count + ' 组引文相同，可能同源；不能累计为独立确认。'
+        : '来源独立性尚未确认；内容一致不等于独立确认。';
+      item.append(link, note);
+      ['matching_facts_zh', 'conflicting_facts_zh'].forEach(function (field) {
+        (related[field] || []).forEach(function (pair) {
+          var reason = document.createElement('p');
+          reason.textContent = (field === 'matching_facts_zh' ? '一致' : '冲突') + '：本页事实 ' + pair.left_fact_number
+            + ' / 关联页事实 ' + pair.right_fact_number + ' — ' + pair.reason_zh;
+          item.append(reason);
+        });
+      });
+      relatedList.append(item);
+    });
+    byId('related-sources-empty').textContent = candidate?.related_sources?.length ? '' : '尚无可展示的跨来源比对；当前仅能核对本页引文。';
     var basisLabels = { unspecified: '口径未明确', it_load: 'IT负荷', facility_load: '设施总负荷', pv_peak: '光伏峰值（DC）', pv_ac: '光伏交流侧（AC）', storage_power: '储能功率', nameplate_energy: '名义能量', usable_energy: '可用能量', project_investment: '项目总投资', contract_value: '本合同金额', financing: '融资金额', equipment_value: '设备金额' };
     var numericFacts = byId('extraction-numeric-facts');
     numericFacts.replaceChildren();
@@ -363,14 +386,14 @@
       var badge = document.createElement('span');
       badge.className = 'intel-badge';
       badge.dataset.state = candidate.evidence_status;
-      var evidenceBadgeNames = { unverified: '单一来源', sourced: '来源已绑定', checked: '部分事实已核对', conflict: '来源冲突', corrected: '已更正' };
+      var evidenceBadgeNames = { unverified: '单一来源', sourced: '来源已绑定', checked: '跨来源内容已比对', conflict: '来源冲突', corrected: '已更正' };
       badge.textContent = evidenceBadgeNames[candidate.evidence_status] || candidate.evidence_status;
       row.append(heading, badge);
       var meta = document.createElement('p');
       meta.className = 'intel-source-meta';
       var radarNames = { trigger: '触发', demand: '需求', project: '项目' };
       var importanceNames = { low: '低', medium: '中', high: '高', critical: '重大' };
-      var evidenceNames = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '部分事实已交叉核对', conflict: '有冲突', corrected: '已更正' };
+      var evidenceNames = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '跨来源内容已比对', conflict: '有冲突', corrected: '已更正' };
       var maturityNames = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
       var countryNames = { SA: '沙特阿拉伯', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
       meta.textContent = '雷达：' + (candidate.radars || []).map(function (value) { return radarNames[value] || value; }).join(' / ') +
