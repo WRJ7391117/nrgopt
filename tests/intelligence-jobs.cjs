@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COUNTRIES, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, sourceItem } = require('../lib/intelligence/jobs.cjs');
 const { automaticCallReserve } = require('../lib/intelligence/budget.cjs');
+const { registry } = require('../lib/intelligence/registry.cjs');
 
 const sourceId = '11111111-1111-4111-8111-111111111111';
 
@@ -35,7 +36,8 @@ test('daily schedule uses the configured timezone and stable six-country item ke
   const store = fakeStore();
   const result = await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-22T00:00:00Z') });
   assert.equal(result.jobId, 'job-1');
-  assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey, COUNTRIES.map(code => `discover:${code}`)]);
+  assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey,
+    [...COUNTRIES.map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]]);
 });
 
 test('the server derives a bounded call reservation from each service monthly limit', () => {
