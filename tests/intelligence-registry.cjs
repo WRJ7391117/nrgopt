@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { registry, registryLinks, registryPlan } = require('../lib/intelligence/registry.cjs');
 const { runDailyJobItem } = require('../lib/intelligence/jobs.cjs');
+const { sourceItem } = require('../lib/intelligence/jobs.cjs');
 const { createStore, settings } = require('../lib/intelligence/store.cjs');
 
 const entry = registry[0];
@@ -41,6 +42,7 @@ test('cursor only advances over queued links and preserves bounded correction ov
 test('registry worker checkpoints only after durable enqueue, never calling a model', async () => {
   let prior = {}, enqueued = [], completed;
   const store = {
+    sourcePaused: async () => false,
     claimJobItem: async () => ({ id: 'item', job_run_id: 'run', item_key: `registry:${entry.id}`, attempts: 1 }),
     registryCursor: async () => prior,
     enqueueJobItems: async (_owner, _job, items) => { enqueued = items; return items.length; },
@@ -64,6 +66,7 @@ test('registry worker checkpoints only after durable enqueue, never calling a mo
 test('empty index is visible failure, not a successful no-news cursor', async () => {
   let completed;
   const store = {
+    sourcePaused: async () => false,
     claimJobItem: async () => ({ id: 'item', job_run_id: 'run', item_key: `registry:${entry.id}`, attempts: 3 }),
     registryCursor: async () => ({}),
     finishJobItem: async (_o, _id, status, checkpoint, code) => { completed = { status, checkpoint, code }; return true; }
@@ -82,4 +85,29 @@ test('cursor lookup is owner scoped and excludes the current run and failed atte
   assert.equal(query.searchParams.get('status'), 'eq.succeeded');
   assert.equal(query.searchParams.get('job_run_id'), 'neq.run-current');
   assert.equal(query.searchParams.get('item_key'), 'eq.registry:acwa-news');
+});
+
+test('publisher pause covers registry, discovered article and watch fetch before any network work', async () => {
+  const articleItem = sourceItem({ url: article('one') }, 'SA');
+  for (const item of [{ item_key: 'registry:' + entry.id, checkpoint: {} }, articleItem,
+    { ...articleItem, item_key: articleItem.item_key.replace('source:', 'watchsource:0:') }]) {
+    let completion;
+    const store = { claimJobItem: async () => ({ id: 'item', job_run_id: 'run', attempts: 1, ...item }),
+      sourcePaused: async (owner, url) => { assert.equal(owner, 'owner'); assert.match(url, /acwapower.com/); return true; },
+      finishJobItem: async (...args) => { completion = args; return true; } };
+    const result = await runDailyJobItem({ store, owner: 'owner', sourceFetcher: async () => { assert.fail('paused source fetched'); } });
+    assert.equal(result.status, 'manual_paused');
+    assert.equal(completion[3].source_host, 'acwapower.com');
+    assert.equal(completion[4], 'source_paused');
+  }
+});
+
+test('source control reads normalize www and keep owner boundaries', async () => {
+  let observed;
+  const store = createStore({ url: 'https://db.test', serviceKey: 'test' }, async url => {
+    observed = new URL(url); return new Response('[{"paused":true}]');
+  });
+  assert.equal(await store.sourcePaused('owner-a', 'https://www.acwapower.com/news'), true);
+  assert.equal(observed.searchParams.get('owner_id'), 'eq.owner-a');
+  assert.equal(observed.searchParams.get('hostname'), 'eq.acwapower.com');
 });

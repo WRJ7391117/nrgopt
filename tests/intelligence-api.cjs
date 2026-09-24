@@ -41,6 +41,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
   balanceReaderFactory = () => async () => 1_000_000, notificationFactory } = {}) {
   const calls = [];
   const store = {
+    sourceControls: async () => [], setSourceControl: async () => 0,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
@@ -83,8 +84,24 @@ test('private pages redirect, data and evidence deny unauthenticated access befo
     assert.match(response.headers.location, /^\/intelligence\/login\?returnTo=/);
     assert.equal(response.body, undefined);
   }
-  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
+  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
   assert.deepEqual(calls, []);
+});
+
+test('source controls validate publisher, boolean, owner and write permission', async () => {
+  const { request, calls } = setup();
+  const listed = await request('source-controls');
+  assert.equal(listed.body.sources.length, 5);
+  const id = listed.body.sources[0].id;
+  assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 200);
+  assert.deepEqual(calls.find(call => call.name === 'setSourceControl').args, [admin, 'acwapower.com', true]);
+  for (const body of [{ registry_id: 'arbitrary', paused: true }, { registry_id: id, paused: 'false' }]) {
+    assert.equal((await request('save-source-control', { method: 'POST', body })).code, 400);
+  }
+  assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true }, headers: { origin: 'https://other.example' } })).code, 403);
+  const disabled = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
+  assert.equal((await disabled.request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 403);
+  assert.ok(!disabled.calls.some(call => call.name === 'setSourceControl'));
 });
 
 test('login cookie is secure, HttpOnly and bounded; tokens and keys never enter JSON', async () => {

@@ -132,8 +132,9 @@
     }) : extraction.next_signals_zh);
     var facts = byId('extraction-facts');
     facts.replaceChildren();
-    (extraction.known_facts || []).forEach(function (fact) {
+    (extraction.known_facts || []).forEach(function (fact, index) {
       var item = document.createElement('li');
+      item.id = 'fact-' + (index + 1);
       var claim = document.createElement('p');
       claim.textContent = fact.claim_zh;
       var quote = document.createElement('blockquote');
@@ -141,6 +142,50 @@
       item.append(claim, quote);
       facts.append(item);
     });
+    var basisLabels = { unspecified: '口径未明确', it_load: 'IT负荷', facility_load: '设施总负荷', pv_peak: '光伏峰值（DC）', pv_ac: '光伏交流侧（AC）', storage_power: '储能功率', nameplate_energy: '名义能量', usable_energy: '可用能量', project_investment: '项目总投资', contract_value: '本合同金额', financing: '融资金额', equipment_value: '设备金额' };
+    var numericFacts = byId('extraction-numeric-facts');
+    numericFacts.replaceChildren();
+    (extraction.numeric_facts || []).forEach(function (number) {
+      var item = document.createElement('li');
+      var label = document.createElement('p');
+      label.textContent = number.object_zh + ' · ' + number.field_zh + '：' + (number.qualifier_text ? number.qualifier_text + ' ' : '') + number.value_text + (number.scale_text ? ' ' + number.scale_text : '') + ' ' + (number.unit || '单位未披露') + ' · ' + (basisLabels[number.basis] || '口径未明确');
+      var context = document.createElement('p');
+      context.className = 'intel-muted';
+      context.textContent = '原文口径：' + (number.basis_text || '未明确') + ' · 范围：' + (number.scope_text || '未明确') + ' · 阶段：' + (number.stage_text || '未明确') + ' · 有效日期：' + (number.effective_date_text || '未披露') +
+        (number.currency || number.tax_text ? ' · 币种：' + (number.currency || '未明确') + ' · 税费：' + (number.tax_text || '未披露') : '');
+      var quote = document.createElement('blockquote');
+      quote.textContent = '原文披露：“' + number.raw_text + '”';
+      var link = document.createElement('a');
+      link.href = '#fact-' + number.evidence_fact_number;
+      link.textContent = '查看事实 ' + number.evidence_fact_number + ' 的完整引文';
+      item.append(label, context, quote, link);
+      numericFacts.append(item);
+    });
+    byId('numeric-facts-empty').hidden = Boolean(extraction.numeric_facts?.length);
+    byId('numeric-facts-empty').textContent = extraction.numeric_facts == null ? '这份历史分析尚未提取结构化数值，原始披露见上方事实与引文。' : '本次分析未列出关键数值；不代表容量或金额为零。';
+    var scopeLabels = { project: '项目建设', development_rights: '开发权', ppa: '购电协议（PPA）', epc: '工程总承包（EPC）', construction_contract: '施工合同（未推定EPC范围）', equipment: '设备包', service: '服务包' };
+    var eventStages = { planned: '计划中', open: '采购开放', shortlisted: '已入围', awarded: '已授标', signed: '已签约', construction: '建设中', delivered: '已交付', operating: '已投运', cancelled: '已取消' };
+    var commercialEvents = byId('extraction-commercial-events');
+    commercialEvents.replaceChildren();
+    (extraction.commercial_events || []).forEach(function (event) {
+      var item = document.createElement('li');
+      var label = document.createElement('p');
+      label.textContent = event.object_zh + ' · ' + scopeLabels[event.scope] + ' · ' + eventStages[event.stage];
+      var quote = document.createElement('blockquote');
+      quote.textContent = '类型依据：“' + event.scope_text + '”；阶段依据：“' + event.stage_text + '”。';
+      var link = document.createElement('a');
+      link.href = '#fact-' + event.evidence_fact_number;
+      link.textContent = '查看事实 ' + event.evidence_fact_number + ' 的完整引文';
+      item.append(label, quote, link);
+      commercialEvents.append(item);
+    });
+    byId('commercial-events-note').textContent = extraction.commercial_events == null ? '这份历史分析尚未区分包件状态，请结合上方原文。' :
+      extraction.commercial_events.some(function (event) { return event.scope === 'equipment'; }) ? '设备采购状态仅适用于列出的具名设备包，其他包件仍未知。' : '设备采购状态未知：本次分析没有设备包的明确披露。EPC或PPA签约不能代替设备采购证据。';
+    var contextIssues = extraction.context_issues || [];
+    byId('fact-context-issues').hidden = !contextIssues.length;
+    byId('fact-context-issues').textContent = contextIssues.length ? contextIssues.length + ' 项数值或包件提取未通过原文/口径校验，已排除出以上结构化结果，不能用于统计或判断：' + contextIssues.map(function (issue) {
+      return issue.object_zh + (issue.evidence_fact_number ? '（见事实 ' + issue.evidence_fact_number + '）' : '（事实引用无效）');
+    }).join('；') + '。基础事实与原文仍保留在上方。' : '';
     var hypotheses = byId('extraction-hypotheses');
     hypotheses.replaceChildren();
     var hypothesisLabels = { open: '待验证', strengthened: '证据增强', weakened: '证据减弱', confirmed: '已证实', rejected: '已否定', dormant: '休眠' };
@@ -371,7 +416,7 @@
         var stage = parts[0] === 'discover' ? (countries[parts[1]] || '国家') + '来源发现'
           : ({ registry: '固定来源：' + (child.checkpoint?.name || parts[1]), source: '原文抓取', watchsource: '关注来源抓取', watchsearch: child.checkpoint?.intent === 'counter' ? '主动反证搜索' : '主动支持搜索', extract: '情报提取', cross: '跨来源核对', hypothesis: '假设与反证判断' }[parts[0]] || '采集任务');
         var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_no_primary_sources: '搜索完成，未找到符合要求的官方页面', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', source_tls_error: '来源站点证书校验失败', source_dns_error: '来源域名暂时无法解析', source_access_denied: '来源站点拒绝自动访问', source_not_found: '原公告已下线或网址失效', source_rate_limited: '来源站点限流', source_timeout: '原文获取超时', source_empty_document: '页面没有可读取正文，未调用模型', extraction_invalid_known_facts: '未取得有原文支持的事实', extraction_invalid_known_fact_quote: '引文未通过原文校验', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设证据判断失败', watch_search_failed: '主动搜索暂未成功', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
-        Object.assign(errors, { registry_no_links: '未读到公告链接，可能需要页面适配；不算作没有新消息', registry_redirect_host: '入口跳转到其他站点，待核验', registry_failed: '固定来源读取或登记失败', source_unsupported_type: '文件格式暂不支持，待处理', source_unsupported_encoding: '来源编码暂不支持，待处理' });
+        Object.assign(errors, { source_paused: '此发布方的自动抓取已暂停，覆盖不完整', registry_no_links: '未读到公告链接，可能需要页面适配；不算作没有新消息', registry_redirect_host: '入口跳转到其他站点，待核验', registry_failed: '固定来源读取或登记失败', source_unsupported_type: '文件格式暂不支持，待处理', source_unsupported_encoding: '来源编码暂不支持，待处理' });
         var registryResult = parts[0] === 'registry' && child.status === 'succeeded'
           ? '（发现新链接 ' + (child.checkpoint.fresh_count || 0) + ' 条，复查已有链接 ' + ((child.checkpoint.result_urls?.length || 0) - (child.checkpoint.fresh_count || 0)) + ' 条'
             + (child.checkpoint.pending_count ? '，仍待补收 ' + child.checkpoint.pending_count + ' 条' : '') + '）' : '';
@@ -444,6 +489,33 @@
       }).length;
       status('page-status', '有效候选 ' + visibleCount + ' 条；仅保留来源 ' + result.candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条。统计范围为最近100条分析记录，已合并重复原文、同一网址版本及已核对的同范围候选。');
     } catch (error) { status('page-status', error.message, 'error'); }
+  }
+  async function loadSourceControls() {
+    try {
+      var result = await api('source-controls');
+      var list = byId('source-controls');
+      list.replaceChildren();
+      result.sources.forEach(function (source) {
+        var item = document.createElement('li');
+        var label = document.createElement('p');
+        label.textContent = source.name + ' · ' + (source.paused ? '已暂停自动抓取' : '自动抓取已开启');
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'intel-button intel-button-quiet';
+        button.textContent = source.paused ? '恢复此来源' : '暂停此来源';
+        button.disabled = !result.writable;
+        button.addEventListener('click', async function () {
+          button.disabled = true;
+          try {
+            var saved = await api('save-source-control', { registry_id: source.id, paused: !source.paused });
+            await loadSourceControls();
+            status('source-controls-status', source.paused ? '已恢复此来源；最近计划日有 ' + saved.resumed + ' 项任务重新排队。' : '已暂停此来源的后续自动抓取。其他来源继续运行。', 'success');
+          } catch (error) { status('source-controls-status', error.message, 'error'); button.disabled = false; }
+        });
+        item.append(label, button);
+        list.append(item);
+      });
+    } catch (error) { status('source-controls-status', error.message, 'error'); }
   }
   async function loadSources() {
     var button = byId('refresh-button');
@@ -616,6 +688,7 @@
   var discoveryForm = byId('discovery-form');
   var overviewList = byId('candidate-list');
   var providerForms = document.querySelectorAll('.intel-provider-form');
+  if (byId('source-controls')) loadSourceControls();
   providerForms.forEach(function (form) {
     form.addEventListener('submit', async function (event) {
       event.preventDefault();

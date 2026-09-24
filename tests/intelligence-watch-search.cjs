@@ -14,7 +14,7 @@ function target(n = 0) {
 }
 function workStore(item) {
   const calls = [];
-  const store = { calls, claimJobItem: async () => ({ id: 'work', job_run_id: 'job', attempts: 1, ...item }),
+  const store = { sourcePaused: async () => false, calls, claimJobItem: async () => ({ id: 'work', job_run_id: 'job', attempts: 1, ...item }),
     hypothesis: async () => target(), providerConfigs: async () => [],
     reserveBudget: async (...args) => { calls.push(['reserve', ...args]); return 'reservation'; },
     releaseBudget: async () => true, syncProviderBalance: async () => true,

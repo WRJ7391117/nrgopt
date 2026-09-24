@@ -10,6 +10,7 @@ const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
 const { loginPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
+const { registry } = require('../lib/intelligence/registry.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
@@ -73,8 +74,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -214,6 +215,19 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id),
         candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id) });
       if (action === 'overview') return res.status(200).json({ candidates: await store.candidates(user.id) });
+      if (action === 'source-controls') {
+        const controls = await store.sourceControls(user.id);
+        return res.status(200).json({ writable: config.writes, sources: registry.map(({ id, name, url }) => ({
+          id, name, url, paused: controls.find(item => item.hostname === new URL(url).hostname.replace(/^www\./, ''))?.paused === true
+        })) });
+      }
+      if (action === 'save-source-control') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const entry = registry.find(item => item.id === body.registry_id);
+        if (!entry || typeof body.paused !== 'boolean') throw failure('invalid_request', 400);
+        const resumed = await store.setSourceControl(user.id, new URL(entry.url).hostname.replace(/^www\./, ''), body.paused);
+        return res.status(200).json({ ok: true, resumed });
+      }
       if (action === 'operations') return res.status(200).json({ ...(await store.operations(user.id)),
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes });
       if (action === 'provider-settings') return res.status(200).json({
