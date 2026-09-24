@@ -108,6 +108,13 @@ async function main() {
     assert.equal(source.title, extracted.title);
     assert.equal(source.contentType, 'text/html');
     assert.deepEqual(lookups, ['news.example', 'other.example']);
+    assert.equal(requests[0].options.ca, undefined);
+    responses = [{}];
+    await fetchSource('https://omannews.gov.om/topics/en/80/show/125613');
+    assert.ok(requests.at(-1).options.ca.length > 100);
+    responses = [{}];
+    await fetchSource('https://omannews.gov.om.evil.example/story');
+    assert.equal(requests.at(-1).options.ca, undefined);
     for (const request of requests) {
       assert.equal(request.options.agent, false);
       assert.equal(request.options.headers['Accept-Encoding'], 'identity');
