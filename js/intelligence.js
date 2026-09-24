@@ -11,6 +11,15 @@
   };
 
   function byId(id) { return document.getElementById(id); }
+  function publicationLabel(source) {
+    source = source || {};
+    if (source.publication_method === 'conflicting_metadata') return '日期字段有冲突，待核验';
+    var value = source.publication_date || (source.published_at || '').slice(0, 10);
+    if (!value) return '未知（原文未提供可可靠识别的发布日期）';
+    var age = (Date.now() - Date.parse(value + 'T00:00:00Z')) / 86400000;
+    var label = source.published_at ? dateLabel(source.published_at) : value + '（仅日期）';
+    return label + (age > 30 ? ' · 历史公告（超过30天）' : age < -1 ? ' · 未来日期，待核验' : '');
+  }
   function status(id, message, tone) {
     var element = byId(id);
     element.textContent = message;
@@ -170,7 +179,7 @@
       var meta = document.createElement('p');
       meta.className = 'intel-source-meta';
       var url = webUrl(source.final_url || source.requested_url);
-      meta.textContent = (url ? url.hostname + ' · ' : '') + '获取时间：' + dateLabel(source.fetched_at);
+      meta.textContent = (url ? url.hostname + ' · ' : '') + '公布：' + publicationLabel(source) + ' · 获取：' + dateLabel(source.fetched_at);
       item.append(row, meta);
       var originalTitle = document.createElement('p');
       originalTitle.className = 'intel-source-original';
@@ -272,7 +281,10 @@
       var summary = document.createElement('p');
       summary.className = 'intel-source-annotation';
       summary.textContent = candidate.summary_zh;
-      item.append(row, meta, summary);
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '来源公布：' + publicationLabel(candidate.source_timing) + ' · 系统获取：' + dateLabel(candidate.source_timing && candidate.source_timing.fetched_at);
+      item.append(row, meta, timing, summary);
       var evidenceLink = document.createElement('a');
       evidenceLink.className = 'intel-evidence-link';
       evidenceLink.textContent = '查看来源与逐条引文 →';
@@ -397,7 +409,8 @@
       linkValue('source-requested-url', source.requested_url);
       linkValue('source-final-url', source.final_url);
       byId('source-fetched-at').textContent = dateLabel(source.fetched_at);
-      byId('source-published-at').textContent = source.published_at ? dateLabel(source.published_at) : '未知（来源元数据未保存）';
+      byId('source-published-at').textContent = publicationLabel(source);
+      byId('source-publication-evidence').textContent = source.publication_evidence || '无可靠依据；不会用获取时间或模型猜测填充';
       byId('source-content-type').textContent = source.content_type || '暂无';
       byId('source-byte-size').textContent = typeof source.byte_size === 'number' ? source.byte_size.toLocaleString('zh-CN') + ' 字节' : '暂无';
       byId('source-sha256').textContent = source.content_sha256 || '暂无';

@@ -621,3 +621,30 @@ test('upstream failures expose stable errors instead of upstream bodies or trans
   const transport = createStore(CONFIG, async () => { throw new Error('private transport detail'); });
   await assert.rejects(transport.list('owner-a'), { message: 'upstream_unavailable', status: 502 });
 });
+
+test('source persistence retains explicit publication evidence and overview exposes source time', async () => {
+  const state = backend();
+  const bytes = Buffer.from('<meta property="article:published_time" content="2025-02-20"><p>Official project.</p>');
+  const { source } = await state.store.save({ ...SOURCE, bytes, sha256: createHash('sha256').update(bytes).digest('hex') }, 'owner-a');
+  assert.equal(source.publication_date, '2025-02-20');
+  assert.equal(source.published_at, null);
+  assert.match(source.publication_evidence, /2025-02-20/);
+  state.candidates.push({ id: '33333333-3333-4333-8333-333333333333', owner_id: 'owner-a', source_id: source.id });
+  const candidates = await state.store.candidates('owner-a');
+  assert.equal(candidates[0].source_timing.publication_date, '2025-02-20');
+  assert.equal(candidates[0].source_timing.fetched_at, source.fetched_at);
+});
+
+test('reimporting identical evidence fills previously missing dates without changing first fetch time', async () => {
+  const state = backend();
+  const item = { ...SOURCE, finalUrl: 'https://spa.gov.sa/en/N2266456', excerpt: 'Riyadh, February 20, 2025, SPA -- Project.' };
+  const { source } = await state.store.save(item, 'owner-a');
+  const row = state.records.find(row => row.id === source.id);
+  row.publication_method = null; row.publication_date = null; row.publication_evidence = null;
+  row.fetched_at = '2026-09-22T00:00:00Z';
+  const result = await state.store.save(item, 'owner-a');
+  assert.equal(result.reused, true);
+  assert.equal(result.source.publication_date, '2025-02-20');
+  assert.equal(result.source.fetched_at, '2026-09-22T00:00:00Z');
+  assert.equal(state.objects.size, 1);
+});
