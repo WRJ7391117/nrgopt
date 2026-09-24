@@ -562,6 +562,13 @@ test('G2 candidate persists evidence-linked radar, project and procurement recor
   await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
   assert.equal(state.projects[0].current_in_analysis, false);
   assert.ok(state.procurements.every(item => !item.current_in_analysis));
+  extraction.classification.disposition = 'source_only';
+  extraction.classification.radars = [];
+  extraction.hypotheses = [{ hypothesis_zh: '不应追踪的背景假设', counter_evidence_zh: '' }];
+  extraction.next_signals_zh = ['不应新增的背景关注'];
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.hypotheses.length, 1);
+  assert.equal(state.watches.length, 1);
   assert.ok(!state.calls.some(call => call.method === 'DELETE' && /projects|procurements/.test(call.url.pathname)));
 });
 

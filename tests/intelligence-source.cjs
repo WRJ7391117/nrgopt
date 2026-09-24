@@ -5,6 +5,7 @@ const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
 const { createHash } = require('node:crypto');
 const { fetchSource, validateUrl, assertPublicAddress, extractDocument } = require('../lib/intelligence/source.cjs');
+const { extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 
 async function main() {
   for (const address of [
@@ -33,6 +34,16 @@ async function main() {
   assert.throws(() => extractDocument(html, 'application/json'), { code: 'source_unsupported_type' });
   assert.throws(() => extractDocument(html, 'text/html; charset=gbk'), { code: 'source_unsupported_encoding' });
   assert.throws(() => extractDocument(Buffer.from('<meta charset="gb2312"><p>News</p>'), 'text/html'), { code: 'source_unsupported_encoding' });
+  let failedSource = null;
+  await assert.rejects(extractSavedSource({
+    store: {
+      evidence: async () => ({ source: { id: 'saved-placeholder', final_url: 'https://public.example/under-construction',
+        title: 'Under Construction', content_type: 'text/html' }, bytes: Buffer.from('<main>Project cards in navigation</main>') }),
+      failExtraction: async (id, owner, code) => { failedSource = [id, owner, code]; }
+    }, owner: 'owner-a', sourceId: 'saved-placeholder', env: {},
+    modelFactory: () => { throw Error('placeholder reached model'); }
+  }), { code: 'source_empty_document' });
+  assert.deepEqual(failedSource, ['saved-placeholder', 'owner-a', 'source_empty_document']);
   assert.throws(() => extractDocument(Buffer.from([0xff]), 'text/plain'), { code: 'source_unsupported_encoding' });
   const longDocument = Buffer.from(`<title>Long energy report</title><nav>${'Site navigation. '.repeat(200)}</nav><main><p>${'Solar project facts. '.repeat(200)}</p></main>`);
   const longExcerpt = extractDocument(longDocument, 'text/html; charset=utf-8').excerpt;
@@ -146,6 +157,10 @@ async function main() {
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_tls_error' });
     responses = [{ bytes: Buffer.from('<title>Ministry</title><body><script>loadArticle()</script></body>') }];
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_empty_document' });
+    responses = [{ bytes: Buffer.from('<title>Under Construction</title><main><p>Unrelated project headlines and capacity figures.</p></main>') }];
+    await assert.rejects(fetchSource('https://public.example/under-construction'), { code: 'source_empty_document' });
+    responses = [{ bytes: Buffer.from('<title>Under Construction</title><main><p>A real construction status report.</p></main>') }];
+    assert.equal((await fetchSource('https://public.example/projects/under-construction')).title, 'Under Construction');
     responses = [{ bytes: longDocument, headers: { 'content-type': 'Text/HTML; charset="UTF-8"' } }];
     const longSource = await fetchSource('https://public.example/long-report');
     assert.equal(longSource.contentType, 'text/html');
