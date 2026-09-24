@@ -103,3 +103,41 @@ test('interrupted acknowledgement resumes from intact files without duplicating 
     assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
+
+test('disk-full writes report failure without ACK, remove partial temp files and recover', async t => {
+  for (const stage of ['object', 'manifest']) {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-disk-'));
+    const bytes = Buffer.from('evidence retained in cloud until local storage succeeds');
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    const job = { id: randomUUID(), source_id: randomUUID(), byte_size: bytes.length, content_sha256: hash,
+      content_type: 'text/plain', download_url: '/api/intelligence?action=archive-object' };
+    const actions = [];
+    const fetchImpl = async (input, init) => {
+      const action = new URL(input).searchParams.get('action');
+      actions.push({ action, body: init.body && JSON.parse(init.body) });
+      if (action === 'archive-claim') return json({ job });
+      if (action === 'archive-object') return new Response(bytes);
+      if (['archive-ack', 'archive-fail'].includes(action)) return json({ ok: true });
+      throw new Error('unexpected request');
+    };
+    const writeFile = fs.writeFile;
+    const disk = t.mock.method(fs, 'writeFile', async (filename, data, options) => {
+      if (String(filename).includes('.manifest.json') === (stage === 'manifest')) {
+        await writeFile(filename, Buffer.from('partial'), options);
+        throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
+      }
+      return writeFile(filename, data, options);
+    });
+    const options = { baseUrl: 'https://archive.example', token: 'fixture', nodeId: 'test', directory, fetchImpl, maxItems: 1 };
+    try {
+      await assert.rejects(runArchivePull(options), { code: 'disk_full' });
+      assert.equal(actions.some(call => call.action === 'archive-ack'), false);
+      assert.equal(actions.find(call => call.action === 'archive-fail').body.error_code, 'disk_full');
+      assert.equal((await fs.readdir(path.join(directory, job.source_id))).some(name => name.endsWith('.tmp')), false);
+      disk.mock.restore();
+      assert.deepEqual(await runArchivePull(options), { archived: 1 });
+      assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
+      assert.equal(actions.filter(call => call.action === 'archive-ack').length, 1);
+    } finally { disk.mock.restore(); await fs.rm(directory, { recursive: true, force: true }); }
+  }
+});
