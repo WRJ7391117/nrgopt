@@ -275,7 +275,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         try {
           const result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
-          return res.status(200).json({ source: result.source });
+          return res.status(200).json({ source: result.source, candidate: await store.candidateBySource(req.query.id, user.id) });
         }
         catch (error) {
           const code = messages[error.code] ? error.code : 'model_unavailable';

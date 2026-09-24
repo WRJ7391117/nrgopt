@@ -15,7 +15,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     syncProviderBalance: async () => true,
     save: async () => ({ source, reused: false }), recordFailure: async () => {}, evidence: async () => ({ source, bytes: Buffer.from('Official source evidence.') }),
     beginExtraction: async () => {}, saveExtraction: async () => source, saveCandidate: async () => ({ id: 'candidate-1' }),
-    previousExtractedSource: async () => null, findCandidatePeers: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
+    previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}), failExtraction: async () => {},
     providerConfigs: async () => []
   };
   const store = { calls };
@@ -365,4 +365,13 @@ test('already queued cross-check skips another version from the same publisher',
     crossCheckFactory: () => { throw Error('same publisher must not count as independent'); } });
   assert.equal(result.status, 'succeeded');
   assert.ok(!store.calls.some(call => ['reserveBudget', 'saveCrossCheck'].includes(call[0])));
+});
+
+test('saved extraction durably queues prior hypotheses for evidence assessment', async () => {
+  const hypothesisId = '22222222-2222-4222-8222-222222222222';
+  const store = fakeStore({ item: { id: 'extract-item', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
+  store.assessmentTargets = async () => [{ id: hypothesisId }];
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' }, ...dependencies });
+  assert.equal(result.status, 'succeeded');
+  assert.deepEqual(store.calls.find(c => c[0] === 'enqueueJobItems')[3], [{ item_key: `hypothesis:${hypothesisId}:${sourceId}`, checkpoint: { hypothesis_id: hypothesisId, source_id: sourceId } }]);
 });

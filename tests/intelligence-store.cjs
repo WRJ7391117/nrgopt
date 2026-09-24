@@ -187,6 +187,7 @@ function backend() {
         return new Response(null, { status: 201 });
       }
     }
+    if (url.pathname === '/rest/v1/intelligence_hypothesis_assessments') return new Response('[]', { status: 200 });
     if (['/rest/v1/intelligence_hypotheses', '/rest/v1/intelligence_watch_targets'].includes(url.pathname)) {
       const collection = url.pathname.endsWith('hypotheses') ? state.hypotheses : state.watches;
       if (method === 'GET') {
