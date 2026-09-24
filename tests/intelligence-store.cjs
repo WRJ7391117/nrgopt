@@ -305,9 +305,9 @@ test('operations exposes recent owner-scoped jobs, item checkpoints and budget s
       { id: 'item-a', job_run_id: 'job-a', item_key: 'discover:SA', status: 'budget_paused', attempts: 1, checkpoint: { country: 'SA' }, error_code: 'budget_exhausted' }
     ]));
     if (url.pathname.endsWith('/intelligence_provider_configs')) return new Response(JSON.stringify([
-      { capability: 'discovery', currency: 'CNY', budget_limit_micro: 5000, budget_reserved_micro: 0, budget_spent_micro: 1000,
+      { capability: 'discovery', currency: 'CNY', billing_mode: 'included', budget_limit_micro: 5000, budget_reserved_micro: 0, budget_spent_micro: 1000,
         budget_period_start: '2026-09-01', budget_period_end: '2026-09-30', budget_enabled: true },
-      { capability: 'analysis', currency: 'USD', budget_limit_micro: 2000, budget_reserved_micro: 0, budget_spent_micro: 0,
+      { capability: 'analysis', currency: 'USD', billing_mode: 'balance', budget_limit_micro: 2000, budget_reserved_micro: 0, budget_spent_micro: 0,
         budget_period_start: '2026-09-01', budget_period_end: '2026-09-30', budget_enabled: false }
     ]));
     if (url.pathname.endsWith('/intelligence_notification_outbox')) return new Response(JSON.stringify([
@@ -329,7 +329,7 @@ test('operations exposes recent owner-scoped jobs, item checkpoints and budget s
 test('provider configuration is owner-scoped and stored only through the service role', async () => {
   const state = backend();
   const record = { owner_id: 'owner-a', capability: 'discovery', provider: 'custom-search',
-    endpoint: 'https://search.example/v1/messages', model: 'search-v2', currency: 'USD', budget_limit_micro: 1000,
+    endpoint: 'https://search.example/v1/messages', model: 'search-v2', currency: 'USD', billing_mode: 'balance', budget_limit_micro: 1000,
     budget_reserved_micro: 0, budget_spent_micro: 0, budget_period_start: '2026-09-01', budget_period_end: '2026-09-30',
     budget_enabled: true, api_key_ciphertext: 'v1.encrypted-value-for-test', updated_at: '2026-09-23T00:00:00.000Z' };
   assert.deepEqual(await state.store.saveProviderConfig('owner-a', record), record);

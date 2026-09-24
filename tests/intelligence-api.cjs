@@ -19,9 +19,9 @@ test('provider settings accept generic profiles and keep legacy fallbacks', () =
     NRGOPT_ANALYSIS_ENDPOINT: 'https://analysis.example/v1/chat/completions', NRGOPT_ANALYSIS_MODEL: 'analysis-v2', NRGOPT_ANALYSIS_CURRENCY: 'USD',
     NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2300' });
   assert.deepEqual(generic.discovery, { apiKey: 'discovery-key', provider: 'search-service', endpoint: 'https://search.example/v1/messages',
-    model: 'search-v2', currency: 'USD', budgetKey: 'NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 1200 });
+    model: 'search-v2', currency: 'USD', billingMode: 'balance', budgetKey: 'NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 1200 });
   assert.deepEqual(generic.analysis, { apiKey: 'analysis-key', provider: 'analysis-service', endpoint: 'https://analysis.example/v1/chat/completions',
-    model: 'analysis-v2', currency: 'USD', budgetKey: 'NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 2300 });
+    model: 'analysis-v2', currency: 'USD', billingMode: 'balance', budgetKey: 'NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO', budgetLimitMicro: 2300 });
   const legacy = providerSettings({ MINIMAX_API_KEY: 'legacy-discovery', DEEPSEEK_API_KEY: 'legacy-analysis' });
   assert.equal(legacy.discovery.apiKey, 'legacy-discovery');
   assert.equal(legacy.analysis.apiKey, 'legacy-analysis');
@@ -37,7 +37,8 @@ test('provider settings accept generic profiles and keep legacy fallbacks', () =
   assert.equal(incomplete.discovery.budgetKey, 'NRGOPT_DISCOVERY_RESERVE_MICRO');
 });
 
-function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory, crossCheckFactory, discoveryFactory, notificationFactory } = {}) {
+function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory, crossCheckFactory, discoveryFactory,
+  balanceReaderFactory = () => async () => 1_000_000, notificationFactory } = {}) {
   const calls = [];
   const store = {
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
@@ -61,6 +62,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     modelFactory: modelFactory || (() => async () => { throw Object.assign(new Error('model_unavailable'), { code: 'model_unavailable', status: 502 }); }),
     crossCheckFactory: crossCheckFactory || (() => async () => { throw failure('model_unavailable'); }),
     discoveryFactory: discoveryFactory || (() => async () => { throw failure('discovery_unavailable'); }),
+    balanceReaderFactory,
     notificationFactory: notificationFactory || (() => async () => ({ responseCode: 200 })) });
   async function request(action, { method = 'GET', body, loggedIn = true, headers = {}, sourceId = id, query = {} } = {}) {
     const res = { code: 200, headers: {}, status(code) { this.code = code; return this; }, setHeader(key, value) { this.headers[key.toLowerCase()] = value; }, json(value) { this.body = value; }, end(value) { this.body = value; } };
@@ -378,7 +380,7 @@ test('private settings save an encrypted write-only key and override the environ
       results: [{ title: 'Official award', url: 'https://www.spa.gov.sa/en/N1' }] });
   } });
   const input = { capability: 'discovery', provider: 'custom-search', endpoint: 'https://search.example/v1/messages',
-    model: 'search-v2', currency: 'USD', budget_limit_micro: 125000, api_key: 'private-browser-key' };
+    model: 'search-v2', currency: 'USD', billing_mode: 'balance', budget_limit_micro: 125000, api_key: 'private-browser-key' };
   const saved = await configured.request('save-provider-settings', { method: 'POST', body: input });
   assert.equal(saved.code, 200);
   assert.equal(saved.body.profile.key_source, 'saved');
@@ -421,7 +423,7 @@ test('first web save can retain an existing server key without asking the user t
   } });
   const response = await configured.request('save-provider-settings', { method: 'POST', body: {
     capability: 'discovery', provider: 'minimax', endpoint: 'https://api.minimaxi.com/anthropic/v1/messages',
-    model: 'MiniMax-M3', currency: 'CNY', budget_limit_micro: 10_000_000, api_key: ''
+    model: 'MiniMax-M3', currency: 'CNY', billing_mode: 'included', budget_limit_micro: 10_000_000, api_key: ''
   } });
   assert.equal(response.code, 200);
   assert.equal(response.body.profile.key_source, 'saved');

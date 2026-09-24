@@ -25,7 +25,8 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
 const dependencies = {
   sourceFetcher: async url => ({ requestedUrl: url }),
   modelFactory: () => async () => ({ extraction: {}, provider: 'deepseek', model: 'deepseek-flash', usage: {} }),
-  crossCheckFactory: () => async () => ({ same_project: false, matching_facts: [], conflicting_facts: [] })
+  crossCheckFactory: () => async () => ({ same_project: false, matching_facts: [], conflicting_facts: [] }),
+  balanceReaderFactory: () => async () => 1_000_000
 };
 
 test('daily schedule uses the configured timezone and stable six-country item keys', async () => {
@@ -93,26 +94,45 @@ test('unchanged extracted source finishes without another DeepSeek task', async 
   assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[4].unchanged, true);
 });
 
-test('usage pricing settles the measured CNY estimate instead of the whole reserve', async () => {
+test('provider balance delta is settled as actual spend', async () => {
   const store = fakeStore();
+  const balances = [1_000_000, 980_000];
   await runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY', budgetKey: 'RESERVE',
-    providerMissingCode: 'model_not_configured', env: { RESERVE: '10000' }, call: async () => ({
-      provider: 'deepseek', model: 'deepseek-flash', usage: { prompt_tokens: 1000, completion_tokens: 100, prompt_cache_hit_tokens: 200, prompt_cache_miss_tokens: 800 }
-    }) });
+    env: { RESERVE: '100000' }, readBalance: async () => balances.shift(), call: async () => ({ ok: true }) });
   const settled = store.calls.find(call => call[0] === 'settleBudget');
-  assert.deepEqual(settled.slice(1, 5), ['owner-a', 'reservation-1', 2408, 'estimated']);
-  assert.equal(settled[5].provider, 'deepseek');
-  assert.equal(settled[5].pricingVersion, 'deepseek-flash-cn-peak-2026-09-22');
+  assert.deepEqual(settled.slice(1, 5), ['owner-a', 'reservation-1', 20_000, 'actual']);
 });
 
-test('unknown provider pricing settles the configured reservation ceiling', async () => {
+test('included plan releases the reservation and never records monetary spend', async () => {
   const store = fakeStore();
   await runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'USD', budgetKey: 'RESERVE',
-    providerMissingCode: 'model_not_configured', env: { RESERVE: '10000' }, call: async () => ({
-      provider: 'custom-analysis', model: 'analysis-v2', usage: { prompt_tokens: 1000, completion_tokens: 100 }
-    }) });
-  assert.deepEqual(store.calls.find(call => call[0] === 'settleBudget').slice(1, 5),
-    ['owner-a', 'reservation-1', 10000, 'estimated']);
+    billingMode: 'included', env: { RESERVE: '10000' }, call: async () => ({ ok: true }) });
+  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
+});
+
+test('a failed pre-call balance sync releases the reservation and never calls the model', async () => {
+  const store = fakeStore();
+  let called = false;
+  await assert.rejects(runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY',
+    budgetKey: 'RESERVE', env: { RESERVE: '10000' }, readBalance: async () => { throw new Error('private detail'); },
+    call: async () => { called = true; } }), { code: 'billing_sync_unavailable' });
+  assert.equal(called, false);
+  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
+});
+
+test('a failed post-call balance sync keeps the reservation pending instead of inventing spend', async () => {
+  const store = fakeStore();
+  let reads = 0;
+  await assert.rejects(runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY',
+    budgetKey: 'RESERVE', env: { RESERVE: '10000' }, readBalance: async () => {
+      reads += 1;
+      if (reads === 1) return 1_000_000;
+      throw new Error('private detail');
+    }, call: async () => ({ ok: true }) }), { code: 'billing_sync_pending' });
+  assert.ok(!store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
 });
 
 test('missing extraction budget keeps saved evidence and pauses before DeepSeek', async () => {
@@ -155,6 +175,7 @@ test('a missing provider configuration releases a manual reservation without mar
   const store = fakeStore();
   await assert.rejects(runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY',
     budgetKey: 'RESERVE', providerMissingCode: 'model_not_configured', env: { RESERVE: '900' },
+    readBalance: async () => 1_000_000,
     call: async () => { throw Object.assign(new Error('missing'), { code: 'model_not_configured' }); } }), { code: 'model_not_configured' });
   assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
   assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));

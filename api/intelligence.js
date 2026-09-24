@@ -9,6 +9,7 @@ const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pip
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
 const { loginPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
+const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
@@ -22,6 +23,8 @@ const messages = {
   discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
   provider_config_not_configured: '网页配置加密尚未启用。', provider_api_key_required: '首次保存此配置时必须填写 API Key。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
+  billing_sync_not_configured: '该服务尚未配置可核对的账单来源，未发起模型请求。', billing_sync_unavailable: '暂时无法读取服务商账单，未发起模型请求。',
+  billing_sync_auth_failed: '服务商账单接口未授权，请检查 API Key。', billing_sync_pending: '模型请求已完成，但服务商账单尚未同步；系统已暂停后续调用，避免金额失真。',
   scheduler_disabled: '自动扫描尚未启用。', scheduler_unauthorized: '自动扫描凭据无效。',
   archive_disabled: '归档节点尚未接入。', archive_unauthorized: '归档凭据无效。',
   feishu_disabled: '飞书通知尚未启用。', feishu_not_configured: '飞书机器人尚未配置。',
@@ -62,7 +65,8 @@ function sessionCookie(token, seconds, env) {
 }
 
 function createHandler({ env = process.env, storeFactory = createStore, sourceFetcher = fetchSource, modelFactory = createDeepSeekExtractor,
-  crossCheckFactory = createDeepSeekCrossChecker, discoveryFactory = createMiniMaxDiscoverer, notificationFactory = createFeishuSender } = {}) {
+  crossCheckFactory = createDeepSeekCrossChecker, discoveryFactory = createMiniMaxDiscoverer,
+  balanceReaderFactory = createProviderBalanceReader, notificationFactory = createFeishuSender } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
@@ -119,7 +123,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
         const result = await runDailyJobItem({ store, owner: config.adminId, jobId: scheduled.jobId, env,
-          discover: (country, profile) => discoverCountry(country, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory });
+          discover: (country, profile) => discoverCountry(country, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
+          balanceReaderFactory });
         const job = await store.jobRun(config.adminId, scheduled.jobId);
         if (['succeeded', 'partial', 'failed', 'budget_paused', 'manual_paused'].includes(job.run.status)) {
           await store.enqueueNotification(config.adminId, 'daily', `daily:${scheduled.scheduleKey}`, {
@@ -231,6 +236,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
           budgetKey: discoveryProvider.budgetKey, budgetLimitMicro: discoveryProvider.budgetLimitMicro,
+          billingMode: discoveryProvider.billingMode, readBalance: balanceReaderFactory(discoveryProvider),
           providerMissingCode: 'discovery_not_configured', env,
           call: () => discoverCountry(body.country, discoveryProvider, discoveryFactory) });
         return res.status(200).json({ country: body.country, sources: discovery.sources });
@@ -242,7 +248,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'extract') {
         if (!config.writes) throw failure('writes_disabled', 403);
         try {
-          const result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory });
+          const result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
           return res.status(200).json({ source: result.source });
         }
         catch (error) {

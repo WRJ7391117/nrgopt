@@ -298,7 +298,7 @@
       ? budgets.map(function (budget) {
         var symbol = symbols[budget.currency] || budget.currency + ' ';
         return (budgetNames[budget.capability] || budget.capability) + '：月度上限 ' + symbol + (Number(budget.limit_micro) / 1000000).toFixed(2)
-          + ' · 已用 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2)
+          + (budget.billing_mode === 'included' ? ' · 已购套餐，单次金额为 0' : ' · 服务商实扣 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2))
           + ' · 已预留 ' + symbol + (Number(budget.reserved_micro) / 1000000).toFixed(2);
       }).join('；')
       : '未配置或未启用；所有付费调用保持暂停';
@@ -340,6 +340,7 @@
     form.elements.endpoint.value = profile.endpoint || '';
     form.elements.model.value = profile.model || '';
     form.elements.currency.value = profile.currency || 'CNY';
+    form.elements.billing_mode.value = profile.billing_mode || 'balance';
     form.elements.budget_limit.value = moneyInput(profile.budget_limit_micro);
     form.elements.api_key.value = '';
     var labels = { saved: '密钥已安全保存', environment: '当前使用服务器密钥', none: '密钥尚未配置' };
@@ -459,6 +460,7 @@
         endpoint: form.elements.endpoint.value.trim(),
         model: form.elements.model.value.trim(),
         currency: form.elements.currency.value,
+        billing_mode: form.elements.billing_mode.value,
         budget_limit_micro: budgetLimitMicro,
         api_key: form.elements.api_key.value,
       };
