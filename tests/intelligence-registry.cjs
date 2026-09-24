@@ -25,16 +25,17 @@ test('Bahrain dated news cards exclude navigation and resolve relative links', (
 });
 
 test('cursor only advances over queued links and preserves bounded correction overlap', () => {
-  const urls = ['a', 'b', 'c', 'd', 'e'].map(article);
+  const urls = Array.from({ length: 60 }, (_, i) => article(String(i)));
   const first = registryPlan(urls);
-  assert.deepEqual(first.urls, urls.slice(0, 2));
-  assert.deepEqual(first.seen_urls, urls.slice(0, 2));
+  assert.deepEqual(first.urls, urls.slice(0, 50));
+  assert.deepEqual(first.seen_urls, urls.slice(0, 50));
+  assert.equal(first.pending_count, 10);
   const second = registryPlan(urls, first);
-  assert.deepEqual(second.urls, [urls[2], urls[3], urls[0], urls[1]]);
-  assert.ok(!second.seen_urls.includes(urls[4]));
-  const third = registryPlan(urls, second);
-  assert.equal(third.fresh_count, 1);
-  assert.equal(registryPlan(urls, third).fresh_count, 0);
+  assert.deepEqual(second.urls, [...urls.slice(50), ...urls.slice(0, 2)]);
+  assert.equal(second.pending_count, 0);
+  assert.equal(registryPlan(urls, second).fresh_count, 0);
+  assert.ok(registryPlan(urls.slice(0, 25)).urls.includes(urls[2])); // A third-position demand signal must not be skipped.
+
 });
 
 test('registry worker checkpoints only after durable enqueue, never calling a model', async () => {

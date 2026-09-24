@@ -380,7 +380,8 @@
         var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_no_primary_sources: '搜索完成，未找到符合要求的官方页面', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', source_tls_error: '来源站点证书校验失败', source_dns_error: '来源域名暂时无法解析', source_access_denied: '来源站点拒绝自动访问', source_not_found: '原公告已下线或网址失效', source_rate_limited: '来源站点限流', source_timeout: '原文获取超时', source_empty_document: '页面没有可读取正文，未调用模型', extraction_invalid_known_facts: '未取得有原文支持的事实', extraction_invalid_known_fact_quote: '引文未通过原文校验', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设证据判断失败', watch_search_failed: '主动搜索暂未成功', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
         Object.assign(errors, { registry_no_links: '未读到公告链接，可能需要页面适配；不算作没有新消息', registry_redirect_host: '入口跳转到其他站点，待核验', registry_failed: '固定来源读取或登记失败', source_unsupported_type: '文件格式暂不支持，待处理', source_unsupported_encoding: '来源编码暂不支持，待处理' });
         var registryResult = parts[0] === 'registry' && child.status === 'succeeded'
-          ? '（发现新链接 ' + (child.checkpoint.fresh_count || 0) + ' 条，复查已有链接 ' + ((child.checkpoint.result_urls?.length || 0) - (child.checkpoint.fresh_count || 0)) + ' 条）' : '';
+          ? '（发现新链接 ' + (child.checkpoint.fresh_count || 0) + ' 条，复查已有链接 ' + ((child.checkpoint.result_urls?.length || 0) - (child.checkpoint.fresh_count || 0)) + ' 条'
+            + (child.checkpoint.pending_count ? '，仍待补收 ' + child.checkpoint.pending_count + ' 条' : '') + '）' : '';
         return stage + ' ' + (labels[child.status] || child.status) + registryResult + (child.attempts ? '（尝试 ' + child.attempts + '）' : '') + (child.error_code ? '：' + (errors[child.error_code] || child.error_code) : '');
       }).join('；') || '任务明细尚未建立。';
       item.append(title, detail);
