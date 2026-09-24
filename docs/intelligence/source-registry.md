@@ -10,7 +10,7 @@ The registry in `lib/intelligence/registry.cjs` is deliberately limited to entry
 | Masdar | https://masdar.ae/en/news/newsroom | 10 |
 | Qatar News Agency | https://qna.org.qa/en/economy | 25 |
 
-These counts prove index readability, not article accuracy, relevance or market coverage. Publisher country is not a project's occurrence country. Some official indexes contain test posts or non-energy news; articles still pass through source preservation, extraction and relevance checks.
+These counts prove index readability, not article accuracy, relevance or market coverage. Publisher country is not a project's occurrence country. Official indexes contain non-energy news, and URL slugs can be misleading; articles still pass through source preservation, extraction and relevance checks.
 
 Each daily run adds one durable item per entry point. It queues at most two unseen article URLs and revisits at most two previously seen URLs for corrections. The last successful checkpoint for that owner and entry point retains up to 512 queued URLs. Enqueue failure or an empty/unreadable index never advances that checkpoint. An article fetch can fail after discovery; the child job retains its own retries and visible failure. Repeated URLs use the existing per-run source keys and source-version deduplication.
 

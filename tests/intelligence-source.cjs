@@ -39,6 +39,12 @@ async function main() {
   assert.equal(longExcerpt.length, 2_000);
   assert.ok(longExcerpt.startsWith('Solar project facts.'));
   assert.ok(!longExcerpt.includes('Site navigation.'));
+  const nama = extractDocument(Buffer.from('<title>News - Nama Power &amp; Water Procurement</title><main><h1>News</h1><div class="news-dt-body"><h3>Adam Solar qualification</h3><p>Qualification opens in Oman.</p></div><section><h3>Latest News</h3><p>Unrelated Duqm project signed.</p></section></main>'), 'text/html');
+  assert.deepEqual(nama, { title: 'Adam Solar qualification', excerpt: 'Adam Solar qualification Qualification opens in Oman.' });
+  const agency = extractDocument(Buffer.from('<title>Qatar news agency</title><meta property="og:title" content="MEEZA data centre contract"><header>Site navigation</header><main><div class="news-page-holder news-details-holder"><p>MEEZA awarded a construction contract.</p></div><p>Other project news</p></main>'), 'text/html');
+  assert.deepEqual(agency, { title: 'MEEZA data centre contract', excerpt: 'MEEZA awarded a construction contract.' });
+  const fallbackTitle = extractDocument(Buffer.from('<title>Acwa | </title><main><h3>Red Sea commercial operation</h3><p>Official fact.</p></main>'), 'text/html');
+  assert.equal(fallbackTitle.title, 'Red Sea commercial operation');
   const emojiTitle = extractDocument(Buffer.from(`<title>${'a'.repeat(499)}😀extra</title>`), 'text/html').title;
   assert.equal(emojiTitle, `${'a'.repeat(499)}😀`);
   assert.equal(emojiTitle.isWellFormed(), true);
