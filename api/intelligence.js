@@ -128,13 +128,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           watchDiscover: (plan, profile) => discoverWatch(plan, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
           balanceReaderFactory });
         const job = await store.jobRun(config.adminId, result.jobId || scheduled.jobId);
-        const scheduleKey = job.run.schedule_key || scheduled.scheduleKey;
         if (['succeeded', 'partial', 'failed', 'budget_paused', 'manual_paused'].includes(job.run.status)) {
-          await store.enqueueNotification(config.adminId, 'daily', `daily:${scheduleKey}`, {
-            job_id: result.jobId || scheduled.jobId, schedule_key: scheduleKey, status: job.run.status,
-            items: job.items.map(item => ({ item_key: item.item_key, status: item.status, attempts: item.attempts,
-              result_count: Array.isArray(item.checkpoint?.result_urls) ? item.checkpoint.result_urls.length : 0, error_code: item.error_code }))
-          });
+          await store.enqueueDailyDigest(config.adminId, result.jobId || scheduled.jobId);
         }
         return res.status(200).json({ ...scheduled, result });
       }

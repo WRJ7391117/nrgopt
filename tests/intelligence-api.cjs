@@ -57,7 +57,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     reserveBudget: async () => '44444444-4444-4444-8444-444444444444', settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
     claimArchive: async () => null, archiveJob: async () => null, completeArchive: async () => true, failArchive: async () => true,
-    jobRun: async () => ({ run: { status: 'running' }, items: [] }), enqueueNotification: async () => '77777777-7777-4777-8777-777777777777',
+    jobRun: async () => ({ run: { status: 'running' }, items: [] }), enqueueDailyDigest: async () => '77777777-7777-4777-8777-777777777777', enqueueNotification: async () => '77777777-7777-4777-8777-777777777777',
     claimNotification: async () => null, finishNotification: async () => true,
     failExtraction: async () => {}, recordFailure: async () => {}, ...overrides
   };
@@ -243,7 +243,7 @@ test('scheduled scan requires both its switch and secret, then consumes one pers
   assert.equal(response.body.result.country, 'SA');
   assert.ok(scheduled.calls.some(call => call.name === 'enqueueJob'));
   assert.ok(scheduled.calls.some(call => call.name === 'finishJobItem'));
-  assert.equal(scheduled.calls.find(call => call.name === 'enqueueNotification').args[2], `daily:${response.body.scheduleKey}`);
+  assert.deepEqual(scheduled.calls.find(call => call.name === 'enqueueDailyDigest').args, [admin, response.body.result.jobId || response.body.jobId]);
 });
 
 test('independent health check records one system alert for a missing daily run', async () => {
@@ -588,7 +588,6 @@ test('scheduler summary belongs to the resumed run, not the newly enqueued date'
   const response = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer test-secret' } });
   assert.equal(response.code, 200);
   assert.deepEqual(calls.filter(call => call.name === 'jobRun').at(-1).args, [admin, oldJob]);
-  const notification = calls.find(call => call.name === 'enqueueNotification').args;
-  assert.equal(notification[2], 'daily:2000-01-01');
-  assert.equal(notification[3].job_id, oldJob);
+  const notification = calls.find(call => call.name === 'enqueueDailyDigest').args;
+  assert.deepEqual(notification, [admin, oldJob]);
 });
