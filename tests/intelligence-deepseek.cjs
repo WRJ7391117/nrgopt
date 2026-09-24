@@ -63,9 +63,23 @@ test('formal project and procurement candidates require evidence-linked names', 
 });
 
 test('source-only background cannot silently carry radar or project claims', () => {
-  const invalid = structuredClone(valid);
-  invalid.classification.radars = ['project'];
-  assert.throws(() => validateExtraction(invalid, sourceText), { code: 'extraction_invalid_source_only_consistency' });
+  for (const fields of [
+    { radars: ['project'] },
+    { project: { name_zh: '项目', evidence_fact_number: 1 } },
+    { procurement: { package_zh: '采购', evidence_fact_number: 1 } }
+  ]) {
+    const invalid = structuredClone(valid);
+    Object.assign(invalid.classification, fields);
+    assert.throws(() => validateExtraction(invalid, sourceText), { code: 'extraction_invalid_source_only_consistency' });
+  }
+});
+
+test('missing or invalid disposition is rejected instead of silently becoming background', () => {
+  for (const disposition of [undefined, null, '', 'project']) {
+    const invalid = structuredClone(valid);
+    invalid.classification.disposition = disposition;
+    assert.throws(() => validateExtraction(invalid, sourceText), { code: 'extraction_invalid_classification' });
+  }
 });
 
 test('DeepSeek request uses only its server key and returns validated JSON', async () => {
