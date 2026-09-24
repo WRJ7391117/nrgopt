@@ -5,6 +5,10 @@ const { automaticCallReserve } = require('../lib/intelligence/budget.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
 
 const sourceId = '11111111-1111-4111-8111-111111111111';
+const groundedExtraction = { summary_zh: '已保存的官方证据。', why_it_matters_zh: '仅作为背景，不创建项目。',
+  known_facts: [{ claim_zh: '官方证据原文。', evidence_quote: 'Official source evidence.' }],
+  unknowns_zh: ['未披露项目。'], hypotheses: [], next_signals_zh: ['等待正式项目公告。'], maturity: 'background',
+  classification: { disposition: 'source_only', countries: [], radars: [], organizations: [], project: null, procurement: null } };
 
 function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', item_key: 'discover:SA', attempts: 1, checkpoint: {} } } = {}) {
   const calls = [];
@@ -250,7 +254,7 @@ test('saved extraction survives retry and schedules peer checks without another 
   const store = fakeStore({ item: { id: 'item-extract', job_run_id: 'job-1', item_key: `extract:${sourceId}`,
     attempts: 2, checkpoint: { source_id: sourceId } } });
   store.evidence = async () => ({ source: { id: sourceId, content_type: 'text/plain', content_sha256: 'a'.repeat(64),
-    extraction_status: 'extracted', extraction_source_sha256: 'a'.repeat(64), extraction_zh: { summary_zh: '已保存' } },
+    extraction_status: 'extracted', extraction_source_sha256: 'a'.repeat(64), extraction_zh: groundedExtraction },
     bytes: Buffer.from('Official source evidence.') });
   const peerId = '22222222-2222-4222-8222-222222222222';
   store.findCandidatePeers = async () => [{ id: 'candidate-peer', source_id: peerId }];
@@ -376,4 +380,24 @@ test('saved extraction durably queues prior hypotheses for evidence assessment',
   const result = await runDailyJobItem({ store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' }, ...dependencies });
   assert.equal(result.status, 'succeeded');
   assert.deepEqual(store.calls.find(c => c[0] === 'enqueueJobItems')[3], [{ item_key: `hypothesis:${hypothesisId}:${sourceId}`, checkpoint: { hypothesis_id: hypothesisId, source_id: sourceId } }]);
+});
+
+test('unchanged raw HTML queues re-extraction when old evidence came from an excluded sidebar', async () => {
+  const work = sourceItem({ url: 'https://official.example/a' }, 'OM');
+  const old = { id: sourceId, content_sha256: 'a'.repeat(64), extraction_status: 'extracted',
+    extraction_source_sha256: 'a'.repeat(64), extraction_zh: groundedExtraction };
+  const bytes = Buffer.from('<main><div class="news-dt-body"><h3>Current project notice</h3><p>New primary article.</p></div><section>Official source evidence.</section></main>');
+  const store = fakeStore({ item: { id: 'item-source', item_key: work.item_key, attempts: 1, checkpoint: work.checkpoint } });
+  store.save = async () => ({ source: old, reused: true });
+  assert.equal((await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
+    sourceFetcher: async () => ({ bytes, contentType: 'text/html' }) })).status, 'succeeded');
+  assert.ok(store.calls.some(c => c[0] === 'enqueueJobItems' && c[3][0].item_key === `extract:${sourceId}`));
+  assert.equal(store.calls.find(c => c[0] === 'finishJobItem')[4].unchanged, false);
+  store.claimJobItem = async () => ({ id: 'extract-item', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } });
+  store.evidence = async () => ({ source: { ...old, content_type: 'text/html' }, bytes });
+  let calls = 0;
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' }, ...dependencies,
+    modelFactory: () => async () => { calls++; return { extraction: {}, provider: 'deepseek', model: 'fixture', usage: {} }; } });
+  assert.equal(result.status, 'succeeded');
+  assert.equal(calls, 1);
 });

@@ -751,3 +751,18 @@ test('analysis revision reads verify source ownership and scope the history quer
   assert.equal(revisions[0].extraction_zh.summary_zh, '旧分析');
   assert.equal(calls.length, 2);
 });
+
+test('reimport refreshes parsed metadata while preserving original identity and user notes', async () => {
+  const state = backend();
+  const first = await state.store.save(SOURCE, 'owner-a');
+  const saved = state.records.find(r => r.id === first.source.id);
+  saved.annotation_zh = '保留用户备注';
+  const refreshed = await state.store.save({ ...SOURCE, title: 'Specific article title', excerpt: 'Article body without sidebar.' }, 'owner-a');
+  assert.equal(refreshed.source.id, first.source.id);
+  assert.equal(refreshed.source.content_sha256, first.source.content_sha256);
+  assert.equal(refreshed.source.fetched_at, first.source.fetched_at);
+  assert.equal(refreshed.source.title, 'Specific article title');
+  assert.equal(refreshed.source.excerpt, 'Article body without sidebar.');
+  assert.equal(saved.annotation_zh, '保留用户备注');
+  assert.equal(state.records.length, 1);
+});
