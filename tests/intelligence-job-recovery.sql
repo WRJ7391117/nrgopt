@@ -70,6 +70,23 @@ begin
   if (select status from public.intelligence_job_runs where id = other_job) <> 'budget_paused' then
     raise exception 'budget pause not propagated';
   end if;
+  -- Deployment adds a registry after today's scan finished: reopen only for new work.
+  update public.intelligence_job_runs set status = 'partial' where id = new_job;
+  n := public.enqueue_intelligence_job_items(owner_a, new_job, '[{"item_key":"registry:test","checkpoint":{}}]');
+  if n <> 1 or (select status from public.intelligence_job_runs where id = new_job) <> 'running' then
+    raise exception 'new entry point stranded in completed run';
+  end if;
+  select * into claimed from public.claim_intelligence_job_item_v2(owner_a, new_job);
+  if claimed.item_key is distinct from 'registry:test' then raise exception 'new entry point not claimable'; end if;
+  perform public.finish_intelligence_job_item_v2(owner_a, claimed.id, 'succeeded', '{}', null, claimed.attempts);
+  n := public.enqueue_intelligence_job_items(owner_a, new_job, '[{"item_key":"registry:test","checkpoint":{}}]');
+  if n <> 0 or (select status from public.intelligence_job_runs where id = new_job) <> 'succeeded' then
+    raise exception 'duplicate entry point reopened completed run';
+  end if;
+  perform public.enqueue_intelligence_job_items(owner_b, other_job, '[{"item_key":"registry:paused","checkpoint":{}}]');
+  if (select status from public.intelligence_job_runs where id = other_job) <> 'budget_paused' then
+    raise exception 'new entry point unpaused budget';
+  end if;
   if has_function_privilege('anon', 'public.claim_intelligence_job_item_v2(uuid,uuid,integer)', 'execute')
     or has_function_privilege('authenticated', 'public.finish_intelligence_job_item_v2(uuid,uuid,text,jsonb,text,integer)', 'execute') then
     raise exception 'queue RPC exposed to browser roles';

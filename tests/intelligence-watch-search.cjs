@@ -85,7 +85,8 @@ test('repeated daily triggers keep the first watch plan despite changes in the c
     enqueueJobItems: async (_owner, _job, values) => { values.forEach(v => { if (!items.has(v.item_key)) items.set(v.item_key, v); }); } };
   await enqueueDailyScan({ store, owner: 'owner', now });
   await enqueueDailyScan({ store, owner: 'owner', now });
-  assert.equal(reads, 1); assert.equal(items.size, 2);
+  assert.equal(reads, 1);
+  assert.equal([...items.keys()].filter(key => key.startsWith('watchsearch:')).length, 2);
 });
 
 test('expired or terminal persisted plans finish without a search or a budget reservation', async () => {

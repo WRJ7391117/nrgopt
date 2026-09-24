@@ -40,8 +40,10 @@ test('daily schedule uses the configured timezone and stable six-country item ke
   const store = fakeStore();
   const result = await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-22T00:00:00Z') });
   assert.equal(result.jobId, 'job-1');
-  assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey,
-    [...COUNTRIES.map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]]);
+  assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey, []]);
+  assert.deepEqual(store.calls[1], ['enqueueJobItems', 'owner-a', 'job-1',
+    [...COUNTRIES.map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]
+      .map(item_key => ({ item_key, checkpoint: {} }))]);
 });
 
 test('the server derives a bounded call reservation from each service monthly limit', () => {
@@ -323,7 +325,7 @@ test('daily scan revisits active watched URLs with the same deduplicated source 
   const store = fakeStore();
   store.watchedSources = async () => [{ url: 'https://official.example/watch' }, { url: 'https://official.example/watch#fragment' }];
   await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-24T00:00:00Z') });
-  const items = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  const items = store.calls.find(call => call[0] === 'enqueueJobItems' && call[3][0]?.checkpoint.watch)[3];
   assert.equal(items.length, 1);
   assert.equal(items[0].item_key, sourceItem({ url: 'https://official.example/watch' }, null).item_key);
   assert.deepEqual(items[0].checkpoint, { url: 'https://official.example/watch', watch: true });
