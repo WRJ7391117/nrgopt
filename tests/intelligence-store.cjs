@@ -674,6 +674,64 @@ test('source persistence retains explicit publication evidence and overview expo
   assert.equal(candidates[0].source_timing.fetched_at, source.fetched_at);
 });
 
+test('overview keeps the newest saved URL analysis even when an older version was reanalysed later', async () => {
+  const state = backend();
+  const add = (id, url, fetchedAt, disposition = 'candidate', owner = 'owner-a') => {
+    state.records.push({ id, owner_id: owner, final_url: url, fetched_at: fetchedAt });
+    state.candidates.push({ id: `candidate-${id}`, source_id: id, owner_id: owner, disposition,
+      title_zh: '相同标题不代表相同采购包', updated_at: id === 'old' ? '2026-09-25T00:00:00Z' : fetchedAt });
+  };
+  add('old', 'https://publisher.example/tender?id=1', '2026-09-22T00:00:00Z');
+  add('new', 'https://publisher.example/tender?id=1', '2026-09-24T00:00:00Z', 'source_only');
+  add('other-package', 'https://publisher.example/tender?id=2', '2026-09-23T00:00:00Z');
+  add('other-owner', 'https://publisher.example/tender?id=1', '2026-09-26T00:00:00Z', 'candidate', 'owner-b');
+  const before = JSON.stringify({ records: state.records, candidates: state.candidates });
+  const listed = await state.store.candidates('owner-a');
+  assert.deepEqual(listed.map(item => [item.source_id, item.disposition]), [['new', 'source_only'], ['other-package', 'candidate']]);
+  assert.equal(JSON.stringify({ records: state.records, candidates: state.candidates }), before);
+  assert.equal((await state.store.candidateBySource('old', 'owner-a')).source_id, 'old', 'old detail remains accessible');
+  assert.ok(state.calls.every(call => call.method === 'GET'));
+});
+
+test('overview groups only supported equal scopes and retains partial scopes, conflicts and review decisions', async () => {
+  const state = backend();
+  for (const id of ['portfolio', 'subset', 'equal']) {
+    state.records.push({ id, owner_id: 'owner-a', final_url: `https://${id}.example/news`, content_sha256: id });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', review_status: 'pending', evidence_status: 'checked' });
+  }
+  state.relations.push({ owner_id: 'owner-a', candidate_id: 'portfolio', related_candidate_id: 'subset', relation: 'supports', same_scope: false },
+    { owner_id: 'owner-a', candidate_id: 'portfolio', related_candidate_id: 'equal', relation: 'supports', same_scope: true });
+  state.candidates[0].radars = ['project']; state.candidates[0].occurrence_countries = ['SA'];
+  state.candidates[2].radars = ['demand', 'project']; state.candidates[2].occurrence_countries = ['SA', 'AE'];
+  const grouped = await state.store.candidates('owner-a');
+  assert.deepEqual(grouped.map(item => item.id), ['portfolio', 'subset']);
+  assert.deepEqual(grouped[0].radars, ['project', 'demand']);
+  assert.deepEqual(grouped[0].occurrence_countries, ['SA', 'AE']);
+  state.relations[1].same_scope = null;
+  assert.equal((await state.store.candidates('owner-a')).length, 3, 'legacy unverified scopes stay separate');
+  state.relations[1].same_scope = true;
+  state.relations[1].relation = 'conflicts';
+  assert.equal((await state.store.candidates('owner-a')).length, 3);
+  state.relations[1].relation = 'supports';
+  state.candidates[0].review_status = 'rejected';
+  assert.equal((await state.store.candidates('owner-a')).length, 3, 'rejected entry cannot hide an active one');
+});
+
+test('overview does not carry a superseded source conflict onto the current source version', async () => {
+  const state = backend();
+  for (const [id, url, date] of [['left', 'https://left.example/news', '2026-09-24'],
+    ['old', 'https://right.example/news', '2026-09-22'], ['new', 'https://right.example/news', '2026-09-24']]) {
+    state.records.push({ id, owner_id: 'owner-a', final_url: url, fetched_at: date, content_sha256: id });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', evidence_status: id === 'left' ? 'conflict' : 'sourced' });
+  }
+  state.relations.push({ owner_id: 'owner-a', candidate_id: 'left', related_candidate_id: 'old', relation: 'conflicts', same_scope: true });
+  const listed = await state.store.candidates('owner-a');
+  assert.deepEqual(listed.map(item => item.id), ['left', 'new']);
+  assert.equal(listed[0].evidence_status, 'sourced');
+  assert.deepEqual(listed[0].related_sources, []);
+  assert.equal(state.relations.length, 1, 'historical conflict is retained in storage');
+});
+
 test('reimporting identical evidence fills previously missing dates without changing first fetch time', async () => {
   const state = backend();
   const item = { ...SOURCE, finalUrl: 'https://spa.gov.sa/en/N2266456', excerpt: 'Riyadh, February 20, 2025, SPA -- Project.' };

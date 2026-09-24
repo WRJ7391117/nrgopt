@@ -272,14 +272,7 @@
     });
   }
   function renderOverview(candidates) {
-    var allCandidates = candidates.filter(function (item) { return item.disposition === 'candidate'; });
-    var seen = new Set();
-    var groupedCandidates = allCandidates.filter(function (candidate) {
-      if (seen.has(candidate.id)) return false;
-      seen.add(candidate.id);
-      (candidate.related_sources || []).forEach(function (link) { seen.add(link.related_candidate_id); });
-      return true;
-    });
+    var groupedCandidates = candidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
     ['trigger', 'demand', 'project'].forEach(function (radar) {
       byId('radar-' + radar + '-count').textContent = active.filter(function (item) { return (item.radars || []).includes(radar); }).length;
@@ -333,7 +326,7 @@
       (candidate.related_sources || []).forEach(function (related, index) {
         var relatedLink = document.createElement('a');
         relatedLink.className = 'intel-evidence-link';
-        relatedLink.textContent = (related.relation === 'conflicts' ? '查看冲突来源 ' : '查看独立来源 ') + (index + 2) + ' →';
+        relatedLink.textContent = (related.relation === 'conflicts' ? '查看冲突来源 ' : '查看关联来源 ') + (index + 2) + ' →';
         setSourceLink(relatedLink, related.source_id);
         item.append(relatedLink);
       });
@@ -446,14 +439,10 @@
       var result = results[0];
       renderOverview(result.candidates);
       renderOperations(results[1]);
-      var candidateIds = new Set();
       var visibleCount = result.candidates.filter(function (item) {
-        if (item.disposition !== 'candidate' || candidateIds.has(item.id)) return false;
-        candidateIds.add(item.id);
-        (item.related_sources || []).forEach(function (link) { candidateIds.add(link.related_candidate_id); });
-        return true;
+        return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
-      status('page-status', '候选 ' + visibleCount + ' 条；仅保留来源 ' + result.candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条。');
+      status('page-status', '有效候选 ' + visibleCount + ' 条；仅保留来源 ' + result.candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条。统计范围为最近100条分析记录，已合并同一网址版本及已核对的同范围候选。');
     } catch (error) { status('page-status', error.message, 'error'); }
   }
   async function loadSources() {
