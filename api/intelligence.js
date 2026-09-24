@@ -40,6 +40,8 @@ const messages = {
   discovery_balance_insufficient: '来源发现服务商返回余额不足，已暂停调用。请核对所用密钥、套餐权限和接口配置；这不是系统估算的费用。',
   discovery_plan_unavailable: '来源发现服务商返回套餐额度或权限不足，已暂停调用。请核对 Coding Plan 的搜索权限和剩余额度。',
   discovery_no_primary_sources: '搜索已完成，但本次没有找到符合官方来源要求的页面。',
+  provider_call_not_started: '配置已变化或该调用已启动，未重复调用；请刷新配置后重试。',
+  provider_call_record_pending: '调用完成状态未保存，请先核查调用记录，避免重复扣费。',
   provider_config_not_configured: '网页配置加密尚未启用。', provider_api_key_required: '首次保存此配置时必须填写 API Key。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
   billing_sync_not_configured: '该服务尚未配置可核对的账单来源，未发起模型请求。', billing_sync_unavailable: '暂时无法读取服务商账单，未发起模型请求。',
@@ -75,7 +77,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
       const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -230,6 +232,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'operations') return res.status(200).json({ ...(await store.operations(user.id)),
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes });
+      if (action === 'provider-history') return res.status(200).json(await store.providerHistory(user.id));
       if (action === 'provider-settings') return res.status(200).json({
         profiles: publicProviderSettings(env, await store.providerConfigs(user.id)), writable: config.writes
       });
@@ -251,7 +254,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
           budgetKey: discoveryProvider.budgetKey, budgetLimitMicro: discoveryProvider.budgetLimitMicro,
-          billingMode: discoveryProvider.billingMode, readBalance: balanceReaderFactory(discoveryProvider),
+          profile: discoveryProvider, billingMode: discoveryProvider.billingMode, readBalance: balanceReaderFactory(discoveryProvider),
           providerMissingCode: 'discovery_not_configured', env,
           call: () => discoverCountry(body.country, discoveryProvider, discoveryFactory) });
         return res.status(200).json({ country: body.country, sources: discovery.sources });

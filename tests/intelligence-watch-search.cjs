@@ -16,6 +16,7 @@ function workStore(item) {
   const calls = [];
   const store = { sourcePaused: async () => false, calls, claimJobItem: async () => ({ id: 'work', job_run_id: 'job', attempts: 1, ...item }),
     hypothesis: async () => target(), providerConfigs: async () => [],
+    startProviderCall: async () => true, finishProviderCall: async () => true,
     reserveBudget: async (...args) => { calls.push(['reserve', ...args]); return 'reservation'; },
     releaseBudget: async () => true, syncProviderBalance: async () => true,
     enqueueJobItems: async (...args) => { calls.push(['enqueue', ...args]); return args[2].length; },

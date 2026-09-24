@@ -46,12 +46,14 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
     candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    providerHistory: async () => ({ versions: [], calls: [] }),
     providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
+    startProviderCall: async () => true, finishProviderCall: async () => true,
     reserveBudget: async () => '44444444-4444-4444-8444-444444444444', settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
     claimArchive: async () => null, archiveJob: async () => null, completeArchive: async () => true, failArchive: async () => true,
@@ -84,7 +86,7 @@ test('private pages redirect, data and evidence deny unauthenticated access befo
     assert.match(response.headers.location, /^\/intelligence\/login\?returnTo=/);
     assert.equal(response.body, undefined);
   }
-  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
+  for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
   assert.deepEqual(calls, []);
 });
 

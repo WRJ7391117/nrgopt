@@ -20,6 +20,7 @@ function setup() {
   const hypothesis = { id: hypothesisId, status: 'open', claim_zh: '该采购可能推进。', candidate: { source_id: original.id } };
   const store = { hypothesis: async () => hypothesis, hypothesisAssessment: async () => null,
     evidence: async id => { const s = id === sourceId ? current : original; return { source: s, bytes: Buffer.from(s.extraction_zh.known_facts[0].evidence_quote) }; },
+    startProviderCall: async () => true, finishProviderCall: async () => true,
     providerConfigs: async () => [], reserveBudget: async (...args) => { calls.push(['reserve', ...args]); return 'reservation'; },
     syncProviderBalance: async () => true, releaseBudget: async () => true,
     saveHypothesisAssessment: async (...args) => { calls.push(['save', ...args]); return 'assessment'; } };

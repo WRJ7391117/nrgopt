@@ -352,7 +352,7 @@ test('operations exposes recent owner-scoped jobs, item checkpoints and budget s
 
 test('provider configuration is owner-scoped and stored only through the service role', async () => {
   const state = backend();
-  const record = { owner_id: 'owner-a', capability: 'discovery', provider: 'custom-search',
+  const record = { config_version_id: null, owner_id: 'owner-a', capability: 'discovery', provider: 'custom-search',
     endpoint: 'https://search.example/v1/messages', model: 'search-v2', currency: 'USD', billing_mode: 'balance', budget_limit_micro: 1000,
     budget_reserved_micro: 0, budget_spent_micro: 0, budget_period_start: '2026-09-01', budget_period_end: '2026-09-30',
     budget_enabled: true, provider_balance_anchor_micro: null, provider_balance_anchor_spent_micro: null,

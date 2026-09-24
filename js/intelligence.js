@@ -470,7 +470,33 @@
     keyState.dataset.state = profile.key_configured ? 'checked' : 'unverified';
     form.querySelector('button[type="submit"]').disabled = !writable;
   }
+  async function loadProviderHistory() {
+    try {
+      var result = await api('provider-history');
+      var versions = byId('provider-versions'), calls = byId('provider-calls');
+      versions.replaceChildren(); calls.replaceChildren();
+      result.versions.forEach(function (version) {
+        var li = document.createElement('li');
+        li.textContent = new Date(version.created_at).toLocaleString('zh-CN') + ' · ' + (version.capability === 'discovery' ? '来源发现' : '情报分析') +
+          ' · ' + version.provider + ' / ' + version.model + ' · 月上限 ' + version.currency + ' ' + moneyInput(version.budget_limit_micro) +
+          ' · ' + (version.billing_mode === 'included' ? '已购套餐' : '官方余额对账') + ' · 版本 ' + version.id + (version.key_changed ? ' · 密钥有更新（不展示）' : '');
+        versions.append(li);
+      });
+      result.calls.forEach(function (call) {
+        var li = document.createElement('li');
+        var states = { started: '已开始，尚无完成回执', succeeded: '调用成功', failed: '调用失败' };
+        var operations = { discovery: '来源发现', extraction: '原文分析', cross_check: '证据核对' };
+        li.textContent = new Date(call.call_started_at).toLocaleString('zh-CN') + ' · ' + operations[call.operation] +
+          ' · ' + call.provider + ' / ' + call.model + ' · ' + states[call.call_status] + ' · 版本 ' + call.config_version_id +
+          (call.usage ? ' · 服务商返回的 token 用量：' + JSON.stringify(call.usage) : ' · 服务商未返回 token 用量') +
+          (call.call_error_code ? ' · 错误：' + call.call_error_code : '');
+        calls.append(li);
+      });
+      status('provider-history-status', result.calls.length ? '调用记录已读取。' : '尚无带配置版本的调用记录。');
+    } catch (error) { status('provider-history-status', error.message, 'error'); }
+  }
   async function loadProviderSettings() {
+    loadProviderHistory();
     try {
       var result = await api('provider-settings');
       result.profiles.forEach(function (profile) { fillProviderForm(profile, result.writable); });
@@ -710,6 +736,7 @@
       try {
         var result = await api('save-provider-settings', payload);
         fillProviderForm(result.profile, true);
+        loadProviderHistory();
         status(capability + '-settings-status', '配置已保存，下一次调用将使用新配置。', 'success');
       } catch (error) { status(capability + '-settings-status', error.message, 'error'); }
       finally { button.disabled = false; }

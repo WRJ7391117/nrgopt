@@ -17,6 +17,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     sourcePaused: async () => false,
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
+    startProviderCall: async () => true, finishProviderCall: async () => true,
     reserveBudget: async () => reservationId, settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
     save: async () => ({ source, reused: false }), recordFailure: async () => {}, evidence: async () => ({ source, bytes: Buffer.from('Official source evidence.') }),
