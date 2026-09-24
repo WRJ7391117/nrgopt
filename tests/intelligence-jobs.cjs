@@ -254,3 +254,16 @@ test('cross-check work uses saved evidence and does not repeat a persisted relat
   assert.equal((await runDailyJobItem(options)).status, 'succeeded');
   assert.equal(checked, 1);
 });
+
+test('provider HTTP 402 pauses discovery instead of scheduling repeated balance failures', async () => {
+  const store = fakeStore();
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1',
+    env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000', NRGOPT_DISCOVERY_BILLING_MODE: 'included' }, ...dependencies,
+    discover: async () => { throw Object.assign(new Error('insufficient balance (1008)'), { code: 'discovery_balance_insufficient' }); } });
+  assert.equal(result.status, 'budget_paused');
+  const finish = store.calls.find(call => call[0] === 'finishJobItem');
+  assert.equal(finish[3], 'budget_paused');
+  assert.equal(finish[5], 'discovery_balance_insufficient');
+  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
+});

@@ -49,6 +49,7 @@ test('discovery provider fails closed for missing keys, auth errors and malforme
   await assert.rejects(createMiniMaxDiscoverer({})({ query: 'test' }), { code: 'discovery_not_configured', status: 503 });
   await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', endpoint: null })({ query: 'test' }), { code: 'discovery_not_configured', status: 503 });
   await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => new Response('', { status: 401 }) })({ query: 'test' }), { code: 'discovery_auth_failed' });
+  await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => new Response('private response', { status: 402 }) })({ query: 'test' }), { code: 'discovery_balance_insufficient', status: 402 });
   await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => new Response(JSON.stringify({ content: [] }), { status: 200 }) })({ query: 'test' }), { code: 'discovery_unavailable' });
   assert.equal(validResult({ type: 'web_search_result', url: 'https://user:secret@example.com' }), null);
 });

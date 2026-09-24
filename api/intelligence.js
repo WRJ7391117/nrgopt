@@ -35,6 +35,7 @@ const messages = {
   extraction_invalid_response: '模型没有返回可解析的正文，未保存本次结果。',
   extraction_invalid_json: '模型返回内容不是有效 JSON，未保存本次结果。',
   discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
+  discovery_balance_insufficient: '来源发现服务商返回余额不足，已暂停调用。请核对所用密钥、套餐权限和接口配置；这不是系统估算的费用。',
   provider_config_not_configured: '网页配置加密尚未启用。', provider_api_key_required: '首次保存此配置时必须填写 API Key。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
   billing_sync_not_configured: '该服务尚未配置可核对的账单来源，未发起模型请求。', billing_sync_unavailable: '暂时无法读取服务商账单，未发起模型请求。',
