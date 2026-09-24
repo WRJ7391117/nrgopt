@@ -4,7 +4,7 @@ const { createHash, randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { archiveConfig, runArchivePull } = require('../lib/intelligence/archive-client.cjs');
+const { archiveConfig, runArchivePull, verifyArchive } = require('../lib/intelligence/archive-client.cjs');
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -33,6 +33,14 @@ test('archive pull verifies bytes, writes object and manifest, then acknowledges
     assert.equal(manifest.source_id, job.source_id);
     assert.equal(manifest.files[0].content_sha256, hash);
     assert.equal(calls.filter(call => call.url.searchParams.get('action') === 'archive-ack').length, 1);
+    assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
+    await fs.writeFile(path.join(sourceDir, `${hash}.txt`), Buffer.alloc(bytes.length));
+    assert.equal((await verifyArchive(directory)).failures[0].code, 'hash_mismatch');
+    await fs.unlink(path.join(sourceDir, `${hash}.txt`));
+    assert.equal((await verifyArchive(directory)).failures[0].code, 'archive_object_missing');
+    manifest.files[0].name = '../../outside.txt';
+    await fs.writeFile(path.join(sourceDir, `${hash}.manifest.json`), JSON.stringify(manifest));
+    assert.equal((await verifyArchive(directory)).failures[0].code, 'archive_manifest_invalid');
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 
@@ -62,4 +70,36 @@ test('archive configuration accepts HTTPS or loopback only and requires an absol
     NRGOPT_ARCHIVE_NODE_ID: 'mac-mini', NRGOPT_ARCHIVE_DIR: '/tmp/archive' }).baseUrl, 'http://127.0.0.1:4317');
   assert.throws(() => archiveConfig({ NRGOPT_ARCHIVE_BASE_URL: 'http://remote.example', NRGOPT_ARCHIVE_TOKEN: 'secret',
     NRGOPT_ARCHIVE_NODE_ID: 'mac-mini', NRGOPT_ARCHIVE_DIR: 'relative' }), { code: 'invalid_archive_config' });
+});
+
+test('interrupted acknowledgement resumes from intact files without duplicating the object', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-resume-'));
+  const bytes = Buffer.from('saved before connection loss');
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  const job = { id: randomUUID(), source_id: randomUUID(), byte_size: bytes.length, content_sha256: hash,
+    content_type: 'text/plain', download_url: '/api/intelligence?action=archive-object' };
+  let disconnected = true;
+  let acknowledgements = 0;
+  const fetchImpl = async input => {
+    const action = new URL(input).searchParams.get('action');
+    if (action === 'archive-claim') return json({ job });
+    if (action === 'archive-object') return new Response(bytes);
+    if (action === 'archive-ack') {
+      if (disconnected) throw new Error('simulated transport interruption');
+      acknowledgements++;
+      return json({ ok: true });
+    }
+    if (action === 'archive-fail') throw new Error('offline');
+    throw new Error('unexpected request');
+  };
+  const options = { baseUrl: 'https://archive.example', token: 'fixture', nodeId: 'test', directory, fetchImpl, maxItems: 1 };
+  try {
+    await assert.rejects(runArchivePull(options), { code: 'archive_request_failed' });
+    assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
+    disconnected = false;
+    assert.deepEqual(await runArchivePull(options), { archived: 1 });
+    assert.equal(acknowledgements, 1);
+    assert.equal((await fs.readdir(path.join(directory, job.source_id))).length, 2);
+    assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
