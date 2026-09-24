@@ -57,6 +57,18 @@ function backend() {
       if (source) source.archive_status = 'queued';
       return json(job.id);
     }
+    if (url.pathname === '/rest/v1/rpc/sync_intelligence_tracking') {
+      const input = JSON.parse(init.body);
+      for (const h of input.p_hypotheses) {
+        if (!state.hypotheses.some(old => old.candidate_id === input.p_candidate_id && old.claim_zh === h.hypothesis_zh))
+          state.hypotheses.push({ candidate_id: input.p_candidate_id, owner_id: input.p_owner_id, claim_zh: h.hypothesis_zh, status: 'open' });
+      }
+      for (const signal of input.p_signals) {
+        if (!state.watches.some(old => old.candidate_id === input.p_candidate_id && old.signal_zh === signal))
+          state.watches.push({ candidate_id: input.p_candidate_id, owner_id: input.p_owner_id, signal_zh: signal, status: 'active' });
+      }
+      return json(true);
+    }
     if (url.pathname === '/rest/v1/intelligence_sources') {
       if (method === 'POST') {
         const record = JSON.parse(init.body);
@@ -177,6 +189,11 @@ function backend() {
     }
     if (['/rest/v1/intelligence_hypotheses', '/rest/v1/intelligence_watch_targets'].includes(url.pathname)) {
       const collection = url.pathname.endsWith('hypotheses') ? state.hypotheses : state.watches;
+      if (method === 'GET') {
+        const owner = url.searchParams.get('owner_id')?.slice(3);
+        const candidate = url.searchParams.get('candidate_id')?.slice(3);
+        return json(collection.filter(row => row.owner_id === owner && row.candidate_id === candidate));
+      }
       if (method === 'DELETE') {
         const owner = url.searchParams.get('owner_id')?.slice(3);
         const candidate = url.searchParams.get('candidate_id')?.slice(3);
@@ -486,6 +503,17 @@ test('G2 candidate persists evidence-linked radar, project and procurement recor
     [{ candidate_id: candidate.id, country_code: 'SA', canonical_name: '示例项目' }]);
   assert.deepEqual(state.procurements.map(item => ({ project_id: item.project_id, package_name_zh: item.package_name_zh, stage_zh: item.stage_zh })),
     [{ project_id: state.projects[0].id, package_name_zh: '示例项目资格预审', stage_zh: '资格预审' }]);
+  state.hypotheses[0].status = 'weakened';
+  state.watches[0].status = 'completed';
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.hypotheses.length, 1);
+  assert.equal(state.hypotheses[0].status, 'weakened');
+  assert.equal(state.watches.length, 1);
+  assert.equal(state.watches[0].status, 'completed');
+  assert.ok(!state.calls.some(call => call.method === 'DELETE' && /hypotheses|watch_targets/.test(call.url.pathname)));
+  const detail = await state.store.candidateBySource(saved.source.id, 'owner-a');
+  assert.equal(detail.tracking.hypotheses[0].status, 'weakened');
+  assert.equal(detail.tracking.watches[0].status, 'completed');
   const listed = await state.store.candidates('owner-a');
   assert.equal(listed.length, 1);
   assert.equal(listed[0].title_zh, '沙特项目资格预审');

@@ -125,7 +125,11 @@
       if (classification.procurement) byId('extraction-procurement').textContent = classification.procurement.package_zh + (classification.procurement.stage_zh ? ' · ' + classification.procurement.stage_zh : '') + (classification.procurement.deadline_text ? ' · 截止：' + classification.procurement.deadline_text : '') + ' · 证据见事实 ' + classification.procurement.evidence_fact_number;
     }
     renderTextList('extraction-unknowns', extraction.unknowns_zh);
-    renderTextList('extraction-signals', extraction.next_signals_zh);
+    var tracking = candidate?.tracking;
+    var watchLabels = { active: '持续跟踪', completed: '已完成', expired: '已到期' };
+    renderTextList('extraction-signals', tracking ? tracking.watches.map(function (watch) {
+      return (watchLabels[watch.status] || watch.status) + '：' + watch.signal_zh;
+    }) : extraction.next_signals_zh);
     var facts = byId('extraction-facts');
     facts.replaceChildren();
     (extraction.known_facts || []).forEach(function (fact) {
@@ -139,9 +143,11 @@
     });
     var hypotheses = byId('extraction-hypotheses');
     hypotheses.replaceChildren();
-    (extraction.hypotheses || []).forEach(function (hypothesis) {
+    var hypothesisLabels = { open: '待验证', strengthened: '证据增强', weakened: '证据减弱', confirmed: '已证实', rejected: '已否定', dormant: '暂缓' };
+    (tracking ? tracking.hypotheses : extraction.hypotheses || []).forEach(function (hypothesis) {
       var item = document.createElement('li');
-      item.textContent = hypothesis.hypothesis_zh + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
+      item.textContent = (hypothesis.status ? (hypothesisLabels[hypothesis.status] || hypothesis.status) + '：' : '')
+        + (hypothesis.claim_zh || hypothesis.hypothesis_zh) + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
       hypotheses.append(item);
     });
     byId('extraction-hypotheses-section').hidden = !hypotheses.children.length;

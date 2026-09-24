@@ -9,7 +9,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   const calls = [];
   const source = { id: sourceId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/plain', content_sha256: 'a'.repeat(64) };
   const methods = {
-    enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
+    watchedSources: async () => [], enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
     reserveBudget: async () => reservationId, settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
@@ -310,4 +310,14 @@ test('provider plan limit pauses discovery instead of scheduling repeated balanc
   assert.equal(finish[5], 'discovery_plan_unavailable');
   assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
   assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
+});
+
+test('daily scan revisits active watched URLs with the same deduplicated source keys', async () => {
+  const store = fakeStore();
+  store.watchedSources = async () => [{ url: 'https://official.example/watch' }, { url: 'https://official.example/watch#fragment' }];
+  await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-24T00:00:00Z') });
+  const items = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  assert.equal(items.length, 1);
+  assert.equal(items[0].item_key, sourceItem({ url: 'https://official.example/watch' }, null).item_key);
+  assert.deepEqual(items[0].checkpoint, { url: 'https://official.example/watch', watch: true });
 });
