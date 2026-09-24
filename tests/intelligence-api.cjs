@@ -45,7 +45,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
-    candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
     providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
@@ -402,6 +402,7 @@ test('provider-neutral pages describe capabilities instead of fixed vendors', as
   assert.match(sources.body, /已配置的联网来源发现服务/);
   assert.match(sources.body, /已配置的情报分析服务/);
   assert.match(detail.body, /情报分析服务 · 单一来源分析/);
+  assert.match(detail.body, /id="business-history"/);
   assert.ok(!sources.body.includes('MiniMax'));
   assert.ok(!sources.body.includes('DeepSeek'));
   assert.ok(!detail.body.includes('DeepSeek'));

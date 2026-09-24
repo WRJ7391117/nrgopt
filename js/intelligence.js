@@ -579,6 +579,23 @@
       list.append(item);
     });
   }
+  function renderBusinessHistory(history) {
+    var list = byId('business-history'); list.replaceChildren();
+    var names = { unspecified: '范围未细分', development_rights: '开发权', ppa: '购电协议', epc: 'EPC 总包', construction_contract: '施工合同', equipment: '设备包', service: '服务包' };
+    var stages = { planned: '规划', open: '采购开放', shortlisted: '已入围', awarded: '已授标', signed: '已签约', construction: '建设中', delivered: '已交付', operating: '已投运', cancelled: '已取消' };
+    var seen = new Set();
+    history.forEach(function (item) {
+      var value = item.snapshot || {}, identity = item.procurement_id || item.project_id;
+      var current = !seen.has(identity); seen.add(identity);
+      var li = document.createElement('li'), details = document.createElement('details'), summary = document.createElement('summary');
+      summary.textContent = dateLabel(item.recorded_at) + ' · ' + (current ? '最近记录' : '历史记录') + ' · ' +
+        (item.procurement_id ? names[value.scope] + '：' + value.package_name_zh : '项目：' + value.canonical_name) + ' · ' +
+        (value.current_in_analysis ? (stages[value.stage_code] || value.stage_zh || '阶段未披露') : '本次分析未再次确认');
+      var quote = document.createElement('p'); quote.textContent = value.evidence_quote ? '记录对应原文：' + value.evidence_quote : '对应依据保存在本来源的事实和分析修订中。';
+      details.append(summary, quote); li.append(details); list.append(li);
+    });
+    byId('business-history-section').hidden = !history.length;
+  }
   function renderAnalysisRevisions(revisions) {
     var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
     var list = byId('analysis-revisions');
@@ -668,6 +685,7 @@
       renderSourceHistory(result.history || [], id);
       renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
+      renderBusinessHistory(result.business_history || []);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -835,6 +853,7 @@
         renderSourceHistory(result.history || [], match[1]);
         renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
+      renderBusinessHistory(result.business_history || []);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });

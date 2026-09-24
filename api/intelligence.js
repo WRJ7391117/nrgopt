@@ -210,7 +210,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id),
-        candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id) });
+        candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
       if (action === 'overview') return res.status(200).json({ candidates: await store.candidates(user.id) });
       if (action === 'source-controls') {
         const controls = await store.sourceControls(user.id);
@@ -263,7 +263,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         try {
           const result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
           return res.status(200).json({ source: result.source, candidate: await store.candidateBySource(req.query.id, user.id),
-            history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id) });
+            history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
         }
         catch (error) {
           const code = messages[error.code] ? error.code : 'model_unavailable';

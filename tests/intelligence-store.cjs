@@ -163,6 +163,11 @@ function backend() {
         state.projects = state.projects.filter(row => !removed.includes(row));
         return new Response(null, { status: 204 });
       }
+      if (method === 'PATCH') {
+        state.projects.filter(row => (!owner || row.owner_id === owner) && (!candidate || row.candidate_id === candidate)).forEach(row => Object.assign(row, JSON.parse(init.body)));
+        return new Response(null, { status: 204 });
+      }
+      if (method === 'GET') return json(state.projects.filter(row => (!owner || row.owner_id === owner) && (!candidate || row.candidate_id === candidate)));
       if (method === 'POST') {
         const record = JSON.parse(init.body);
         let current = state.projects.find(row => row.owner_id === record.owner_id && row.candidate_id === record.candidate_id);
@@ -181,9 +186,17 @@ function backend() {
         state.procurements = state.procurements.filter(row => !((!owner || row.owner_id === owner) && (!project || row.project_id === project)));
         return new Response(null, { status: 204 });
       }
+      if (method === 'GET') return json(state.procurements.filter(row => (!owner || row.owner_id === owner) && (!project || row.project_id === project)));
+      if (method === 'PATCH') {
+        const id = url.searchParams.get('id')?.slice(3);
+        state.procurements.filter(row => (!owner || row.owner_id === owner) && (!project || row.project_id === project) && (!id || row.id === id)).forEach(row => Object.assign(row, JSON.parse(init.body)));
+        return new Response(null, { status: 204 });
+      }
       if (method === 'POST') {
         const input = JSON.parse(init.body);
-        state.procurements.push({ id: `procurement-${state.procurements.length + 1}`, ...input });
+        const current = state.procurements.find(row => row.owner_id === input.owner_id && row.project_id === input.project_id && row.scope === input.scope && row.package_name_zh === input.package_name_zh);
+        if (current) Object.assign(current, input);
+        else state.procurements.push({ id: `procurement-${state.procurements.length + 1}`, ...input });
         return new Response(null, { status: 201 });
       }
     }
@@ -522,6 +535,34 @@ test('G2 candidate persists evidence-linked radar, project and procurement recor
   assert.equal(Object.hasOwn(listed[0], 'source_sha256'), false);
   assert.ok(state.calls.filter(call => call.url.pathname.includes('intelligence_candidates')).every(call =>
     call.method === 'POST' || call.url.searchParams.get('owner_id') === 'eq.owner-a'));
+  const originalPackageId = state.procurements[0].id;
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.procurements[0].id, originalPackageId);
+  extraction.known_facts = [{ evidence_quote: 'EPC signed. Equipment tender remains open.' }];
+  extraction.commercial_events = [
+    { object_zh: '独立包件', scope: 'epc', stage: 'signed', scope_text: 'EPC', stage_text: 'signed', evidence_fact_number: 1 },
+    { object_zh: '独立包件', scope: 'equipment', stage: 'open', scope_text: 'Equipment', stage_text: 'tender remains open', evidence_fact_number: 1 }
+  ];
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  const epc = state.procurements.find(item => item.scope === 'epc');
+  const equipment = state.procurements.find(item => item.scope === 'equipment');
+  assert.notEqual(epc.id, equipment.id);
+  assert.equal(epc.stage_code, 'signed'); assert.equal(equipment.stage_code, 'open');
+  assert.equal(state.procurements[0].current_in_analysis, true, 'separate procurement classification is retained alongside structured packages');
+  extraction.classification.procurement = null;
+  extraction.commercial_events = extraction.commercial_events.slice(0, 1);
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(equipment.current_in_analysis, false); assert.equal(equipment.stage_code, 'open');
+  assert.equal(state.procurements[0].current_in_analysis, false);
+  assert.equal(epc.current_in_analysis, true);
+  extraction.commercial_events.push({ ...extraction.commercial_events[0], stage: 'cancelled', stage_text: 'cancelled' });
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(epc.stage_code, null); assert.match(epc.stage_zh, /当前阶段未判定/);
+  extraction.classification.project = null;
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.projects[0].current_in_analysis, false);
+  assert.ok(state.procurements.every(item => !item.current_in_analysis));
+  assert.ok(!state.calls.some(call => call.method === 'DELETE' && /projects|procurements/.test(call.url.pathname)));
 });
 
 test('strict project peers are cross-linked and exposed as one independently supported candidate', async () => {
