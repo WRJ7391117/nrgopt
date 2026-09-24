@@ -41,3 +41,19 @@ test('multilingual pages retain ISO publication metadata without translating or 
     assert.equal(result.publication_date, '2024-02-29');
   }
 });
+
+test('observed publisher datelines exclude related articles and last-updated dates', () => {
+  const ewa = '<div class="__news_details_sec_head"><div class="__date_div">05 Jul 2026</div></div>'
+    + '<section class="__last-updated-main">22 September 2026</section><div class="news-date">01 Jul 2026</div>';
+  const result = parse(ewa, 'https://www.ewa.bh/en/announcement');
+  assert.equal(result.publication_date, '2026-07-05');
+  assert.equal(result.published_at, null);
+  assert.equal(result.publication_evidence, 'publisher_dateline: 05 Jul 2026');
+  assert.equal(parse(ewa, 'https://ewa.bh.evil.example/').publication_date, null);
+  const masdar = '<div class="news-listing details"><div class="actionables"><div class="date">23 SEP 2026</div></div></div>';
+  assert.equal(parse(masdar, 'https://masdar.ae/en/news/newsroom/report').publication_date, '2026-09-23');
+  assert.equal(parse(masdar.replace('23 SEP', '31 FEB'), 'https://masdar.ae/').publication_date, null);
+  const conflict = parse('<meta property="article:published_time" content="2026-07-06">' + ewa, 'https://ewa.bh/');
+  assert.equal(conflict.publication_date, null);
+  assert.equal(conflict.publication_method, 'conflicting_metadata');
+});
