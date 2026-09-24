@@ -6,11 +6,12 @@ create extension if not exists pg_net;
 
 create or replace function public.dispatch_intelligence_scan()
 returns bigint language plpgsql security definer set search_path = '' as $$
-declare v_owner uuid; v_origin text; v_secret text; v_today text;
+declare v_owner uuid; v_origin text; v_secret text; v_vercel_secret text; v_today text; v_headers jsonb;
 begin
   select decrypted_secret::uuid into v_owner from vault.decrypted_secrets where name = 'nrgopt_scan_owner';
   select decrypted_secret into v_origin from vault.decrypted_secrets where name = 'nrgopt_scan_origin';
   select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'nrgopt_scan_secret';
+  select decrypted_secret into v_vercel_secret from vault.decrypted_secrets where name = 'nrgopt_scan_vercel_secret';
   if v_owner is null or v_origin is null or v_secret is null then return null; end if;
   v_today := to_char(now() at time zone 'Asia/Shanghai', 'YYYY-MM-DD');
   if exists (select 1 from public.intelligence_job_runs where owner_id = v_owner
@@ -23,8 +24,23 @@ begin
     ) then return null; end if;
   if exists (select 1 from public.intelligence_job_items where owner_id = v_owner
       and status = 'running' and lease_until > now()) then return null; end if;
+  v_headers := jsonb_build_object('Authorization', 'Bearer ' || v_secret);
+  if v_vercel_secret is not null then
+    v_headers := v_headers || jsonb_build_object('x-vercel-protection-bypass', v_vercel_secret);
+  end if;
   return net.http_get(url := v_origin || '/api/intelligence?action=scheduled-scan',
-    headers := jsonb_build_object('Authorization', 'Bearer ' || v_secret), timeout_milliseconds := 250000);
+    headers := v_headers, timeout_milliseconds := 250000);
+end $$;
+
+create or replace function public.configure_intelligence_automation_access(p_secret text)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare v_id uuid;
+begin
+  if p_secret is null or length(p_secret) not between 16 and 512 then raise exception 'invalid_automation_secret'; end if;
+  select id into v_id from vault.secrets where name = 'nrgopt_scan_vercel_secret';
+  if v_id is null then perform vault.create_secret(p_secret, 'nrgopt_scan_vercel_secret');
+  else perform vault.update_secret(v_id, p_secret); end if;
+  return true;
 end $$;
 
 create or replace function public.configure_intelligence_scheduler(
@@ -52,4 +68,6 @@ end $$;
 revoke all on function public.dispatch_intelligence_scan() from public, anon, authenticated, service_role;
 revoke all on function public.configure_intelligence_scheduler(uuid,text,text,boolean) from public, anon, authenticated;
 grant execute on function public.configure_intelligence_scheduler(uuid,text,text,boolean) to service_role;
+revoke all on function public.configure_intelligence_automation_access(text) from public, anon, authenticated;
+grant execute on function public.configure_intelligence_automation_access(text) to service_role;
 commit;

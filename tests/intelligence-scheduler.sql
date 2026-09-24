@@ -13,8 +13,13 @@ begin
   if (select count(*) from vault.secrets where name like 'nrgopt_scan_%') <> 3 then
     raise exception 'secret configuration not idempotent';
   end if;
+  perform public.configure_intelligence_automation_access(repeat('v', 40));
+  perform public.configure_intelligence_automation_access(repeat('v', 40));
   v_request := public.dispatch_intelligence_scan();
   if v_request is null then raise exception 'missing daily scan not dispatched'; end if;
+  if (select headers->>'x-vercel-protection-bypass' from net.http_request_queue where id = v_request) <> repeat('v', 40) then
+    raise exception 'preview automation credential missing';
+  end if;
   v_run := public.enqueue_intelligence_job(v_owner, 'daily_scan', to_char(now() at time zone 'Asia/Shanghai', 'YYYY-MM-DD'), array['discover:SA']);
   update public.intelligence_job_items set status = 'succeeded' where job_run_id = v_run;
   update public.intelligence_job_runs set status = 'succeeded' where id = v_run;

@@ -290,7 +290,7 @@
     byId('candidate-empty').hidden = groupedCandidates.length !== 0;
   }
   function renderOperations(result) {
-    byId('scheduler-state').textContent = result.scheduler_enabled ? '已启用；每次触发最多消费一个国家任务' : '未启用；不会自动调用来源发现服务';
+    byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
     var symbols = { CNY: '¥', USD: '$' };
     var budgetNames = { discovery: '来源发现', analysis: '情报分析' };
     var budgets = (result.budgets || []).filter(function (budget) { return budget.enabled; });
@@ -321,8 +321,11 @@
       var detail = document.createElement('p');
       var children = result.items.filter(function (child) { return child.job_run_id === run.id; });
       detail.textContent = children.map(function (child) {
-        var code = child.item_key.split(':')[1];
-        return (countries[code] || code) + ' ' + (labels[child.status] || child.status) + (child.attempts ? '（尝试 ' + child.attempts + '）' : '') + (child.error_code ? '：' + child.error_code : '');
+        var parts = child.item_key.split(':');
+        var stage = parts[0] === 'discover' ? (countries[parts[1]] || '国家') + '来源发现'
+          : ({ source: '原文抓取', extract: '情报提取', cross: '跨来源核对' }[parts[0]] || '采集任务');
+        var errors = { discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
+        return stage + ' ' + (labels[child.status] || child.status) + (child.attempts ? '（尝试 ' + child.attempts + '）' : '') + (child.error_code ? '：' + (errors[child.error_code] || child.error_code) : '');
       }).join('；') || '任务明细尚未建立。';
       item.append(title, detail);
       list.append(item);
