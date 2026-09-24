@@ -350,7 +350,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   await request('overview');
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   const operations = await request('operations');
-  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], scheduler_enabled: false });
+  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
   assert.match(overviewPage.body, /三个雷达分别看什么/);
@@ -365,6 +365,20 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(page.body, /查看英文原文摘录/);
   assert.ok(!page.body.includes(source.title));
   assert.equal((await request('source', { sourceId: '../secret' })).code, 400);
+});
+
+test('archive readiness distinguishes missing credentials and read-only deployments without exposing the token', async () => {
+  for (const [extra, expected] of [
+    [{ NRGOPT_ARCHIVE_ENABLED: '1' }, 'missing_token'],
+    [{ NRGOPT_ARCHIVE_ENABLED: '1', NRGOPT_ARCHIVE_TOKEN: 'private-token', NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' }, 'read_only'],
+    [{ NRGOPT_ARCHIVE_ENABLED: '1', NRGOPT_ARCHIVE_TOKEN: 'private-token' }, 'enabled']
+  ]) {
+    const { request } = setup({ environment: { ...env, ...extra } });
+    const result = await request('operations');
+    assert.equal(result.body.archive_status, expected);
+    assert.equal(JSON.stringify(result.body).includes('private-token'), false);
+    assert.equal((await request('operations', { loggedIn: false })).code, 401);
+  }
 });
 
 test('imports stay disabled by default and in production without the release switch', async () => {

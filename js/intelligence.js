@@ -387,6 +387,10 @@
   }
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
+    var archiveStates = { disabled: '尚未启用云端归档入口，待归档原件继续保留在云端。',
+      missing_token: '归档凭据尚未配置，节点暂时无法连接。', read_only: '当前部署只读，不能领取或确认归档任务。',
+      enabled: '云端入口已启用；仍需归档节点实际拉取并校验，不代表原件已经完成归档。' };
+    byId('archive-state').textContent = archiveStates[result.archive_status] || '归档状态尚未确认。';
     var symbols = { CNY: '¥', USD: '$' };
     var budgetNames = { discovery: '来源发现', analysis: '情报分析' };
     var budgets = (result.budgets || []).filter(function (budget) { return budget.enabled; });

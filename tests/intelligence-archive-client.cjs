@@ -8,6 +8,17 @@ const { archiveConfig, runArchivePull, verifyArchive } = require('../lib/intelli
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 
+test('archive setup failures remain actionable without exposing server response details', async () => {
+  for (const code of ['archive_disabled', 'archive_unauthorized', 'writes_disabled']) {
+    await assert.rejects(runArchivePull({ baseUrl: 'https://archive.example', token: 'secret', nodeId: 'test', directory: '/unused',
+      fetchImpl: async () => json({ error: code, message: 'private server detail' }, 503) }), { code });
+  }
+  for (const response of [json({ error: 'private_token_value' }, 500), new Response('<html>deployment login</html>', { status: 401 })]) {
+    await assert.rejects(runArchivePull({ baseUrl: 'https://archive.example', token: 'secret', nodeId: 'test', directory: '/unused',
+      fetchImpl: async () => response }), { code: 'archive_request_failed' });
+  }
+});
+
 test('archive pull verifies bytes, writes object and manifest, then acknowledges once', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-'));
   const bytes = Buffer.from('official evidence');
