@@ -296,8 +296,14 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
       if (error.code === 'auth_required' && ['page', 'overview-page', 'settings-page', 'detail-page'].includes(action)) {
-        const target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
+        let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
           : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence';
+        if (action === 'overview-page') {
+          const params = new URLSearchParams();
+          if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(req.query.country)) params.set('country', req.query.country);
+          if (['trigger', 'demand', 'project'].includes(req.query.radar)) params.set('radar', req.query.radar);
+          if (params.size) target += '?' + params;
+        }
         res.setHeader('Location', `/intelligence/login?returnTo=${encodeURIComponent(target)}`);
         return res.status(303).end();
       }

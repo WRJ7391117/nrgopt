@@ -381,6 +381,14 @@ test('archive readiness distinguishes missing credentials and read-only deployme
   }
 });
 
+test('overview login keeps allowed filters and discards unknown redirect parameters', async () => {
+  const { request } = setup();
+  const result = await request('overview-page', { loggedIn: false, query: { country: 'QA', radar: 'demand', next: 'https://other.example' } });
+  assert.equal(new URL(result.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?country=QA&radar=demand');
+  const invalid = await request('overview-page', { loggedIn: false, query: { country: '//other.example', radar: 'unknown' } });
+  assert.equal(new URL(invalid.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
+});
+
 test('imports stay disabled by default and in production without the release switch', async () => {
   for (const environment of [{ ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' }, { ...env, VERCEL_ENV: 'production' }]) {
     let fetched = false;

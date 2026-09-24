@@ -26,10 +26,16 @@
     element.dataset.tone = tone || '';
   }
   function safeReturnTo(value) {
+    if (typeof value === 'string' && value.startsWith('/intelligence/overview?')) {
+      var params = new URLSearchParams(value.slice(value.indexOf('?') + 1)), retained = new URLSearchParams();
+      if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(params.get('country'))) retained.set('country', params.get('country'));
+      if (['trigger', 'demand', 'project'].includes(params.get('radar'))) retained.set('radar', params.get('radar'));
+      return '/intelligence/overview' + (retained.size ? '?' + retained : '');
+    }
     return value === '/intelligence' || value === '/intelligence/overview' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence';
   }
   function loginLocation() {
-    return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname));
+    return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (location.pathname === '/intelligence/overview' ? location.search : '')));
   }
   async function api(action, body, id) {
     var url = '/api/intelligence?action=' + action + (id ? '&id=' + encodeURIComponent(id) : '');
@@ -322,6 +328,7 @@
       list.append(item);
     });
   }
+  var overviewCandidates = [];
   function renderOverview(candidates) {
     var groupedCandidates = candidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
@@ -337,7 +344,14 @@
     });
     var list = byId('candidate-list');
     list.replaceChildren();
-    groupedCandidates.forEach(function (candidate) {
+    var filters = byId('candidate-filters');
+    var country = filters.elements.country.value, radar = filters.elements.radar.value;
+    var filtered = active.filter(function (item) {
+      return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
+    });
+    byId('candidate-filter-status').textContent = '当前筛选：' + filters.elements.country.selectedOptions[0].textContent + ' · ' +
+      filters.elements.radar.selectedOptions[0].textContent + '；显示 ' + filtered.length + ' 条有效候选。';
+    filtered.forEach(function (candidate) {
       var item = document.createElement('li');
       var row = document.createElement('div');
       row.className = 'intel-source-row';
@@ -383,7 +397,9 @@
       });
       list.append(item);
     });
-    byId('candidate-empty').hidden = groupedCandidates.length !== 0;
+    byId('candidate-empty').hidden = filtered.length !== 0;
+    byId('candidate-empty').textContent = country || radar ? '当前筛选没有匹配的候选；不代表当地没有市场变化。可返回六国全景查看其他内容。'
+      : '当前没有三雷达候选。宏观背景会保留在来源层，不会为填满页面自动创建项目。';
   }
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
@@ -531,6 +547,7 @@
     try {
       var results = await Promise.all([api('overview'), api('operations')]);
       var result = results[0];
+      overviewCandidates = result.candidates;
       renderOverview(result.candidates);
       renderOperations(results[1]);
       var visibleCount = result.candidates.filter(function (item) {
@@ -754,6 +771,30 @@
   var importForm = byId('import-form');
   var discoveryForm = byId('discovery-form');
   var overviewList = byId('candidate-list');
+  if (overviewList) {
+    var candidateFilters = byId('candidate-filters');
+    var filterParams = new URLSearchParams(location.search);
+    ['country', 'radar'].forEach(function (name) {
+      var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
+      if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
+    });
+    function applyCandidateFilters() {
+      var url = new URL(location.href);
+      ['country', 'radar'].forEach(function (name) {
+        var value = candidateFilters.elements[name].value;
+        if (value) url.searchParams.set(name, value); else url.searchParams.delete(name);
+      });
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+      renderOverview(overviewCandidates);
+    }
+    candidateFilters.addEventListener('change', applyCandidateFilters);
+    candidateFilters.addEventListener('submit', function (event) { event.preventDefault(); });
+    candidateFilters.addEventListener('reset', function (event) {
+      event.preventDefault();
+      candidateFilters.elements.country.value = ''; candidateFilters.elements.radar.value = '';
+      applyCandidateFilters();
+    });
+  }
   var providerForms = document.querySelectorAll('.intel-provider-form');
   var notificationForm = byId('notification-settings-form');
   if (notificationForm) {
