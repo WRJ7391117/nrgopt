@@ -155,7 +155,18 @@ test('MiniMax discovers official source links without requiring the user to know
   assert.equal(options.provider, 'minimax');
   assert.equal(options.model, 'coding-plan-search');
   assert.match(input.query, /Saudi Arabia/);
+  assert.match(input.query, /site:spa\.gov\.sa/);
+  assert.ok(!input.query.includes('Return original publications'));
   assert.equal((await request('discover', { method: 'POST', body: { country: 'US' } })).code, 400);
+});
+
+test('a successful search without official sources is distinct from a provider failure', async () => {
+  const { request } = setup({ discoveryFactory: () => async () => ({ results: [
+    { title: 'Secondary report', url: 'https://news.example/project' }
+  ] }) });
+  const response = await request('discover', { method: 'POST', body: { country: 'SA' } });
+  assert.equal(response.code, 502);
+  assert.equal(response.body.error, 'discovery_no_primary_sources');
 });
 
 test('paid manual calls stop before providers when budget is absent or exhausted', async () => {

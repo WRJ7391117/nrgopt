@@ -37,6 +37,7 @@ const messages = {
   discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
   discovery_balance_insufficient: '来源发现服务商返回余额不足，已暂停调用。请核对所用密钥、套餐权限和接口配置；这不是系统估算的费用。',
   discovery_plan_unavailable: '来源发现服务商返回套餐额度或权限不足，已暂停调用。请核对 Coding Plan 的搜索权限和剩余额度。',
+  discovery_no_primary_sources: '搜索已完成，但本次没有找到符合官方来源要求的页面。',
   provider_config_not_configured: '网页配置加密尚未启用。', provider_api_key_required: '首次保存此配置时必须填写 API Key。',
   budget_not_configured: '调用预算尚未配置，未发起模型请求。', budget_exhausted: '本期调用预算已用尽，未发起模型请求。',
   billing_sync_not_configured: '该服务尚未配置可核对的账单来源，未发起模型请求。', billing_sync_unavailable: '暂时无法读取服务商账单，未发起模型请求。',
@@ -60,12 +61,12 @@ function primarySource(url, country) {
   return primaryHosts[country].some(value => host === value || host.endsWith(`.${value}`));
 }
 function discoveryQuery(country) {
-  return `${countries[country]} latest renewable energy power grid storage hydrogen procurement tender award contract project announcement. Return original publications only from: ${primaryHosts[country].join(', ')}`;
+  return `${countries[country]} energy projects (${primaryHosts[country].map(host => `site:${host}`).join(' OR ')})`;
 }
 async function discoverCountry(country, profile, discoveryFactory) {
   const discovery = await discoveryFactory(profile)({ query: discoveryQuery(country) });
   const sources = discovery.results.filter(item => primarySource(item.url, country)).map(item => ({ ...item, source_level: 'primary' }));
-  if (!sources.length) throw failure('discovery_unavailable', 502);
+  if (!sources.length) throw failure('discovery_no_primary_sources', 502);
   return { ...discovery, results: undefined, sources };
 }
 const cookieName = env => (env.NRGOPT_APP_ORIGIN || '').startsWith('https://') ? '__Host-nrgopt_session' : 'nrgopt_session';

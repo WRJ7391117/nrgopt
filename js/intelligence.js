@@ -324,7 +324,7 @@
         var parts = child.item_key.split(':');
         var stage = parts[0] === 'discover' ? (countries[parts[1]] || '国家') + '来源发现'
           : ({ source: '原文抓取', extract: '情报提取', cross: '跨来源核对' }[parts[0]] || '采集任务');
-        var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
+        var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_no_primary_sources: '搜索完成，未找到符合要求的官方页面', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
         return stage + ' ' + (labels[child.status] || child.status) + (child.attempts ? '（尝试 ' + child.attempts + '）' : '') + (child.error_code ? '：' + (errors[child.error_code] || child.error_code) : '');
       }).join('；') || '任务明细尚未建立。';
       item.append(title, detail);
