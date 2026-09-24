@@ -193,7 +193,13 @@
       var item = document.createElement('li');
       item.textContent = (hypothesis.status ? (hypothesisLabels[hypothesis.status] || hypothesis.status) + '：' : '')
         + (hypothesis.claim_zh || hypothesis.hypothesis_zh) + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
-      if (hypothesis.created_at && ['open', 'strengthened', 'weakened'].includes(hypothesis.status)) {
+      if (hypothesis.current_in_analysis === false) {
+        var historyNote = document.createElement('p');
+        historyNote.className = 'intel-muted';
+        historyNote.textContent = '历史假设：本来源的最新分析未重申此命题，已停止主动验证。原状态与判断记录保留；不表示命题已被否定。';
+        item.append(historyNote);
+      }
+      if (hypothesis.current_in_analysis !== false && hypothesis.created_at && ['open', 'strengthened', 'weakened'].includes(hypothesis.status)) {
         var expires = hypothesis.review_due_at ? Date.parse(hypothesis.review_due_at) : Date.parse(hypothesis.created_at) + 90 * 86400000;
         var windowNote = document.createElement('p');
         windowNote.className = 'intel-muted';

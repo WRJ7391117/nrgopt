@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validateAssessment, createHypothesisEvaluator } = require('../lib/intelligence/hypotheses.cjs');
+const { validateAssessment, createHypothesisEvaluator, hypothesisInAnalysis } = require('../lib/intelligence/hypotheses.cjs');
 const { assessSavedHypothesis } = require('../lib/intelligence/pipeline.cjs');
 const { runDailyJobItem } = require('../lib/intelligence/jobs.cjs');
 
@@ -69,6 +69,18 @@ test('replays and terminal hypotheses do not call or charge the model', async ()
   }
 });
 
+test('historical hypotheses absent from current analysis retain history without paid reassessment', async () => {
+  const state = setup();
+  state.hypothesis.current_in_analysis = false;
+  assert.deepEqual(await assessSavedHypothesis(state.args), { skipped: 'not_in_current_analysis' });
+  assert.deepEqual(state.calls, []);
+  assert.equal(state.hypothesis.status, 'open');
+  const hypothesis = { claim_zh: '项目可能推进。', counter_evidence_zh: '明确取消。' };
+  assert.equal(hypothesisInAnalysis(hypothesis, { hypotheses: [{ hypothesis_zh: hypothesis.claim_zh, counter_evidence_zh: hypothesis.counter_evidence_zh }] }), true);
+  assert.equal(hypothesisInAnalysis(hypothesis, { hypotheses: [] }), false);
+  assert.equal(hypothesisInAnalysis(hypothesis, { hypotheses: [{ hypothesis_zh: hypothesis.claim_zh, counter_evidence_zh: '不同反证范围。' }] }), false);
+});
+
 test('same announcement with changed HTML or paraphrased analysis does not trigger paid reassessment', async () => {
   const state = setup();
   state.original.extraction_zh.known_facts = [{ ...fact, claim_zh: '同一事实的不同中文表述。' }];
@@ -113,8 +125,10 @@ test('target selection includes same-URL corrections, excludes unrelated project
     if (url.pathname.endsWith('intelligence_candidates')) body = peers;
     else if (url.pathname.endsWith('intelligence_sources')) body = peers.map(p => ({ id: p.id, content_sha256: p.id,
       final_url: p.id === 'unrelated' ? 'https://elsewhere.test/news' : newSource.final_url,
-      extraction_zh: { known_facts: p.id === 'same-facts' ? [fact] : [] } }));
-    else if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('candidate_id'), 'in.(correction)'); body = [{ id: hypothesisId }]; }
+      extraction_zh: { known_facts: p.id === 'same-facts' ? [fact] : [], hypotheses: [{ hypothesis_zh: '当前命题' }] } }));
+    else if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('candidate_id'), 'in.(correction)'); body = [
+      { id: hypothesisId, candidate_id: 'correction', claim_zh: '当前命题' },
+      { id: 'historical', candidate_id: 'correction', claim_zh: '旧命题' }]; }
     else throw new Error('unexpected request');
     assert.equal(url.searchParams.get('owner_id'), 'eq.owner');
     return new Response(JSON.stringify(body));

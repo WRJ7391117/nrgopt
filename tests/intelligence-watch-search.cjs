@@ -44,6 +44,7 @@ test('search plan pairs support and counterevidence, caps 10 fixed slots and rot
 
 test('closed, expired, malformed and no-country targets do not enter paid search planning', () => {
   for (const h of [{ ...target(), status: 'rejected' }, { ...target(), created_at: '2026-01-01T00:00:00Z' },
+    { ...target(), current_in_analysis: false },
     { ...target(), created_at: 'invalid' }, { ...target(), candidate: { ...target().candidate, occurrence_countries: [] } }]) {
     assert.deepEqual(watchSearchPlan([h], '2026-09-24'), []);
   }
@@ -160,7 +161,7 @@ test('watch target reads are owner-scoped and exclude inactive watches and unsav
     if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('status'), 'in.(open,strengthened,weakened)'); assert.ok(url.searchParams.get('review_due_at').startsWith('gt.')); data = [{ ...h, candidate_id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_candidates')) { assert.equal(url.searchParams.get('disposition'), 'eq.candidate'); data = [{ ...h.candidate, id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_watch_targets')) { assert.equal(url.searchParams.get('status'), 'eq.active'); data = [{ candidate_id: 'candidate', signal_zh: '关注进展' }]; }
-    else { assert.equal(url.searchParams.get('status'), 'eq.pending_extraction'); data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Cedar solar project financing' }]; }
+    else { assert.equal(url.searchParams.get('status'), 'eq.pending_extraction'); data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Cedar solar project financing', extraction_zh: { hypotheses: [{ hypothesis_zh: h.claim_zh, counter_evidence_zh: h.counter_evidence_zh }] } }]; }
     return new Response(JSON.stringify(data));
   });
   const result = await store.watchSearchTargets('owner', now);
