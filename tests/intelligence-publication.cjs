@@ -47,6 +47,7 @@ test('observed publisher datelines exclude related articles and last-updated dat
     + '<section class="__last-updated-main">22 September 2026</section><div class="news-date">01 Jul 2026</div>';
   const result = parse(ewa, 'https://www.ewa.bh/en/announcement');
   assert.equal(result.publication_date, '2026-07-05');
+  assert.equal(result.publication_method, 'metadata');
   assert.equal(result.published_at, null);
   assert.equal(result.publication_evidence, 'publisher_dateline: 05 Jul 2026');
   assert.equal(parse(ewa, 'https://ewa.bh.evil.example/').publication_date, null);
@@ -63,6 +64,7 @@ test('QNA article date comes from its saved header attribute, not the URL or rel
   const related = '<aside><span id="news-date" data-utc-time-to-local="2026-09-25T09:00:00"></span></aside>';
   const result = parse(header + related, 'https://qna.org.qa/en/news/news-details?date=25/09/2026');
   assert.equal(result.publication_date, '2026-09-24');
+  assert.equal(result.publication_method, 'metadata');
   assert.equal(result.published_at, null);
   assert.equal(result.publication_evidence, 'publisher_dateline: 2026-09-24T10:10:47');
   assert.equal(parse(related, 'https://qna.org.qa/').publication_date, null);
