@@ -141,3 +141,15 @@ test('disk-full writes report failure without ACK, remove partial temp files and
     } finally { disk.mock.restore(); await fs.rm(directory, { recursive: true, force: true }); }
   }
 });
+
+test('encrypted backup rejects modified bytes and the wrong recovery key', () => {
+  const { encrypt, decrypt } = require('../scripts/intelligence-local-backup.cjs');
+  const key = Buffer.alloc(32, 7), original = Buffer.from('private original and auth data');
+  const encrypted = encrypt(original, key);
+  assert.deepEqual(decrypt(encrypted, key), original);
+  assert.throws(() => decrypt(encrypted, Buffer.alloc(32, 8)));
+  for (const index of [0, 12, encrypted.length - 1]) {
+    const tampered = Buffer.from(encrypted); tampered[index] ^= 1;
+    assert.throws(() => decrypt(tampered, key));
+  }
+});
