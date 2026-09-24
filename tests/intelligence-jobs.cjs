@@ -84,6 +84,37 @@ test('source item saves evidence idempotently and queues one extraction item', a
   assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[3], 'succeeded');
 });
 
+test('source failure keeps its safe cause and does not enqueue a model call', async () => {
+  const work = sourceItem({ url: 'https://official.example/a' }, 'OM');
+  const store = fakeStore({ item: { id: 'item-source', item_key: work.item_key, attempts: 3, checkpoint: work.checkpoint } });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
+    sourceFetcher: async () => { throw Object.assign(new Error('private TLS details'), { code: 'source_tls_error' }); } });
+  assert.equal(result.status, 'failed');
+  assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'source_tls_error');
+  assert.ok(!store.calls.some(call => ['reserveBudget', 'enqueueJobItems'].includes(call[0])));
+});
+
+test('saved empty shell stops before budget and model calls without repeated extraction', async () => {
+  const store = fakeStore({ item: { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
+  store.evidence = async () => ({ source: { id: sourceId, content_type: 'text/html' }, bytes: Buffer.from('<body><script>loadArticle()</script></body>') });
+  let modelCalled = false;
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
+    modelFactory: () => { modelCalled = true; throw new Error('must not call'); } });
+  assert.equal(result.status, 'failed');
+  assert.equal(modelCalled, false);
+  assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'source_empty_document');
+  assert.ok(!store.calls.some(call => ['reserveBudget', 'providerConfigs'].includes(call[0])));
+});
+
+test('discovery retries pass their bounded attempt to the query selector', async () => {
+  const store = fakeStore({ item: { id: 'item-1', item_key: 'discover:KW', attempts: 2, checkpoint: {} } });
+  let received;
+  await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', ...dependencies,
+    env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1200' },
+    discover: async (country, _profile, attempt) => { received = { country, attempt }; return { sources: [] }; } });
+  assert.deepEqual(received, { country: 'KW', attempt: 2 });
+});
+
 test('unchanged extracted source finishes without another DeepSeek task', async () => {
   const work = sourceItem({ url: 'https://official.example/a' }, 'SA');
   const unchanged = { id: sourceId, content_sha256: 'a'.repeat(64), extraction_status: 'extracted', extraction_source_sha256: 'a'.repeat(64) };

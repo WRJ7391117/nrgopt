@@ -18,6 +18,7 @@ const messages = {
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
     archive_queue_failed: '原件已保存，但归档任务登记失败；请重试保存这条来源。',
+  source_empty_document: '来源页面没有可读取的正文，未调用模型；请换用有正文的官方公告。',
   model_not_configured: '情报分析服务尚未配置。', model_auth_failed: '情报分析服务密钥无效或无权调用。', model_unavailable: '情报分析服务暂时不可用，请稍后重试。',
   extraction_invalid: '模型返回内容未通过证据校验，未保存本次结果。', discovery_not_configured: '来源发现服务尚未配置。',
   extraction_invalid_structure: '模型返回的整体结构不完整，未保存本次结果。',
@@ -52,7 +53,7 @@ const primaryHosts = {
   SA: ['gov.sa', 'spa.gov.sa', 'pif.gov.sa', 'acwapower.com', 'aramco.com', 'powersaudiarabia.com.sa', 'saudiexchange.sa'],
   AE: ['gov.ae', 'wam.ae', 'mediaoffice.abudhabi', 'ewec.ae', 'masdar.ae'],
   QA: ['gov.qa', 'qna.org.qa', 'qatarenergy.qa'],
-  KW: ['gov.kw', 'kuna.net.kw', 'kapp.gov.kw'],
+  KW: ['gov.kw', 'kuna.net.kw', 'kapp.gov.kw', 'acwapower.com'],
   OM: ['gov.om', 'omannews.gov.om', 'omanpwp.om'],
   BH: ['gov.bh', 'bna.bh', 'ewa.bh']
 };
@@ -60,11 +61,18 @@ function primarySource(url, country) {
   const host = new URL(url).hostname.toLowerCase();
   return primaryHosts[country].some(value => host === value || host.endsWith(`.${value}`));
 }
-function discoveryQuery(country) {
+function discoveryQuery(country, attempt = 1) {
+  // A retry uses a narrower first-party query instead of repeating the same failed search.
+  const retryHosts = {
+    SA: ['spa.gov.sa', 'acwapower.com'], AE: ['wam.ae', 'masdar.ae'],
+    QA: ['qna.org.qa', 'qatarenergy.qa'], KW: ['acwapower.com', 'kapp.gov.kw'],
+    OM: ['omanpwp.om', 'gov.om'], BH: ['ewa.bh', 'gov.bh']
+  };
+  if (attempt > 1) return `${countries[country]} energy projects site:${retryHosts[country][Math.min(attempt - 2, 1)]}`;
   return `${countries[country]} energy projects (${primaryHosts[country].map(host => `site:${host}`).join(' OR ')})`;
 }
-async function discoverCountry(country, profile, discoveryFactory) {
-  const discovery = await discoveryFactory(profile)({ query: discoveryQuery(country) });
+async function discoverCountry(country, profile, discoveryFactory, attempt = 1) {
+  const discovery = await discoveryFactory(profile)({ query: discoveryQuery(country, attempt) });
   const sources = discovery.results.filter(item => primarySource(item.url, country)).map(item => ({ ...item, source_level: 'primary' }));
   if (!sources.length) throw failure('discovery_no_primary_sources', 502);
   return { ...discovery, results: undefined, sources };
@@ -140,7 +148,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
         const result = await runDailyJobItem({ store, owner: config.adminId, env,
-          discover: (country, profile) => discoverCountry(country, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
+          discover: (country, profile, attempt) => discoverCountry(country, profile, discoveryFactory, attempt), sourceFetcher, modelFactory, crossCheckFactory,
           balanceReaderFactory });
         const job = await store.jobRun(config.adminId, result.jobId || scheduled.jobId);
         const scheduleKey = job.run.schedule_key || scheduled.scheduleKey;

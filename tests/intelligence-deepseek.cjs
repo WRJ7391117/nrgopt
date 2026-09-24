@@ -34,6 +34,23 @@ test('typographic quote differences resolve back to exact source characters', ()
   assert.equal(exactEvidenceQuote(source, 'The project award was announced.'), null);
 });
 
+test('evidence remains complete beyond 500 characters and rejects invented suffixes', () => {
+  const long = 'The project announcement states: ' + 'Official project details. '.repeat(25) + 'Capacity is 3010 MW.';
+  const extraction = structuredClone(valid);
+  extraction.known_facts[0].evidence_quote = long;
+  assert.equal(validateExtraction(extraction, long).known_facts[0].evidence_quote, long);
+  extraction.known_facts[0].evidence_quote += ' Invented claim.';
+  assert.throws(() => validateExtraction(extraction, long), { code: 'extraction_invalid_known_fact_quote' });
+  extraction.known_facts[0].evidence_quote = 'x'.repeat(2001);
+  assert.throws(() => validateExtraction(extraction, extraction.known_facts[0].evidence_quote), { code: 'extraction_invalid_known_fact_quote' });
+});
+
+test('Chinese and Arabic quotations retain exact offsets after supplementary characters', () => {
+  for (const quote of ['项目建设正式启动，容量尚未公布。', 'بدأ تنفيذ مشروع الطاقة ولم تعلن القدرة.']) {
+    assert.equal(exactEvidenceQuote('News 🌍 ' + quote, quote), quote);
+  }
+});
+
 test('GCC candidate requires an occurrence country and exact evidence for entities and project', () => {
   const candidate = structuredClone(valid);
   candidate.classification = {

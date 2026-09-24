@@ -124,8 +124,14 @@ async function main() {
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_too_large', status: 413 });
     responses = [{ headers: { 'content-type': 'text/html', 'content-encoding': 'gzip' } }];
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_unsupported_encoding' });
-    responses = [{ status: 403 }];
-    await assert.rejects(fetchSource('https://public.example/'), { code: 'source_http_error', status: 502 });
+    for (const [status, code] of [[403, 'source_access_denied'], [405, 'source_access_denied'], [404, 'source_not_found'], [429, 'source_rate_limited'], [503, 'source_http_error']]) {
+      responses = [{ status }];
+      await assert.rejects(fetchSource('https://public.example/'), { code, status: 502 });
+    }
+    responses = [{ error: Object.assign(new Error('certificate detail'), { code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' }) }];
+    await assert.rejects(fetchSource('https://public.example/'), { code: 'source_tls_error' });
+    responses = [{ bytes: Buffer.from('<title>Ministry</title><body><script>loadArticle()</script></body>') }];
+    await assert.rejects(fetchSource('https://public.example/'), { code: 'source_empty_document' });
     responses = [{ bytes: longDocument, headers: { 'content-type': 'Text/HTML; charset="UTF-8"' } }];
     const longSource = await fetchSource('https://public.example/long-report');
     assert.equal(longSource.contentType, 'text/html');

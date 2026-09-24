@@ -169,6 +169,23 @@ test('a successful search without official sources is distinct from a provider f
   assert.equal(response.body.error, 'discovery_no_primary_sources');
 });
 
+test('scheduled Kuwait retry searches the project developer and still rejects secondary reports', async () => {
+  let input;
+  const { request } = setup({ environment: { ...env, CRON_SECRET: 'cron-test-secret', NRGOPT_SCHEDULER_ENABLED: '1' },
+    overrides: {
+      claimJobItem: async () => ({ id: 'item-kw', job_run_id: 'job-1', item_key: 'discover:KW', attempts: 2, checkpoint: {} }),
+      jobRun: async () => ({ run: { status: 'running' }, items: [] })
+    }, discoveryFactory: () => async value => { input = value; return { results: [
+      { title: 'Developer announcement', url: 'https://www.acwapower.com/en/news/kuwait-project' },
+      { title: 'Unverified repost', url: 'https://acwapower.com.attacker.example/news' }
+    ] }; }
+  });
+  const result = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer cron-test-secret' } });
+  assert.equal(result.code, 200);
+  assert.equal(input.query, 'Kuwait energy projects site:acwapower.com');
+  assert.equal(result.body.result.resultCount, 1);
+});
+
 test('paid manual calls stop before providers when budget is absent or exhausted', async () => {
   for (const current of [
     { environment: { ...env, NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '' }, overrides: {}, code: 503, error: 'budget_not_configured' },
