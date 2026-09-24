@@ -816,6 +816,11 @@ test('reimporting identical evidence fills previously missing dates without chan
   assert.equal(state.objects.size, 1);
 });
 
+test('database check failures expose only a safe storage code, never the rejected row', async () => {
+  const store = createStore(CONFIG, async () => new Response(JSON.stringify({ code: '23514', message: 'private rejected row', details: 'private data' }), { status: 400 }));
+  await assert.rejects(store.save(SOURCE, 'owner-a'), { code: 'storage_constraint', message: 'storage_constraint', status: 502 });
+});
+
 test('version history is scoped to the owner and URL, exposing only hash-bound stage evidence', async () => {
   const versions = [
     { id: 'new', title: 'New', final_url: 'https://source.example/news', content_sha256: 'a'.repeat(64), extraction_source_sha256: 'a'.repeat(64),

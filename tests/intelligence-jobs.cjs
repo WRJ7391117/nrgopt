@@ -94,6 +94,16 @@ test('source item saves evidence idempotently and queues one extraction item', a
   assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[3], 'succeeded');
 });
 
+test('a database rejection during source saving is not labelled a website fetch failure', async () => {
+  const work = sourceItem({ url: 'https://official.example/a' }, 'BH');
+  const store = fakeStore({ item: { id: 'item-source', item_key: work.item_key, attempts: 3, checkpoint: work.checkpoint } });
+  store.save = async () => { throw Object.assign(new Error('private database message'), { code: 'storage_constraint' }); };
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies });
+  assert.equal(result.status, 'failed');
+  assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'storage_constraint');
+  assert.equal(store.calls.some(call => call[0] === 'enqueueJobItems'), false);
+});
+
 test('source failure keeps its safe cause and does not enqueue a model call', async () => {
   const work = sourceItem({ url: 'https://official.example/a' }, 'OM');
   const store = fakeStore({ item: { id: 'item-source', item_key: work.item_key, attempts: 3, checkpoint: work.checkpoint } });
