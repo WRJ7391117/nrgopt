@@ -267,3 +267,16 @@ test('provider HTTP 402 pauses discovery instead of scheduling repeated balance 
   assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
   assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
 });
+
+test('provider plan limit pauses discovery instead of scheduling repeated balance failures', async () => {
+  const store = fakeStore();
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1',
+    env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000', NRGOPT_DISCOVERY_BILLING_MODE: 'included' }, ...dependencies,
+    discover: async () => { throw Object.assign(new Error('plan quota exhausted'), { code: 'discovery_plan_unavailable' }); } });
+  assert.equal(result.status, 'budget_paused');
+  const finish = store.calls.find(call => call[0] === 'finishJobItem');
+  assert.equal(finish[3], 'budget_paused');
+  assert.equal(finish[5], 'discovery_plan_unavailable');
+  assert.ok(store.calls.some(call => call[0] === 'releaseBudget'));
+  assert.ok(!store.calls.some(call => call[0] === 'settleBudget'));
+});

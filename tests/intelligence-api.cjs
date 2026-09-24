@@ -153,7 +153,7 @@ test('MiniMax discovers official source links without requiring the user to know
   assert.equal(response.body.sources[0].source_level, 'primary');
   assert.equal(options.apiKey, 'test-minimax-key');
   assert.equal(options.provider, 'minimax');
-  assert.equal(options.model, 'MiniMax-M3');
+  assert.equal(options.model, 'coding-plan-search');
   assert.match(input.query, /Saudi Arabia/);
   assert.equal((await request('discover', { method: 'POST', body: { country: 'US' } })).code, 400);
 });

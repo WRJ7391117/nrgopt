@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createMiniMaxDiscoverer, validResult } = require('../lib/intelligence/minimax.cjs');
 
-test('MiniMax discovery returns only unique safe HTTPS source results', async () => {
+test('custom hosted search returns only unique safe HTTPS source results', async () => {
   let request;
   const fetchImpl = async (url, init) => {
     request = { url, ...init };
@@ -16,7 +16,7 @@ test('MiniMax discovery returns only unique safe HTTPS source results', async ()
       ] }
     ], usage: { input_tokens: 3200, output_tokens: 300, cache_read_input_tokens: 200 } }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
-  const discovery = await createMiniMaxDiscoverer({ apiKey: 'private-test-key', fetchImpl })({ query: 'official projects' });
+  const discovery = await createMiniMaxDiscoverer({ apiKey: 'private-test-key', endpoint: 'https://search.example/v1/messages', model: 'MiniMax-M3', fetchImpl })({ query: 'official projects' });
   assert.equal(discovery.results.length, 1);
   assert.equal(discovery.results[0].title, 'Official source');
   assert.equal(discovery.results[0].url, 'https://energy.example/news/1');
@@ -52,4 +52,40 @@ test('discovery provider fails closed for missing keys, auth errors and malforme
   await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => new Response('private response', { status: 402 }) })({ query: 'test' }), { code: 'discovery_balance_insufficient', status: 402 });
   await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => new Response(JSON.stringify({ content: [] }), { status: 200 }) })({ query: 'test' }), { code: 'discovery_unavailable' });
   assert.equal(validResult({ type: 'web_search_result', url: 'https://user:secret@example.com' }), null);
+});
+
+
+test('MiniMax Coding Plan uses the dedicated search API without a model call', async () => {
+  let request;
+  const result = await createMiniMaxDiscoverer({ apiKey: 'private-test-key', fetchImpl: async (url, init) => {
+    request = { url, ...init };
+    return Response.json({ base_resp: { status_code: 0 }, organic: [
+      { title: ' Official award ', link: 'https://energy.example/award', snippet: 'Evidence snippet', date: '2026-09-24' },
+      { link: 'https://energy.example/award' }, { link: 'http://energy.example/unsafe' },
+      { link: 'https://user:secret@energy.example/unsafe' }, null
+    ] });
+  } })({ query: 'official energy projects' });
+  assert.equal(request.url, 'https://api.minimaxi.com/v1/coding_plan/search');
+  assert.equal(request.headers.Authorization, 'Bearer private-test-key');
+  assert.equal(request.headers['x-api-key'], undefined);
+  assert.deepEqual(JSON.parse(request.body), { q: 'official energy projects' });
+  assert.equal(result.model, 'coding-plan-search');
+  assert.equal(result.search_count, 1);
+  assert.equal(result.usage, null);
+  assert.deepEqual(result.results, [{ title: 'Official award', url: 'https://energy.example/award',
+    excerpt: 'Evidence snippet', published_text: '2026-09-24' }]);
+});
+
+test('Coding Plan honors HTTP 200 business errors and distinguishes empty search from malformed data', async () => {
+  for (const [status_code, code] of [[1008, 'discovery_balance_insufficient'], [1028, 'discovery_plan_unavailable'],
+    [1030, 'discovery_plan_unavailable'], [2061, 'discovery_plan_unavailable'], [9999, 'discovery_unavailable']]) {
+    await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () =>
+      Response.json({ base_resp: { status_code, status_msg: 'private diagnostic' }, organic: [] }) })({ query: 'test' }), { code });
+  }
+  for (const payload of [null, {}, { organic: {} }]) {
+    await assert.rejects(createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => Response.json(payload) })({ query: 'test' }),
+      { code: 'discovery_unavailable' });
+  }
+  const empty = await createMiniMaxDiscoverer({ apiKey: 'key', fetchImpl: async () => Response.json({ organic: [] }) })({ query: 'test' });
+  assert.deepEqual(empty.results, []);
 });
