@@ -68,7 +68,7 @@ function backend() {
       }
       const matches = state.records.filter(row => ['id', 'owner_id', 'final_url', 'content_sha256', 'status'].every(key => {
         const condition = url.searchParams.get(key);
-        return !condition || (condition.startsWith('neq.') ? row[key] !== condition.slice(4) : condition === `eq.${row[key]}`);
+        return !condition || (condition.startsWith('in.(') ? condition.slice(4, -1).split(',').includes(row[key]) : condition.startsWith('neq.') ? row[key] !== condition.slice(4) : condition === `eq.${row[key]}`);
       }));
       if (method === 'PATCH') {
         matches.forEach(row => Object.assign(row, JSON.parse(init.body)));
@@ -93,7 +93,7 @@ function backend() {
       }
       const matches = state.candidates.filter(row => ['id', 'owner_id', 'source_id'].every(key => {
         const condition = url.searchParams.get(key);
-        return !condition || (condition.startsWith('neq.') ? row[key] !== condition.slice(4) : condition === `eq.${row[key]}`);
+        return !condition || (condition.startsWith('in.(') ? condition.slice(4, -1).split(',').includes(row[key]) : condition.startsWith('neq.') ? row[key] !== condition.slice(4) : condition === `eq.${row[key]}`);
       }));
       if (method === 'PATCH') {
         matches.forEach(row => Object.assign(row, JSON.parse(init.body)));
@@ -247,8 +247,8 @@ test('job and budget RPC wrappers preserve PostgREST scalar and table response s
   const responses = {
     enqueue_intelligence_job: '11111111-1111-4111-8111-111111111111',
     enqueue_intelligence_job_items: 2,
-    claim_intelligence_job_item: [{ id: '22222222-2222-4222-8222-222222222222', item_key: 'discover:SA', attempts: 1, checkpoint: {} }],
-    finish_intelligence_job_item: true,
+    claim_intelligence_job_item_v2: [{ id: '22222222-2222-4222-8222-222222222222', item_key: 'discover:SA', attempts: 1, checkpoint: {} }],
+    finish_intelligence_job_item_v2: true,
     reserve_intelligence_budget: '33333333-3333-4333-8333-333333333333',
     settle_intelligence_budget: true,
     release_intelligence_budget: true,
@@ -270,8 +270,8 @@ test('job and budget RPC wrappers preserve PostgREST scalar and table response s
   assert.equal(await store.enqueueJob('owner-a', 'daily_scan', '2026-09-22', ['discover:SA']), responses.enqueue_intelligence_job);
   assert.equal(await store.enqueueJobItems('owner-a', responses.enqueue_intelligence_job,
     [{ item_key: 'source:a', checkpoint: { url: 'https://official.example/a' } }]), 2);
-  assert.deepEqual(await store.claimJobItem('owner-a', responses.enqueue_intelligence_job, 30), responses.claim_intelligence_job_item[0]);
-  assert.equal(await store.finishJobItem('owner-a', 'item-a', 'succeeded', { country: 'SA' }), true);
+  assert.deepEqual(await store.claimJobItem('owner-a', responses.enqueue_intelligence_job, 30), responses.claim_intelligence_job_item_v2[0]);
+  assert.equal(await store.finishJobItem('owner-a', 'item-a', 'succeeded', { country: 'SA' }, null, 1), true);
   assert.equal(await store.reserveBudget('owner-a', null, 'extraction', 'CNY', 'manual:1', 1000), responses.reserve_intelligence_budget);
   assert.equal(await store.settleBudget('owner-a', responses.reserve_intelligence_budget, 900, 'estimated', {
     provider: 'deepseek', model: 'deepseek-flash', usage: { prompt_tokens: 100 }, pricingVersion: 'test-price'

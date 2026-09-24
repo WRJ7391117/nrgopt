@@ -193,3 +193,64 @@ test('paid calls require an explicit supported currency before reserving', async
   { code: 'budget_not_configured' });
   assert.ok(!store.calls.some(call => call[0] === 'reserveBudget'));
 });
+
+test('scheduler resumes the claimed older run and fences completion with its attempt', async () => {
+  const store = fakeStore({ item: { id: 'item-old', job_run_id: 'job-yesterday', item_key: 'discover:SA', attempts: 2, checkpoint: {} } });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000' },
+    ...dependencies, discover: async () => ({ sources: [] }) });
+  assert.equal(result.jobId, 'job-yesterday');
+  assert.deepEqual(store.calls.find(call => call[0] === 'claimJobItem').slice(1), ['owner-a', null, 300]);
+  assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[6], 2);
+  assert.equal(store.calls.find(call => call[0] === 'reserveBudget')[2], 'job-yesterday');
+});
+
+test('third failure is terminal and a stale completion never reports success', async () => {
+  const store = fakeStore({ item: { id: 'item-old', job_run_id: 'job-old', item_key: 'discover:SA', attempts: 3, checkpoint: {} } });
+  const options = { store, owner: 'owner-a', ...dependencies, env: { NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '1000' },
+    discover: async () => { throw new Error('private response'); } };
+  assert.equal((await runDailyJobItem(options)).status, 'failed');
+  store.finishJobItem = async () => false;
+  assert.equal((await runDailyJobItem({ ...options, discover: async () => ({ sources: [] }) })).status, 'lease_lost');
+});
+
+test('saved extraction survives retry and schedules peer checks without another model call', async () => {
+  const store = fakeStore({ item: { id: 'item-extract', job_run_id: 'job-1', item_key: `extract:${sourceId}`,
+    attempts: 2, checkpoint: { source_id: sourceId } } });
+  store.evidence = async () => ({ source: { id: sourceId, content_type: 'text/plain', content_sha256: 'a'.repeat(64),
+    extraction_status: 'extracted', extraction_source_sha256: 'a'.repeat(64), extraction_zh: { summary_zh: '已保存' } },
+    bytes: Buffer.from('Official source evidence.') });
+  const peerId = '22222222-2222-4222-8222-222222222222';
+  store.findCandidatePeers = async () => [{ id: 'candidate-peer', source_id: peerId }];
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: {}, ...dependencies,
+    modelFactory: () => { throw new Error('must not re-extract'); },
+    crossCheckFactory: () => { throw new Error('cross-check must be a separate item'); } });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(!store.calls.some(call => ['reserveBudget', 'saveExtraction', 'beginExtraction'].includes(call[0])));
+  assert.deepEqual(store.calls.find(call => call[0] === 'enqueueJobItems')[3], [{
+    item_key: `cross:${sourceId}:${peerId}`, checkpoint: { left_source_id: sourceId, right_source_id: peerId }
+  }]);
+});
+
+test('cross-check work uses saved evidence and does not repeat a persisted relation', async () => {
+  const peerId = '22222222-2222-4222-8222-222222222222';
+  const store = fakeStore({ item: { id: 'item-cross', job_run_id: 'job-1', item_key: `cross:${sourceId}:${peerId}`, attempts: 1,
+    checkpoint: { left_source_id: sourceId, right_source_id: peerId } } });
+  let related = false;
+  store.candidateBySource = async id => ({ id: id === sourceId ? 'left' : 'right',
+    related_sources: related ? [{ related_candidate_id: 'right' }] : [] });
+  store.get = async id => ({ extraction_zh: { summary_zh: id } });
+  let checked = 0;
+  const options = { store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '1000' }, ...dependencies,
+    crossCheckFactory: () => async ({ left, right }) => {
+      checked += 1;
+      assert.equal(left.extraction_zh.summary_zh, sourceId);
+      assert.equal(right.extraction_zh.summary_zh, peerId);
+      return { same_project: true, matching_facts: [], conflicting_facts: [] };
+    } };
+  assert.equal((await runDailyJobItem(options)).status, 'succeeded');
+  assert.equal(checked, 1);
+  assert.ok(store.calls.some(call => call[0] === 'saveCrossCheck'));
+  related = true;
+  assert.equal((await runDailyJobItem(options)).status, 'succeeded');
+  assert.equal(checked, 1);
+});

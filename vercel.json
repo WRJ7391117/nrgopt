@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/intelligence.js": { "maxDuration": 240 }
+  },
   "headers": [
     {
       "source": "/css/(.*)",

@@ -529,3 +529,18 @@ test('logout removes local cookie even if upstream fails and configuration fails
   assert.equal((await missing.request('sources')).code, 503);
   assert.equal((await missing.request('login-page', { loggedIn: false })).code, 200);
 });
+
+test('scheduler summary belongs to the resumed run, not the newly enqueued date', async () => {
+  const oldJob = '66666666-6666-4666-8666-666666666666';
+  const { request, calls } = setup({ environment: { ...env, NRGOPT_SCHEDULER_ENABLED: '1', CRON_SECRET: 'test-secret' },
+    overrides: {
+      claimJobItem: async () => ({ id, job_run_id: oldJob, item_key: 'invalid-item', attempts: 1, checkpoint: {} }),
+      jobRun: async () => ({ run: { status: 'failed', schedule_key: '2000-01-01' }, items: [] })
+    } });
+  const response = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer test-secret' } });
+  assert.equal(response.code, 200);
+  assert.deepEqual(calls.find(call => call.name === 'jobRun').args, [admin, oldJob]);
+  const notification = calls.find(call => call.name === 'enqueueNotification').args;
+  assert.equal(notification[2], 'daily:2000-01-01');
+  assert.equal(notification[3].job_id, oldJob);
+});
