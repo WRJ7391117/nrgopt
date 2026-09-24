@@ -148,6 +148,14 @@
       var item = document.createElement('li');
       item.textContent = (hypothesis.status ? (hypothesisLabels[hypothesis.status] || hypothesis.status) + '：' : '')
         + (hypothesis.claim_zh || hypothesis.hypothesis_zh) + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
+      if (hypothesis.created_at && ['open', 'strengthened', 'weakened'].includes(hypothesis.status)) {
+        var expires = Date.parse(hypothesis.created_at) + 90 * 86400000;
+        var windowNote = document.createElement('p');
+        windowNote.className = 'intel-muted';
+        windowNote.textContent = Date.now() >= expires ? '主动搜索窗口已到期，待复查；没有新消息不代表假设被否定。'
+          : '主动搜索窗口至 ' + dateLabel(new Date(expires).toISOString()) + '；系统在每日限额内轮换搜索支持与反证。';
+        item.append(windowNote);
+      }
       (hypothesis.assessments || []).forEach(function (assessment) {
         var detail = document.createElement('details');
         var summary = document.createElement('summary');
@@ -361,11 +369,33 @@
       detail.textContent = children.map(function (child) {
         var parts = child.item_key.split(':');
         var stage = parts[0] === 'discover' ? (countries[parts[1]] || '国家') + '来源发现'
-          : ({ source: '原文抓取', extract: '情报提取', cross: '跨来源核对', hypothesis: '假设与反证判断' }[parts[0]] || '采集任务');
-        var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_no_primary_sources: '搜索完成，未找到符合要求的官方页面', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', source_tls_error: '来源站点证书校验失败', source_dns_error: '来源域名暂时无法解析', source_access_denied: '来源站点拒绝自动访问', source_not_found: '原公告已下线或网址失效', source_rate_limited: '来源站点限流', source_timeout: '原文获取超时', source_empty_document: '页面没有可读取正文，未调用模型', extraction_invalid_known_facts: '未取得有原文支持的事实', extraction_invalid_known_fact_quote: '引文未通过原文校验', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设证据判断失败', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
+          : ({ source: '原文抓取', watchsource: '关注来源抓取', watchsearch: child.checkpoint?.intent === 'counter' ? '主动反证搜索' : '主动支持搜索', extract: '情报提取', cross: '跨来源核对', hypothesis: '假设与反证判断' }[parts[0]] || '采集任务');
+        var errors = { discovery_balance_insufficient: '服务商返回余额不足，请核对密钥和套餐权限', discovery_plan_unavailable: '服务商返回套餐额度或权限不足，请核对搜索权限', discovery_no_primary_sources: '搜索完成，未找到符合要求的官方页面', discovery_failed: '来源发现暂未成功', source_failed: '原文获取失败', source_tls_error: '来源站点证书校验失败', source_dns_error: '来源域名暂时无法解析', source_access_denied: '来源站点拒绝自动访问', source_not_found: '原公告已下线或网址失效', source_rate_limited: '来源站点限流', source_timeout: '原文获取超时', source_empty_document: '页面没有可读取正文，未调用模型', extraction_invalid_known_facts: '未取得有原文支持的事实', extraction_invalid_known_fact_quote: '引文未通过原文校验', extraction_failed: '提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设证据判断失败', watch_search_failed: '主动搜索暂未成功', lease_exhausted: '多次执行超时，已停止自动重试', budget_exhausted: '预算不足', billing_sync_pending: '等待账单同步' };
         return stage + ' ' + (labels[child.status] || child.status) + (child.attempts ? '（尝试 ' + child.attempts + '）' : '') + (child.error_code ? '：' + (errors[child.error_code] || child.error_code) : '');
       }).join('；') || '任务明细尚未建立。';
       item.append(title, detail);
+      var searches = children.filter(function (child) { return child.item_key.startsWith('watchsearch:'); });
+      if (searches.length) {
+        var searchDetails = document.createElement('details');
+        var heading = document.createElement('summary');
+        heading.textContent = '查看主动搜索对象、查询和结果';
+        searchDetails.append(heading);
+        searches.forEach(function (search) {
+          var plan = search.checkpoint || {};
+          var entry = document.createElement('p');
+          entry.textContent = (plan.intent === 'counter' ? '反证' : '支持') + '：' + (plan.object_zh || '关注对象') + ' · ' + (labels[search.status] || search.status)
+            + (plan.outcome === 'no_new_evidence' ? ' · 未找到符合要求的新来源，不代表假设被否定' : '')
+            + (plan.outcome === 'watch_window_closed' ? ' · 关注已结束或到期待复查，未调用搜索服务' : '')
+            + (plan.outcome === 'sources_found' ? ' · 已送去核验 ' + plan.result_urls.length + ' 条来源' : '');
+          var query = document.createElement('blockquote');
+          query.textContent = plan.query || '';
+          var sourceLink = document.createElement('a');
+          sourceLink.textContent = '查看原始假设';
+          setSourceLink(sourceLink, plan.source_id);
+          searchDetails.append(entry, query, sourceLink);
+        });
+        item.append(searchDetails);
+      }
       list.append(item);
     });
     byId('job-empty').hidden = result.runs.length !== 0;

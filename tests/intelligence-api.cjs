@@ -49,7 +49,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
-    watchedSources: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
+    watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     reserveBudget: async () => '44444444-4444-4444-8444-444444444444', settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
@@ -568,7 +568,7 @@ test('scheduler summary belongs to the resumed run, not the newly enqueued date'
     } });
   const response = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer test-secret' } });
   assert.equal(response.code, 200);
-  assert.deepEqual(calls.find(call => call.name === 'jobRun').args, [admin, oldJob]);
+  assert.deepEqual(calls.filter(call => call.name === 'jobRun').at(-1).args, [admin, oldJob]);
   const notification = calls.find(call => call.name === 'enqueueNotification').args;
   assert.equal(notification[2], 'daily:2000-01-01');
   assert.equal(notification[3].job_id, oldJob);

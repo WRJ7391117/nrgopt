@@ -48,35 +48,8 @@ const messages = {
   feishu_disabled: '飞书通知尚未启用。', feishu_not_configured: '飞书机器人尚未配置。',
   delivery_failed: '飞书未接受本次通知，已保留待重试记录。', delivery_unknown: '飞书响应结果不明，已停止自动重发。'
 };
-const countries = { SA: 'Saudi Arabia', AE: 'United Arab Emirates', QA: 'Qatar', KW: 'Kuwait', OM: 'Oman', BH: 'Bahrain' };
-const primaryHosts = {
-  SA: ['gov.sa', 'spa.gov.sa', 'pif.gov.sa', 'acwapower.com', 'aramco.com', 'powersaudiarabia.com.sa', 'saudiexchange.sa'],
-  AE: ['gov.ae', 'wam.ae', 'mediaoffice.abudhabi', 'ewec.ae', 'masdar.ae'],
-  QA: ['gov.qa', 'qna.org.qa', 'qatarenergy.qa'],
-  KW: ['gov.kw', 'kuna.net.kw', 'kapp.gov.kw', 'acwapower.com'],
-  OM: ['gov.om', 'omannews.gov.om', 'omanpwp.om'],
-  BH: ['gov.bh', 'bna.bh', 'ewa.bh']
-};
-function primarySource(url, country) {
-  const host = new URL(url).hostname.toLowerCase();
-  return primaryHosts[country].some(value => host === value || host.endsWith(`.${value}`));
-}
-function discoveryQuery(country, attempt = 1) {
-  // A retry uses a narrower first-party query instead of repeating the same failed search.
-  const retryHosts = {
-    SA: ['spa.gov.sa', 'acwapower.com'], AE: ['wam.ae', 'masdar.ae'],
-    QA: ['qna.org.qa', 'qatarenergy.qa'], KW: ['acwapower.com', 'kapp.gov.kw'],
-    OM: ['omanpwp.om', 'gov.om'], BH: ['ewa.bh', 'gov.bh']
-  };
-  if (attempt > 1) return `${countries[country]} energy projects site:${retryHosts[country][Math.min(attempt - 2, 1)]}`;
-  return `${countries[country]} energy projects (${primaryHosts[country].map(host => `site:${host}`).join(' OR ')})`;
-}
-async function discoverCountry(country, profile, discoveryFactory, attempt = 1) {
-  const discovery = await discoveryFactory(profile)({ query: discoveryQuery(country, attempt) });
-  const sources = discovery.results.filter(item => primarySource(item.url, country)).map(item => ({ ...item, source_level: 'primary' }));
-  if (!sources.length) throw failure('discovery_no_primary_sources', 502);
-  return { ...discovery, results: undefined, sources };
-}
+const { countries, discoverCountry } = require('../lib/intelligence/discovery.cjs');
+const { discoverWatch } = require('../lib/intelligence/watch-search.cjs');
 const cookieName = env => (env.NRGOPT_APP_ORIGIN || '').startsWith('https://') ? '__Host-nrgopt_session' : 'nrgopt_session';
 const archiveNode = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(value) ? value : null;
 function sessionToken(req, env) {
@@ -148,7 +121,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
         const result = await runDailyJobItem({ store, owner: config.adminId, env,
-          discover: (country, profile, attempt) => discoverCountry(country, profile, discoveryFactory, attempt), sourceFetcher, modelFactory, crossCheckFactory,
+          discover: (country, profile, attempt) => discoverCountry(country, profile, discoveryFactory, attempt),
+          watchDiscover: (plan, profile) => discoverWatch(plan, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
           balanceReaderFactory });
         const job = await store.jobRun(config.adminId, result.jobId || scheduled.jobId);
         const scheduleKey = job.run.schedule_key || scheduled.scheduleKey;

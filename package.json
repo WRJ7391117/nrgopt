@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js && npm run test:intelligence",
-    "test:intelligence": "node tests/intelligence-source.cjs && node --test tests/intelligence-api.cjs tests/intelligence-archive-client.cjs tests/intelligence-crosscheck.cjs tests/intelligence-deepseek.cjs tests/intelligence-feishu.cjs tests/intelligence-hypotheses.cjs tests/intelligence-jobs.cjs tests/intelligence-minimax.cjs tests/intelligence-provider-billing.cjs tests/intelligence-publication.cjs tests/intelligence-quality-fixtures.cjs tests/intelligence-store.cjs",
+    "test:intelligence": "node tests/intelligence-source.cjs && node --test tests/intelligence-api.cjs tests/intelligence-archive-client.cjs tests/intelligence-crosscheck.cjs tests/intelligence-deepseek.cjs tests/intelligence-feishu.cjs tests/intelligence-hypotheses.cjs tests/intelligence-jobs.cjs tests/intelligence-minimax.cjs tests/intelligence-provider-billing.cjs tests/intelligence-publication.cjs tests/intelligence-quality-fixtures.cjs tests/intelligence-store.cjs tests/intelligence-watch-search.cjs",
     "dev:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-dev.cjs",
     "archive:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-archive-pull.cjs"
   },
