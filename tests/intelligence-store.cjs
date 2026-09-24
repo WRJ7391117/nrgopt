@@ -747,6 +747,20 @@ test('overview does not carry a superseded source conflict onto the current sour
   assert.equal(state.relations.length, 1, 'historical conflict is retained in storage');
 });
 
+test('source detail counts identical related originals once and uses the latest comparison without deleting history', async () => {
+  const state = backend();
+  for (const id of ['left', 'old', 'new']) {
+    state.records.push({ id, owner_id: 'owner-a', final_url: `https://${id}.example/news`, content_sha256: id === 'left' ? 'left-original' : 'same-original' });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', evidence_status: 'conflict' });
+  }
+  state.relations.push({ owner_id: 'owner-a', candidate_id: 'left', related_candidate_id: 'old', relation: 'conflicts', checked_at: '2026-09-23', same_scope: true },
+    { owner_id: 'owner-a', candidate_id: 'left', related_candidate_id: 'new', relation: 'supports', checked_at: '2026-09-24', same_scope: true });
+  const detail = await state.store.candidateBySource('left', 'owner-a');
+  assert.equal(detail.evidence_status, 'checked');
+  assert.deepEqual(detail.related_sources.map(link => link.source_id), ['new']);
+  assert.equal(state.relations.length, 2);
+});
+
 test('reimporting identical evidence fills previously missing dates without changing first fetch time', async () => {
   const state = backend();
   const item = { ...SOURCE, finalUrl: 'https://spa.gov.sa/en/N2266456', excerpt: 'Riyadh, February 20, 2025, SPA -- Project.' };
