@@ -717,6 +717,21 @@ test('overview groups only supported equal scopes and retains partial scopes, co
   assert.equal((await state.store.candidates('owner-a')).length, 3, 'rejected entry cannot hide an active one');
 });
 
+test('overview counts identical saved originals once across URL variants without merging merely similar titles', async () => {
+  const state = backend();
+  for (const [id, url, hash, date] of [
+    ['plain', 'https://publisher.example/news/', 'same-original', '2026-09-22'],
+    ['tracked', 'https://www.publisher.example/news?utm_source=referral', 'same-original', '2026-09-24'],
+    ['another', 'https://publisher.example/news?id=another', 'different-original', '2026-09-23']
+  ]) {
+    state.records.push({ id, owner_id: 'owner-a', final_url: url, fetched_at: date, content_sha256: hash });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', title_zh: '同名项目' });
+  }
+  assert.deepEqual((await state.store.candidates('owner-a')).map(item => item.id), ['tracked', 'another']);
+  assert.equal(state.records.length, 3);
+  assert.equal((await state.store.candidateBySource('plain', 'owner-a')).source_id, 'plain');
+});
+
 test('overview does not carry a superseded source conflict onto the current source version', async () => {
   const state = backend();
   for (const [id, url, date] of [['left', 'https://left.example/news', '2026-09-24'],

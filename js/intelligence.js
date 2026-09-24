@@ -442,7 +442,7 @@
       var visibleCount = result.candidates.filter(function (item) {
         return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
-      status('page-status', '有效候选 ' + visibleCount + ' 条；仅保留来源 ' + result.candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条。统计范围为最近100条分析记录，已合并同一网址版本及已核对的同范围候选。');
+      status('page-status', '有效候选 ' + visibleCount + ' 条；仅保留来源 ' + result.candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条。统计范围为最近100条分析记录，已合并重复原文、同一网址版本及已核对的同范围候选。');
     } catch (error) { status('page-status', error.message, 'error'); }
   }
   async function loadSources() {
