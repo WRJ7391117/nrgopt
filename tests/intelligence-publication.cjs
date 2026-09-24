@@ -57,3 +57,19 @@ test('observed publisher datelines exclude related articles and last-updated dat
   assert.equal(conflict.publication_date, null);
   assert.equal(conflict.publication_method, 'conflicting_metadata');
 });
+
+test('QNA article date comes from its saved header attribute, not the URL or related news', () => {
+  const header = '<div class="news-details-holder"><span id="news-date" data-utc-time-to-local="2026-09-24T10:10:47"></span></div>';
+  const related = '<aside><span id="news-date" data-utc-time-to-local="2026-09-25T09:00:00"></span></aside>';
+  const result = parse(header + related, 'https://qna.org.qa/en/news/news-details?date=25/09/2026');
+  assert.equal(result.publication_date, '2026-09-24');
+  assert.equal(result.published_at, null);
+  assert.equal(result.publication_evidence, 'publisher_dateline: 2026-09-24T10:10:47');
+  assert.equal(parse(related, 'https://qna.org.qa/').publication_date, null);
+  assert.equal(parse(header, 'https://qna.org.qa.evil.example/').publication_date, null);
+  assert.equal(parse(header.replace('2026-09-24', '2026-02-30'), 'https://qna.org.qa/').publication_date, null);
+  assert.equal(parse('', 'https://qna.org.qa/en/News-Area/News/2026-9/24/title').publication_date, null);
+  const conflict = parse(header + '<meta property="article:published_time" content="2026-09-23">', 'https://qna.org.qa/');
+  assert.equal(conflict.publication_date, null);
+  assert.equal(conflict.publication_method, 'conflicting_metadata');
+});
