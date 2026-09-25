@@ -105,7 +105,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           const { source, bytes } = await store.evidence(job.source_id, config.adminId);
           if (bytes.length !== source.byte_size || createHash('sha256').update(bytes).digest('hex') !== source.content_sha256) throw failure('evidence_corrupt', 502);
           res.setHeader('Content-Type', 'application/octet-stream');
-          res.setHeader('Content-Disposition', `attachment; filename="source-${source.id}.${source.content_type === 'text/html' ? 'html' : 'txt'}"`);
+          res.setHeader('Content-Disposition', `attachment; filename="source-${source.id}.${source.content_type === 'text/html' ? 'html' : source.content_type === 'application/json' ? 'json' : 'txt'}"`);
           return res.status(200).end(bytes);
         }
         if (action === 'archive-ack') {
@@ -287,7 +287,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (createHash('sha256').update(bytes).digest('hex') !== source.content_sha256) throw failure('evidence_corrupt', 502);
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Security-Policy', 'sandbox');
-        res.setHeader('Content-Disposition', `attachment; filename="source-${source.id}.${source.content_type === 'text/html' ? 'html' : 'txt'}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="source-${source.id}.${source.content_type === 'text/html' ? 'html' : source.content_type === 'application/json' ? 'json' : 'txt'}"`);
         return res.status(200).end(bytes);
       }
       if (!config.writes) throw failure('writes_disabled', 403);
