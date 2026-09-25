@@ -241,7 +241,9 @@ function backend() {
       if (method === 'GET') {
         const owner = url.searchParams.get('owner_id')?.slice(3);
         const candidate = url.searchParams.get('candidate_id')?.slice(3);
-        return json(collection.filter(row => row.owner_id === owner && row.candidate_id === candidate));
+        const ids = url.searchParams.get('id')?.match(/^in\.\((.*)\)$/)?.[1].split(',') || [];
+        return json(collection.filter(row => row.owner_id === owner && (!candidate || row.candidate_id === candidate)
+          && (!ids.length || ids.includes(row.id))));
       }
       if (method === 'DELETE') {
         const owner = url.searchParams.get('owner_id')?.slice(3);
@@ -827,6 +829,13 @@ test('hypothesis-linked early opportunity remains unverified and retires when re
   assert.equal(state.opportunities[0].evidence_quote, extraction.known_facts[0].evidence_quote);
   assert.equal((await state.store.currentOpportunities('owner-a', await state.store.candidates('owner-a')))[0].scope, 'early');
   assert.equal((await state.store.candidateBySource(saved.source.id, 'owner-a')).opportunities[0].hypothesis_id, state.hypotheses[0].id);
+  for (const status of ['rejected', 'dormant', 'confirmed']) {
+    state.hypotheses[0].status = status;
+    assert.deepEqual(await state.store.currentOpportunities('owner-a', await state.store.candidates('owner-a')), [],
+      `a ${status} hypothesis cannot remain an active early opportunity`);
+  }
+  assert.equal(state.opportunities[0].participation_status, 'unverified', 'history is preserved without claiming cancellation');
+  state.hypotheses[0].status = 'open';
   extraction.classification.early_opportunities = [];
   await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
   assert.equal(state.opportunities[0].current_in_analysis, false);

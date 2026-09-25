@@ -703,15 +703,16 @@
       package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
     opportunities.forEach(function (entry) {
       var item = document.createElement('li');
+      var hypothesis = entry.scope === 'early' ? (hypotheses || []).find(function (row) { return row.id === entry.hypothesis_id; }) : null;
+      var earlyStatus = hypothesis && ({ rejected: '关联假设已否定，停止追踪', dormant: '关联假设休眠，停止主动追踪',
+        confirmed: '关联假设已证实，待关联正式机会' })[hypothesis.status];
       var title = document.createElement('strong');
       title.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh + ' · '
-        + (entry.current_in_analysis ? (states[entry.participation_status] || states.unverified) : '本次分析未再次确认');
+        + (entry.current_in_analysis ? (earlyStatus || states[entry.participation_status] || states.unverified) : '本次分析未再次确认');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
       item.append(title, quote);
       if (entry.scope === 'early') {
-        var hypothesis = (hypotheses || [])
-          .find(function (row) { return row.id === entry.hypothesis_id; });
         var link = document.createElement('p');
         link.textContent = '关联待验证假设：' + (hypothesis ? hypothesis.claim_zh : '请查看本来源的假设记录');
         item.append(link);
