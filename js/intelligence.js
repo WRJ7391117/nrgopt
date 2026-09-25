@@ -225,7 +225,11 @@
       if (hypothesis.current_in_analysis === false) {
         var historyNote = document.createElement('p');
         historyNote.className = 'intel-muted';
-        historyNote.textContent = '历史假设：本来源的最新分析未重申此命题，已停止主动验证。原状态与判断记录保留；不表示命题已被否定。';
+        historyNote.textContent = hypothesis.status === 'rejected'
+          ? '历史假设：本来源的最新分析未重申此命题；后续新证据已将其否定，判断记录保留如下。'
+          : hypothesis.status === 'confirmed'
+            ? '历史假设：本来源的最新分析未重申此命题；后续新证据已将其证实，判断记录保留如下。'
+            : '历史假设：本来源的最新分析未重申此命题，已停止主动验证。原状态与判断记录保留；不表示命题已被否定。';
         item.append(historyNote);
       }
       if (hypothesis.current_in_analysis !== false && hypothesis.created_at && ['open', 'strengthened', 'weakened'].includes(hypothesis.status)) {
