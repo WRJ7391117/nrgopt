@@ -125,8 +125,10 @@ test('KAPP article date comes only from its own header', () => {
   assert.equal(result.publication_date, '2026-02-03');
   assert.equal(result.published_at, null);
   assert.equal(result.publication_evidence, 'publisher_dateline: 03 Feb, 2026');
+  assert.equal(parse(article, 'https://www.kapp.gov.kw/announcement/details/84').publication_date, '2026-02-03');
   assert.equal(parse(article, 'https://www.kapp.gov.kw/news-media').publication_date, null);
   assert.equal(parse(article, 'https://www.kapp.gov.kw.evil.example/media/get_details/126').publication_date, null);
+  assert.equal(parse(article, 'https://www.kapp.gov.kw.evil.example/announcement/details/84').publication_date, null);
   assert.equal(parse(article.replace('03 Feb', '31 Feb'), url).publication_date, null);
   assert.equal(parse(article + '<meta property="article:published_time" content="2026-02-04">', url).publication_method,
     'conflicting_metadata');

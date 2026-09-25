@@ -75,6 +75,13 @@ async function main() {
     + '<p>Other project news</p></main>'), 'text/html', 2_000, 'https://www.kapp.gov.kw/media/get_details/126');
   assert.deepEqual(kapp, { title: 'اتفاقيات محطة الزور',
     excerpt: '03 Feb, 2026 اتفاقيات محطة الزور توليد الطاقة الكهربائية وتحلية المياه.' });
+  const kappAnnouncement = extractDocument(Buffer.from('<title>KAPP || Kuwait Authority</title><header>25 September 2026</header>'
+    + '<main><p>Other projects</p><div class="blog-items"><div class="blog-content"><div class="item">'
+    + '<div class="info content-box"><div class="meta"><div class="date">03 Jul, 2022</div></div>'
+    + '<h3>دعوة تقديم طلب التأهيل لمشروع محطة الخيران</h3><p>تدعو الهيئة الشركات إلى التأهيل للمشروع.</p>'
+    + '</div></div></div></div></main>'), 'text/html', 2_000, 'https://www.kapp.gov.kw/announcement/details/84');
+  assert.deepEqual(kappAnnouncement, { title: 'دعوة تقديم طلب التأهيل لمشروع محطة الخيران',
+    excerpt: '03 Jul, 2022 دعوة تقديم طلب التأهيل لمشروع محطة الخيران تدعو الهيئة الشركات إلى التأهيل للمشروع.' });
   assert.throws(() => extractDocument(Buffer.from('<main><div class="blog-items"><div class="blog-content"><div class="item">'
     + '<div class="info content-box"><div class="date">26 Jul, 2026</div><h3>إعلان النتائج</h3>'
     + '<p><img src="/notice.png" alt=""></p></div></div></div></div></main>'), 'text/html', 2_000,
