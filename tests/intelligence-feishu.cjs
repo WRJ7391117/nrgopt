@@ -124,10 +124,10 @@ test('daily digest contains evidence and judgment, abbreviates accepted FLASH an
     schedule_key: '2026-09-24', status: 'partial', coverage: { succeeded: 20, failed: 1, paused: 2 }, remaining_changes: 3,
     changes: [{ source_id: 'source-a', title_zh: '施工合同授标', summary_zh: '业主公告授标', countries: ['QA'], evidence_status: 'sourced',
       facts: ['金额已披露'], judgment_zh: '设备范围仍需观察', unknown_zh: '设备采购未知', next_signal_zh: '观察设备公告' },
-      { source_id: 'source-b', title_zh: '已发送事项', flash_accepted: true, summary_zh: '不应再次详述' }]
+      { source_id: 'source-b', title_zh: '已发送事项', flash_accepted: true, grouped_source_count: 5, summary_zh: '不应再次详述' }]
   } } });
   const output = JSON.stringify(card);
-  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','本期覆盖不完整','已发重大提醒','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
+  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','本期覆盖不完整','已发重大提醒','同一事件共 5 个来源','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
   assert.ok(!output.includes('不应再次详述'));
   assert.ok(!output.includes('六国任务：成功 20'));
 });
