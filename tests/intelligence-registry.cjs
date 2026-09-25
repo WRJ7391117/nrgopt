@@ -33,6 +33,14 @@ test('Kuwait KAPP listing accepts only official numbered article links', () => {
   assert.deepEqual(registryLinks(kapp, source), ['https://www.kapp.gov.kw/media/get_details/126']);
 });
 
+test('Principal Buyer homepage accepts only official news articles', () => {
+  const pb = registry.find(e => e.id === 'pb-news');
+  const source = { finalUrl: pb.url, bytes: Buffer.from('<a href="/media-center/news/four-bess-agreements/">news</a>'
+    + '<a href="https://www.pb.com.sa/media-center/news/four-bess-agreements/?campaign=x">same</a>'
+    + '<a href="/media-center/#news">section</a><a href="https://other.example/media-center/news/other/">offsite</a>') };
+  assert.deepEqual(registryLinks(pb, source), ['https://www.pb.com.sa/media-center/news/four-bess-agreements/']);
+});
+
 test('cursor only advances over queued links and preserves bounded correction overlap', () => {
   const urls = Array.from({ length: 60 }, (_, i) => article(String(i)));
   const first = registryPlan(urls);

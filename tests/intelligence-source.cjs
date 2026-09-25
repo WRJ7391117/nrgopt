@@ -79,6 +79,13 @@ async function main() {
     + '<div class="info content-box"><div class="date">26 Jul, 2026</div><h3>إعلان النتائج</h3>'
     + '<p><img src="/notice.png" alt=""></p></div></div></div></div></main>'), 'text/html', 2_000,
   'https://www.kapp.gov.kw/media/get_details/134'), { code: 'source_empty_document' });
+  const principalBuyer = extractDocument(Buffer.from('<title>Principal Buyer</title>'
+    + '<meta property="og:title" content="Four BESS storage agreements"><main><p>Suggested News</p>'
+    + '<div class="content-holder"><div class="detail-content"><p>Four storage service agreements signed.</p>'
+    + '<p>Total capacity 2,000 MW for four hours.</p></div></div><p>Other project news</p></main>'),
+  'text/html', 2_000, 'https://www.pb.com.sa/media-center/news/four-bess-agreements/');
+  assert.deepEqual(principalBuyer, { title: 'Four BESS storage agreements',
+    excerpt: 'Four storage service agreements signed. Total capacity 2,000 MW for four hours.' });
   const dataCentre = extractDocument(Buffer.from('<main><section class="press-release-detail"><div class="content-sec"><h1>Data centre design certification</h1><p>100 MW total IT load.</p></div><div class="recent-release"><h4>Recent Press Release</h4><p>Unrelated technology agreement.</p></div></section></main>'), 'text/html');
   assert.deepEqual(dataCentre, { title: 'Data centre design certification', excerpt: 'Data centre design certification 100 MW total IT load.' });
   for (const container of ['<section class="our-blog"><div class="entry-content">BODY</div></section>',
@@ -145,6 +152,12 @@ async function main() {
     assert.ok(requests.at(-1).options.ca.length > 100);
     responses = [{}];
     await fetchSource('https://fsa.gov.om.evil.example/story');
+    assert.equal(requests.at(-1).options.ca, undefined);
+    responses = [{}];
+    await fetchSource('https://www.pb.com.sa/media-center/news/story/');
+    assert.ok(requests.at(-1).options.ca.length > 100);
+    responses = [{}];
+    await fetchSource('https://www.pb.com.sa.evil.example/story');
     assert.equal(requests.at(-1).options.ca, undefined);
     responses = [{}];
     await fetchSource('https://www.kapp.gov.kw/media/get_details/126');

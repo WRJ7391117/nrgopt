@@ -115,7 +115,7 @@ test('quiet-hour settings validate hours, timezone and owner without enabling de
 test('source controls validate publisher, boolean, owner and write permission', async () => {
   const { request, calls } = setup();
   const listed = await request('source-controls');
-  assert.equal(listed.body.sources.length, 6);
+  assert.equal(listed.body.sources.length, 7);
   const id = listed.body.sources[0].id;
   assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 200);
   assert.deepEqual(calls.find(call => call.name === 'setSourceControl').args, [admin, 'acwapower.com', true]);

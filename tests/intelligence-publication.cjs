@@ -131,3 +131,16 @@ test('KAPP article date comes only from its own header', () => {
   assert.equal(parse(article + '<meta property="article:published_time" content="2026-02-04">', url).publication_method,
     'conflicting_metadata');
 });
+
+test('Principal Buyer article date comes only from its own banner', () => {
+  const article = '<div class="main_bannar media-detail"><div class="banner-text"><h4>20 Aug 2026</h4>'
+    + '<h2>Four BESS agreements</h2></div></div>';
+  const related = '<aside><h4>21 Sep 2026</h4></aside>';
+  const url = 'https://www.pb.com.sa/media-center/news/four-bess-agreements/';
+  const result = parse(article + related, url);
+  assert.equal(result.publication_date, '2026-08-20');
+  assert.equal(result.publication_evidence, 'publisher_dateline: 20 Aug 2026');
+  assert.equal(parse(article, 'https://www.pb.com.sa/').publication_date, null);
+  assert.equal(parse(article, 'https://www.pb.com.sa.evil.example/media-center/news/four-bess-agreements/').publication_date, null);
+  assert.equal(parse(article.replace('20 Aug', '31 Feb'), url).publication_date, null);
+});
