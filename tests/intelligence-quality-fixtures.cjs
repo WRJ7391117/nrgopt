@@ -64,3 +64,25 @@ test('quality reports reject duplicate cases and distinguish an omitted field fr
   assert.equal(report.total.checked_fields, 1);
   assert.throws(() => evaluateQuality([{ ...one, expected: { imaginary_score: 100 } }], []), /quality_reference_field_invalid/);
 });
+
+test('quality report names evidence overreach, missing fields and set errors without changing denominators', () => {
+  const cases = [
+    { id: 'overreach', language: 'zh', expected: { project: null } },
+    { id: 'missing', language: 'en', expected: { maturity: 'project' } },
+    { id: 'sets', language: 'ar', expected: { radars: ['demand', 'project'] } },
+    { id: 'no-output', language: 'en', expected: { disposition: 'candidate' } },
+    { id: 'stage', language: 'en', expected: { maturity: 'procurement' } }
+  ];
+  const predictions = [
+    { id: 'overreach', extraction: { classification: { project: { name_zh: '无项目证据' } } } },
+    { id: 'missing', extraction: { classification: {} } },
+    { id: 'sets', extraction: { classification: { radars: ['project', 'trigger'] } } },
+    { id: 'stage', extraction: { maturity: 'signal' } }
+  ];
+  const report = evaluateQuality(cases, predictions);
+  assert.equal(report.total.checked_fields, 5);
+  assert.equal(report.total.correct_fields, 0);
+  assert.deepEqual(report.error_types, {
+    unsupported_inference: 1, field_missing: 1, set_missing_and_extra: 1, prediction_missing: 1, stage_mismatch: 1
+  });
+});

@@ -30,7 +30,17 @@ function evaluateQuality(cases, predictions) {
       const normalized = value => Array.isArray(value) ? [...new Set(value)].sort() : value;
       const correct = isDeepStrictEqual(setField ? normalized(fields[field]) : fields[field], setField ? normalized(reference) : reference);
       buckets.forEach(value => { value.checked_fields++; if (correct) value.correct_fields++; });
-      if (!correct) failures.push({ id: sample.id, language: sample.language, field, reason: extraction ? 'reference_mismatch' : 'prediction_missing' });
+      if (!correct) {
+        let reason = !extraction ? 'prediction_missing' : fields[field] === undefined ? 'field_missing'
+          : reference === null ? 'unsupported_inference' : fields[field] === null ? 'missed_fact' : 'reference_mismatch';
+        if (extraction && setField && Array.isArray(fields[field])) {
+          const missing = reference.some(value => !fields[field].includes(value));
+          const extra = fields[field].some(value => !reference.includes(value));
+          reason = missing && extra ? 'set_missing_and_extra' : missing ? 'set_missing_values' : 'set_extra_values';
+        }
+        if (reason === 'reference_mismatch' && field === 'maturity') reason = 'stage_mismatch';
+        failures.push({ id: sample.id, language: sample.language, field, reason });
+      }
     }
     // Recall denominator includes every explicitly labelled positive, including failed extraction.
     if (sample.early_signal === true) {
@@ -45,8 +55,10 @@ function evaluateQuality(cases, predictions) {
     stats.early_signal_recall = stats.early_signal_positives ? stats.early_signal_detected / stats.early_signal_positives : null;
   }
   const caseIds = new Set(cases.map(row => row.id));
+  const countErrors = rows => rows.reduce((counts, item) => { counts[item.reason] = (counts[item.reason] || 0) + 1; return counts; }, {});
   return { scope: 'Only explicitly referenced fields and labelled early-signal positives; not whole-product accuracy certification.',
-    total, languages, unmatched_predictions: predictions.filter(row => !caseIds.has(row.id)).length, failures };
+    total, languages, unmatched_predictions: predictions.filter(row => !caseIds.has(row.id)).length,
+    error_types: countErrors(failures), failures };
 }
 
 if (require.main === module) {
