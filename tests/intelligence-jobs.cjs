@@ -119,11 +119,17 @@ test('discovered publisher listings are rejected as articles without retry or mo
     const work = sourceItem({ url: finalUrl }, 'AE');
     const store = fakeStore({ item: { id: 'item-listing', item_key: work.item_key, attempts: 1, checkpoint: work.checkpoint } });
     const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
-      sourceFetcher: async () => ({ finalUrl }) });
+      sourceFetcher: async () => { throw new Error('Known listing must not be fetched'); } });
     assert.equal(result.status, 'failed');
     assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'source_listing_page');
     assert.ok(!store.calls.some(call => ['save', 'reserveBudget', 'enqueueJobItems'].includes(call[0])));
   }
+  const work = sourceItem({ url: 'https://masdar.ae/New-News-and-Events' }, 'AE');
+  const store = fakeStore({ item: { id: 'item-redirected-listing', item_key: work.item_key, attempts: 1, checkpoint: work.checkpoint } });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
+    sourceFetcher: async () => ({ finalUrl: 'https://masdar.ae/en/news/newsroom' }) });
+  assert.equal(result.status, 'failed');
+  assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'source_listing_page');
 });
 
 test('saved empty shell stops before budget and model calls without repeated extraction', async () => {
