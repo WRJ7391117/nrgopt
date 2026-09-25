@@ -311,6 +311,39 @@ test('saved extraction survives retry and schedules peer checks without another 
   }]);
 });
 
+test('one budgeted format repair uses the checkpoint and a second invalid result stops', async () => {
+  const env = { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '10000000', NRGOPT_ANALYSIS_BILLING_MODE: 'included' };
+  const first = { id: 'item-extract', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1,
+    checkpoint: { source_id: sourceId } };
+  const store = fakeStore({ item: first });
+  let item = first;
+  store.claimJobItem = async () => item;
+  const seen = [];
+  const options = { store, owner: 'owner-a', env, ...dependencies, modelFactory: () => async input => {
+    seen.push(input.formatRepairCode);
+    throw Object.assign(new Error('invalid provider output'), { code: 'extraction_invalid_early_opportunity_evidence' });
+  } };
+  assert.equal((await runDailyJobItem(options)).status, 'retry');
+  const checkpoint = store.calls.filter(call => call[0] === 'finishJobItem').at(-1)[4];
+  assert.equal(checkpoint.format_repair_code, 'extraction_invalid_early_opportunity_evidence');
+  item = { ...first, attempts: 2, checkpoint };
+  assert.equal((await runDailyJobItem(options)).status, 'failed');
+  assert.deepEqual(seen, [null, 'extraction_invalid_early_opportunity_evidence']);
+  assert.equal(store.calls.filter(call => call[0] === 'reserveBudget').length, 2);
+  assert.equal(store.calls.filter(call => call[0] === 'finishJobItem').at(-1)[3], 'failed');
+  const recovered = fakeStore({ item: { ...first, attempts: 2, checkpoint } });
+  const success = await runDailyJobItem({ ...options, store: recovered,
+    modelFactory: () => async input => {
+      assert.equal(input.formatRepairCode, 'extraction_invalid_early_opportunity_evidence');
+      return { extraction: groundedExtraction, provider: 'deepseek', model: 'deepseek-flash', usage: {} };
+    } });
+  assert.equal(success.status, 'succeeded');
+  assert.equal(recovered.calls.filter(call => call[0] === 'reserveBudget').length, 1);
+  const exhausted = fakeStore({ item: { ...first, attempts: 3 } });
+  assert.equal((await runDailyJobItem({ ...options, store: exhausted })).status, 'failed');
+  assert.equal(exhausted.calls.filter(call => call[0] === 'finishJobItem').at(-1)[4].format_repair_code, undefined);
+});
+
 test('cross-check work uses saved evidence and does not repeat a persisted relation', async () => {
   const peerId = '22222222-2222-4222-8222-222222222222';
   const store = fakeStore({ item: { id: 'item-cross', job_run_id: 'job-1', item_key: `cross:${sourceId}:${peerId}`, attempts: 1,
