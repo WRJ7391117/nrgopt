@@ -153,12 +153,15 @@
     (candidate?.related_sources || []).forEach(function (related) {
       var item = document.createElement('li');
       var link = document.createElement('a');
-      link.textContent = related.relation === 'conflicts' ? '查看冲突来源 →' : '查看关联来源 →';
+      link.textContent = related.relation === 'conflicts' ? '查看冲突来源 →'
+        : related.independence === 'same_publisher' ? '查看同一发布方更正 →' : '查看关联来源 →';
       setSourceLink(link, related.source_id);
       var note = document.createElement('p');
-      note.textContent = related.shared_quote_count
-        ? related.shared_quote_count + ' 组引文相同，可能同源；不能累计为独立确认。'
-        : '来源独立性尚未确认；内容一致不等于独立确认。';
+      note.textContent = related.independence === 'same_publisher'
+        ? '这是同一官方发布方的更正、延期或取消后重新邀请；用于更新项目状态，不计为独立确认。'
+        : related.shared_quote_count
+          ? related.shared_quote_count + ' 组引文相同，可能同源；不能累计为独立确认。'
+          : '来源独立性尚未确认；内容一致不等于独立确认。';
       item.append(link, note);
       ['matching_facts_zh', 'conflicting_facts_zh'].forEach(function (field) {
         (related[field] || []).forEach(function (pair) {
