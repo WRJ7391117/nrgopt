@@ -50,6 +50,16 @@ begin
     raise exception 'explicit package fact was not linked idempotently: %, %, %',first_sync,second_sync,link_count; end if;
   if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>1 then
     raise exception 'current package link not readable'; end if;
+  update public.intelligence_candidate_relations set relation='conflicts'
+    where candidate_id=candidates[1];
+  if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>0 then
+    raise exception 'conflicting comparison kept package link current'; end if;
+  update public.intelligence_candidate_relations set relation='supports',same_scope=false
+    where candidate_id=candidates[1];
+  if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>0 then
+    raise exception 'different scope kept package link current'; end if;
+  update public.intelligence_candidate_relations set same_scope=true
+    where candidate_id=candidates[1];
   update public.intelligence_sources set extracted_at=extracted+interval '1 second' where id=sources[2];
   if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>0 then
     raise exception 'stale package link still current'; end if;
