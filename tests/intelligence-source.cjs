@@ -32,6 +32,17 @@ async function main() {
   const metadataOnly = extractDocument(Buffer.from('<title>Official notice</title><meta name="description" content="First official fact. Second official fact."><script>{"content":"not executed"}</script><body></body>'), 'text/html');
   assert.deepEqual(metadataOnly, { title: 'Official notice', excerpt: 'First official fact. Second official fact.' });
   assert.throws(() => extractDocument(html, 'application/json'), { code: 'source_unsupported_type' });
+  const memId = 'n5efiz4fr7o01xqbg9u5gcni';
+  const memUrl = `https://mem.gov.om/public/news/${memId}`;
+  const memBytes = Buffer.from(JSON.stringify({ data: { documentId: memId, type: 'MEM',
+    CommunicationType: 'NEWS', date: '2026-03-08', englishTitle: 'Oman renewable projects',
+    englishDescription: 'Official solar and wind project facts.' } }));
+  assert.deepEqual(extractDocument(memBytes, 'application/json', 2_000, memUrl),
+    { title: 'Oman renewable projects', excerpt: 'Official solar and wind project facts.' });
+  assert.throws(() => extractDocument(memBytes, 'application/json', 2_000,
+    `https://other.example/public/news/${memId}`), { code: 'source_unsupported_type' });
+  assert.throws(() => extractDocument(Buffer.from(JSON.stringify({ data: { documentId: 'wrong' } })),
+    'application/json', 2_000, memUrl), { code: 'source_empty_document' });
   assert.throws(() => extractDocument(html, 'text/html; charset=gbk'), { code: 'source_unsupported_encoding' });
   assert.throws(() => extractDocument(Buffer.from('<meta charset="gb2312"><p>News</p>'), 'text/html'), { code: 'source_unsupported_encoding' });
   let failedSource = null;
@@ -115,6 +126,16 @@ async function main() {
     responses = [{}];
     await fetchSource('https://omannews.gov.om.evil.example/story');
     assert.equal(requests.at(-1).options.ca, undefined);
+    responses = [{ bytes: memBytes, headers: { 'content-type': 'application/json; charset=utf-8' } }];
+    const memSource = await fetchSource(memUrl);
+    assert.equal(requests.at(-1).url,
+      `https://mem.gov.om/cms/api/communication-items/${memId}?populate=*`);
+    assert.equal(memSource.finalUrl, memUrl);
+    assert.equal(memSource.contentType, 'application/json');
+    assert.equal(memSource.title, 'Oman renewable projects');
+    assert.deepEqual(memSource.bytes, memBytes);
+    responses = [{ status: 302, headers: { location: 'https://other.example/article' } }];
+    await assert.rejects(fetchSource(memUrl), { code: 'source_invalid_redirect' });
     for (const request of requests) {
       assert.equal(request.options.agent, false);
       assert.equal(request.options.headers['Accept-Encoding'], 'identity');

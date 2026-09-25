@@ -94,3 +94,15 @@ test('ONA article date requires its own dateline and matching publisher byline',
   assert.equal(conflict.publication_date, null);
   assert.equal(conflict.publication_method, 'conflicting_metadata');
 });
+
+test('MEM publication date comes from the matching official article response', () => {
+  const id = 'n5efiz4fr7o01xqbg9u5gcni';
+  const url = `https://mem.gov.om/public/news/${id}`;
+  const item = { data: { documentId: id, type: 'MEM', CommunicationType: 'NEWS', date: '2026-03-08' } };
+  const parseJson = (value, target = url) => publicationMetadata(Buffer.from(JSON.stringify(value)), 'application/json', target);
+  assert.equal(parseJson(item).publication_date, '2026-03-08');
+  assert.equal(parseJson(item).published_at, null);
+  assert.equal(parseJson(item).publication_evidence, 'metadata: 2026-03-08');
+  assert.equal(parseJson(item, `https://mem.gov.om.evil.example/public/news/${id}`).publication_date, null);
+  assert.equal(parseJson({ data: { ...item.data, documentId: 'different' } }).publication_date, null);
+});
