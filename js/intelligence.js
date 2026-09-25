@@ -435,8 +435,8 @@
   function renderOverviewOpportunities(opportunities) {
     var list = byId('overview-opportunities');
     list.replaceChildren();
-    var scopes = { equipment: '设备包', service: '服务包' };
-    var states = { unverified: '可参与状态待核', public_tender_open: '采购开放已披露，参与资格待核',
+    var scopes = { early: '早期机会', equipment: '设备包', service: '服务包' };
+    var states = { unverified: '待验证，未披露采购开放', public_tender_open: '采购开放已披露，参与资格待核',
       package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
     opportunities.forEach(function (entry) {
       var item = document.createElement('li');
@@ -444,7 +444,8 @@
       setSourceLink(link, entry.source_id);
       link.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh;
       var meta = document.createElement('p');
-      meta.textContent = (entry.title_zh || '来源未命名') + ' · ' + (states[entry.participation_status] || states.unverified);
+      meta.textContent = (entry.title_zh || '来源未命名') + ' · ' + (states[entry.participation_status] || states.unverified)
+        + (entry.scope === 'early' ? ' · 关联待验证假设，详情见来源' : '');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
       item.append(link, meta, quote); list.append(item);
@@ -693,12 +694,12 @@
     });
     byId('business-history-section').hidden = !history.length;
   }
-  function renderOpportunities(opportunities, history) {
+  function renderOpportunities(opportunities, history, hypotheses) {
     var list = byId('opportunities-list');
     if (!list) return;
     list.replaceChildren();
-    var scopes = { equipment: '设备包', service: '服务包' };
-    var states = { unverified: '可参与状态待核', public_tender_open: '采购开放已披露，参与资格待核',
+    var scopes = { early: '早期机会', equipment: '设备包', service: '服务包' };
+    var states = { unverified: '待验证，未披露采购开放', public_tender_open: '采购开放已披露，参与资格待核',
       package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
     opportunities.forEach(function (entry) {
       var item = document.createElement('li');
@@ -708,6 +709,13 @@
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
       item.append(title, quote);
+      if (entry.scope === 'early') {
+        var hypothesis = (hypotheses || [])
+          .find(function (row) { return row.id === entry.hypothesis_id; });
+        var link = document.createElement('p');
+        link.textContent = '关联待验证假设：' + (hypothesis ? hypothesis.claim_zh : '请查看本来源的假设记录');
+        item.append(link);
+      }
       var changes = (history || []).filter(function (record) { return record.opportunity_id === entry.id; });
       if (changes.length > 1) {
         var details = document.createElement('details');
@@ -816,7 +824,7 @@
       renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
       renderBusinessHistory(result.business_history || []);
-      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || []);
+      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || [], result.candidate?.tracking?.hypotheses || []);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -1029,7 +1037,7 @@
         renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
       renderBusinessHistory(result.business_history || []);
-      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || []);
+      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || [], result.candidate?.tracking?.hypotheses || []);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });

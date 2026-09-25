@@ -61,7 +61,8 @@ function backend() {
       const input = JSON.parse(init.body);
       for (const h of input.p_hypotheses) {
         if (!state.hypotheses.some(old => old.candidate_id === input.p_candidate_id && old.claim_zh === h.hypothesis_zh))
-          state.hypotheses.push({ candidate_id: input.p_candidate_id, owner_id: input.p_owner_id, claim_zh: h.hypothesis_zh, status: 'open' });
+          state.hypotheses.push({ id: `hypothesis-${state.hypotheses.length + 1}`, candidate_id: input.p_candidate_id,
+            owner_id: input.p_owner_id, claim_zh: h.hypothesis_zh, counter_evidence_zh: h.counter_evidence_zh, status: 'open' });
       }
       for (const signal of input.p_signals) {
         if (!state.watches.some(old => old.candidate_id === input.p_candidate_id && old.signal_zh === signal))
@@ -802,6 +803,35 @@ test('overview keeps the newest saved URL analysis even when an older version wa
   assert.equal(JSON.stringify({ records: state.records, candidates: state.candidates }), before);
   assert.equal((await state.store.candidateBySource('old', 'owner-a')).source_id, 'old', 'old detail remains accessible');
   assert.ok(state.calls.every(call => call.method === 'GET'));
+});
+
+test('hypothesis-linked early opportunity remains unverified and retires when reanalysis omits it', async () => {
+  const state = backend();
+  const saved = await state.store.save(SOURCE, 'owner-a');
+  const extraction = {
+    summary_zh: '沙特新数据中心宣布建设。', maturity: 'demand',
+    known_facts: [{ evidence_quote: 'New data center announced in Saudi Arabia.' }],
+    hypotheses: [{ hypothesis_zh: '该中心可能需要备用电源。', counter_evidence_zh: '若已有完整备用方案则不成立。' }],
+    next_signals_zh: ['观察供能方案。'],
+    classification: { disposition: 'candidate', radars: ['demand'], countries: [{ code: 'SA', relation: 'occurrence',
+      rationale_zh: '中心位于沙特。', evidence_fact_number: 1 }], importance: 'medium', evidence_status: 'sourced',
+      urgency: 'research', title_zh: '数据中心新增负荷', organizations: [], project: null, procurement: null,
+      early_opportunities: [{ opportunity_zh: '备用电源方案', hypothesis_number: 1, evidence_fact_number: 1 }] }
+  };
+  await state.store.saveExtraction(saved.source.id, 'owner-a', { extraction, provider: 'deepseek', model: 'test' }, SOURCE.sha256);
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.opportunities.length, 1);
+  assert.equal(state.opportunities[0].hypothesis_id, state.hypotheses[0].id);
+  assert.equal(state.opportunities[0].project_id, null);
+  assert.equal(state.opportunities[0].participation_status, 'unverified');
+  assert.equal(state.opportunities[0].evidence_quote, extraction.known_facts[0].evidence_quote);
+  assert.equal((await state.store.currentOpportunities('owner-a', await state.store.candidates('owner-a')))[0].scope, 'early');
+  assert.equal((await state.store.candidateBySource(saved.source.id, 'owner-a')).opportunities[0].hypothesis_id, state.hypotheses[0].id);
+  extraction.classification.early_opportunities = [];
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.opportunities[0].current_in_analysis, false);
+  assert.equal(state.opportunities[0].participation_status, 'unverified');
+  assert.deepEqual(await state.store.currentOpportunities('owner-a', await state.store.candidates('owner-a')), []);
 });
 
 test('opportunity overview shows only current, owner-scoped, hash-bound sources without merging names', async () => {

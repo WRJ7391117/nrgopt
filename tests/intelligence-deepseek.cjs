@@ -121,6 +121,25 @@ test('source-only background cannot silently carry radar or project claims', () 
   }
 });
 
+test('early opportunity requires a real fact and a retained hypothesis without a project', () => {
+  const candidate = structuredClone(valid);
+  candidate.classification.disposition = 'candidate';
+  candidate.classification.radars = ['demand'];
+  candidate.classification.countries = [{ code: 'SA', relation: 'occurrence', rationale_zh: '来源发生于沙特。', evidence_fact_number: 1 }];
+  candidate.classification.early_opportunities = [{ opportunity_zh: '潜在备用电源方案', hypothesis_number: 1, evidence_fact_number: 1 }];
+  assert.equal(validateExtraction(candidate, sourceText).classification.early_opportunities[0].opportunity_zh, '潜在备用电源方案');
+  candidate.classification.early_opportunities[0].hypothesis_number = 2;
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_early_opportunity_evidence' });
+  candidate.classification.early_opportunities[0].hypothesis_number = 1;
+  candidate.classification.project = { name_zh: '已有项目', evidence_fact_number: 1 };
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_early_opportunity_evidence' });
+  candidate.classification.project = null;
+  candidate.classification.disposition = 'source_only';
+  candidate.classification.radars = [];
+  candidate.classification.countries = [];
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_source_only_consistency' });
+});
+
 test('missing or invalid disposition is rejected instead of silently becoming background', () => {
   for (const disposition of [undefined, null, '', 'project']) {
     const invalid = structuredClone(valid);
