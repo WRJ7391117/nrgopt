@@ -48,6 +48,17 @@ test('daily schedule uses the configured timezone and stable six-country item ke
       .map(item_key => ({ item_key, checkpoint: {} }))]);
 });
 
+test('Nama article aliases use the verified canonical article URL while retaining discovery provenance', () => {
+  const slug = 'nama-power-and-water-procurement-signs-agreement-with-sembcorp-utilities-and-oq-alternative-energy-to-develop-the-dhofar-ii-wind-power-project-in-the-sultanate-of-oman';
+  const original = `https://omanpwp.om/public/news-details/${slug}`;
+  const canonical = `https://www.omanpwp.om/news-details/${slug}`;
+  const alias = sourceItem({ url: original }, 'OM');
+  const standard = sourceItem({ url: canonical }, 'OM');
+  assert.equal(alias.item_key, standard.item_key);
+  assert.deepEqual(alias.checkpoint, { country: 'OM', url: canonical, discovered_url: original });
+  assert.deepEqual(standard.checkpoint, { country: 'OM', url: canonical });
+});
+
 test('the server derives a bounded call reservation from each service monthly limit', () => {
   assert.equal(automaticCallReserve('discovery', 'CNY', 10_000_000), 2_000_000);
   assert.equal(automaticCallReserve('extraction', 'CNY', 10_000_000), 1_000_000);
