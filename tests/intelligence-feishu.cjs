@@ -37,8 +37,8 @@ test('Feishu app bot resolves its only chat and user, then sends both cards', as
   const requests = [];
   const responses = [
     new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 }),
-    new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_authorized_test_chat' }] } }), { status: 200 }),
-    new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ member_id: 'ou_authorized_test_user' }] } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { has_more: false,
+      items: [{ chat_id: 'oc_authorized_test_chat', owner_id: 'ou_authorized_test_user' }] } }), { status: 200 }),
     new Response(JSON.stringify({ code: 0, data: { message_id: 'om_chat_message' } }), { status: 200 }),
     new Response(JSON.stringify({ code: 0, data: { message_id: 'om_user_message' } }), { status: 200 })
   ];
@@ -53,15 +53,14 @@ test('Feishu app bot resolves its only chat and user, then sends both cards', as
   assert.match(requests[0].url, /tenant_access_token\/internal$/);
   assert.match(requests[1].url, /\/im\/v1\/chats\?page_size=100$/);
   assert.equal(requests[1].init.headers.Authorization, 'Bearer tenant-token');
-  assert.match(requests[2].url, /\/chats\/oc_authorized_test_chat\/members\?member_id_type=open_id/);
-  const chat = JSON.parse(requests[3].init.body);
-  const direct = JSON.parse(requests[4].init.body);
+  const chat = JSON.parse(requests[2].init.body);
+  const direct = JSON.parse(requests[3].init.body);
   assert.equal(chat.receive_id, 'oc_authorized_test_chat');
   assert.equal(direct.receive_id, 'ou_authorized_test_user');
   assert.equal(chat.msg_type, 'interactive');
   assert.match(chat.content, /系统运行告警/);
   assert.equal(JSON.parse(requests[0].init.body).app_secret, 'private-test-secret');
-  assert.ok(!requests[3].init.body.includes('private-test-secret'));
+  assert.ok(!requests[2].init.body.includes('private-test-secret'));
 });
 
 test('Feishu app bot requires an explicit chat when it belongs to more than one', async () => {
