@@ -673,6 +673,39 @@
     });
     byId('business-history-section').hidden = !history.length;
   }
+  function renderOpportunities(opportunities, history) {
+    var list = byId('opportunities-list');
+    if (!list) return;
+    list.replaceChildren();
+    var scopes = { equipment: '设备包', service: '服务包' };
+    var states = { unverified: '可参与状态待核', public_tender_open: '采购开放已披露，参与资格待核',
+      package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
+    opportunities.forEach(function (entry) {
+      var item = document.createElement('li');
+      var title = document.createElement('strong');
+      title.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh + ' · '
+        + (entry.current_in_analysis ? (states[entry.participation_status] || states.unverified) : '本次分析未再次确认');
+      var quote = document.createElement('blockquote');
+      quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
+      item.append(title, quote);
+      var changes = (history || []).filter(function (record) { return record.opportunity_id === entry.id; });
+      if (changes.length > 1) {
+        var details = document.createElement('details');
+        var heading = document.createElement('summary');
+        heading.textContent = '查看状态记录（' + changes.length + '）';
+        details.append(heading);
+        changes.forEach(function (record) {
+          var change = document.createElement('p');
+          change.textContent = dateLabel(record.recorded_at) + ' · '
+            + (record.snapshot.current_in_analysis ? (states[record.snapshot.participation_status] || states.unverified) : '本次分析未再次确认');
+          details.append(change);
+        });
+        item.append(details);
+      }
+      list.append(item);
+    });
+    byId('opportunities-section').hidden = !opportunities.length;
+  }
   function renderAnalysisRevisions(revisions) {
     var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
     var list = byId('analysis-revisions');
@@ -763,6 +796,7 @@
       renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
       renderBusinessHistory(result.business_history || []);
+      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || []);
       if (source.error_code) {
         byId('source-error').hidden = false;
         status('source-error', '失败信息：' + source.error_code, 'error');
@@ -975,6 +1009,7 @@
         renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
       renderBusinessHistory(result.business_history || []);
+      renderOpportunities(result.candidate?.opportunities || [], result.candidate?.opportunity_history || []);
       } catch (error) { status('extraction-status', error.message, 'error'); }
       finally { extractButton.disabled = false; }
     });

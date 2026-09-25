@@ -22,7 +22,7 @@ const SOURCE = {
 // This models only the REST contract used here, including PostgREST projection.
 // It does not exercise Supabase authentication, RLS, SQL constraints or Storage.
 function backend() {
-  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], providerConfigs: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
+  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], opportunities: [], opportunityHistory: [], providerConfigs: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
   const json = (value, status = 200) => new Response(JSON.stringify(value), { status });
   state.fetch = async (input, init) => {
     const url = new URL(input);
@@ -205,6 +205,31 @@ function backend() {
         else state.procurements.push({ id: `procurement-${state.procurements.length + 1}`, ...input });
         return new Response(null, { status: 201 });
       }
+    }
+    if (url.pathname === '/rest/v1/intelligence_opportunities') {
+      const owner = url.searchParams.get('owner_id')?.slice(3);
+      const candidate = url.searchParams.get('candidate_id')?.slice(3);
+      const id = url.searchParams.get('id')?.slice(3);
+      const matches = state.opportunities.filter(row => (!owner || row.owner_id === owner)
+        && (!candidate || row.candidate_id === candidate) && (!id || row.id === id));
+      if (method === 'GET') return json(matches);
+      if (method === 'PATCH') {
+        matches.forEach(row => Object.assign(row, JSON.parse(init.body)));
+        return new Response(null, { status: 204 });
+      }
+      if (method === 'POST') {
+        const input = JSON.parse(init.body);
+        const current = state.opportunities.find(row => row.owner_id === input.owner_id && row.candidate_id === input.candidate_id
+          && row.scope === input.scope && row.package_name_zh === input.package_name_zh);
+        if (current) Object.assign(current, input);
+        else state.opportunities.push({ id: `opportunity-${state.opportunities.length + 1}`, ...input });
+        return new Response(null, { status: 201 });
+      }
+    }
+    if (url.pathname === '/rest/v1/intelligence_opportunity_history') {
+      const owner = url.searchParams.get('owner_id')?.slice(3);
+      const source = url.searchParams.get('source_id')?.slice(3);
+      return json(state.opportunityHistory.filter(row => row.owner_id === owner && row.source_id === source));
     }
     if (url.pathname === '/rest/v1/intelligence_hypothesis_assessments') return new Response('[]', { status: 200 });
     if (['/rest/v1/intelligence_hypotheses', '/rest/v1/intelligence_watch_targets'].includes(url.pathname)) {
@@ -546,21 +571,37 @@ test('G2 candidate persists evidence-linked radar, project and procurement recor
   assert.equal(state.procurements[0].id, originalPackageId);
   extraction.known_facts = [{ evidence_quote: 'EPC signed. Equipment tender remains open.' }];
   extraction.commercial_events = [
-    { object_zh: '独立包件', scope: 'epc', stage: 'signed', scope_text: 'EPC', stage_text: 'signed', evidence_fact_number: 1 },
-    { object_zh: '独立包件', scope: 'equipment', stage: 'open', scope_text: 'Equipment', stage_text: 'tender remains open', evidence_fact_number: 1 }
+    { object_zh: '独立包件', scope: 'epc', stage: 'signed', scope_text: 'EPC', stage_text: 'signed', evidence_fact_number: 1 }
   ];
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.opportunities.length, 0, 'EPC award alone cannot create equipment opportunity');
+  extraction.commercial_events.push(
+    { object_zh: '独立包件', scope: 'equipment', stage: 'open', scope_text: 'Equipment', stage_text: 'tender remains open', evidence_fact_number: 1 });
   await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
   const epc = state.procurements.find(item => item.scope === 'epc');
   const equipment = state.procurements.find(item => item.scope === 'equipment');
   assert.notEqual(epc.id, equipment.id);
   assert.equal(epc.stage_code, 'signed'); assert.equal(equipment.stage_code, 'open');
+  assert.equal(state.opportunities.length, 1, 'equipment evidence creates its own opportunity');
+  assert.equal(state.opportunities[0].participation_status, 'public_tender_open');
+  assert.equal((await state.store.candidateBySource(saved.source.id, 'owner-a')).opportunities[0].evidence_quote,
+    'EPC signed. Equipment tender remains open.');
   assert.equal(state.procurements[0].current_in_analysis, true, 'separate procurement classification is retained alongside structured packages');
   extraction.classification.procurement = null;
   extraction.commercial_events = extraction.commercial_events.slice(0, 1);
   await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
   assert.equal(equipment.current_in_analysis, false); assert.equal(equipment.stage_code, 'open');
+  assert.equal(state.opportunities[0].current_in_analysis, false, 'missing equipment evidence is not treated as cancellation');
+  assert.equal(state.opportunities[0].participation_status, 'public_tender_open');
   assert.equal(state.procurements[0].current_in_analysis, false);
   assert.equal(epc.current_in_analysis, true);
+  extraction.classification.disposition = 'source_only';
+  extraction.commercial_events.push({ object_zh: '新设备包', scope: 'equipment', stage: 'open', scope_text: 'Equipment',
+    stage_text: 'tender remains open', evidence_fact_number: 1 });
+  await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
+  assert.equal(state.opportunities.length, 1, 'source-only analysis cannot create a commercial opportunity');
+  extraction.classification.disposition = 'candidate';
+  extraction.commercial_events.pop();
   extraction.commercial_events.push({ ...extraction.commercial_events[0], stage: 'cancelled', stage_text: 'cancelled' });
   await state.store.saveCandidate(saved.source.id, 'owner-a', extraction, SOURCE.sha256);
   assert.equal(epc.stage_code, null); assert.match(epc.stage_zh, /当前阶段未判定/);
