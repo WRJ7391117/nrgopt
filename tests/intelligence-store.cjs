@@ -76,6 +76,7 @@ function backend() {
         state.projects.find(row => row.owner_id === input.p_owner_id && row.candidate_id === candidateId && row.current_in_analysis !== false));
       return json(projects.every(Boolean) ? 'identity-1' : null);
     }
+    if (url.pathname === '/rest/v1/rpc/sync_intelligence_opportunity_links') return json(0);
     if (url.pathname === '/rest/v1/intelligence_sources') {
       if (method === 'POST') {
         const record = JSON.parse(init.body);
@@ -672,6 +673,7 @@ test('strict project peers are cross-linked and exposed as one independently sup
   });
   assert.equal(linkedIdentity.project_identity_id, 'identity-1');
   assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/rpc/try_link_intelligence_project_identity').length, 1);
+  assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/rpc/sync_intelligence_opportunity_links').length, 1);
   assert.equal(state.relations.length, 2);
   assert.ok(state.candidates.every(item => item.evidence_status === 'checked'));
   const listed = await state.store.candidates('owner-a');
