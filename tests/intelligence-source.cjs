@@ -75,6 +75,10 @@ async function main() {
     + '<p>Other project news</p></main>'), 'text/html', 2_000, 'https://www.kapp.gov.kw/media/get_details/126');
   assert.deepEqual(kapp, { title: 'اتفاقيات محطة الزور',
     excerpt: '03 Feb, 2026 اتفاقيات محطة الزور توليد الطاقة الكهربائية وتحلية المياه.' });
+  assert.throws(() => extractDocument(Buffer.from('<main><div class="blog-items"><div class="blog-content"><div class="item">'
+    + '<div class="info content-box"><div class="date">26 Jul, 2026</div><h3>إعلان النتائج</h3>'
+    + '<p><img src="/notice.png" alt=""></p></div></div></div></div></main>'), 'text/html', 2_000,
+  'https://www.kapp.gov.kw/media/get_details/134'), { code: 'source_empty_document' });
   const dataCentre = extractDocument(Buffer.from('<main><section class="press-release-detail"><div class="content-sec"><h1>Data centre design certification</h1><p>100 MW total IT load.</p></div><div class="recent-release"><h4>Recent Press Release</h4><p>Unrelated technology agreement.</p></div></section></main>'), 'text/html');
   assert.deepEqual(dataCentre, { title: 'Data centre design certification', excerpt: 'Data centre design certification 100 MW total IT load.' });
   for (const container of ['<section class="our-blog"><div class="entry-content">BODY</div></section>',
