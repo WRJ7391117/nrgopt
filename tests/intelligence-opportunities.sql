@@ -1,7 +1,8 @@
 begin;
 do $$
 declare owner_id uuid:=gen_random_uuid(); other_owner uuid:=gen_random_uuid();
-  source_id uuid:=gen_random_uuid(); candidate_id uuid:=gen_random_uuid(); project_id uuid:=gen_random_uuid(); rejected boolean;
+  source_id uuid:=gen_random_uuid(); candidate_id uuid:=gen_random_uuid(); project_id uuid:=gen_random_uuid();
+  early_hypothesis_id uuid:=gen_random_uuid(); rejected boolean;
 begin
   insert into auth.users(id) values(owner_id),(other_owner);
   set local role service_role;
@@ -27,6 +28,36 @@ begin
   update public.intelligence_opportunities set current_in_analysis=false where package_name_zh='电池设备包';
   if (select count(*) from public.intelligence_opportunity_history)<>2 then
     raise exception 'opportunity reanalysis history missing'; end if;
+  insert into public.intelligence_hypotheses(id,owner_id,candidate_id,claim_zh)
+    values(early_hypothesis_id,owner_id,candidate_id,'未来可能需要备用电源');
+  insert into public.intelligence_opportunities(owner_id,candidate_id,hypothesis_id,scope,package_name_zh,
+    participation_status,evidence_fact_number,evidence_quote,source_sha256)
+    values(owner_id,candidate_id,early_hypothesis_id,'early','备用电源需求待验证','unverified',1,'New data center announced.',repeat('a',64));
+  if not exists(select 1 from public.intelligence_opportunities o where o.scope='early' and o.project_id is null
+    and o.hypothesis_id=early_hypothesis_id) then raise exception 'early hypothesis opportunity missing'; end if;
+  if (select count(*) from public.intelligence_opportunity_history)<>3 then
+    raise exception 'early opportunity history missing'; end if;
+  rejected:=false;
+  begin
+    insert into public.intelligence_opportunities(owner_id,candidate_id,hypothesis_id,scope,package_name_zh,
+      participation_status,evidence_fact_number,evidence_quote,source_sha256)
+      values(owner_id,candidate_id,early_hypothesis_id,'early','虚构已开放','public_tender_open',1,'New data center announced.',repeat('a',64));
+  exception when check_violation then rejected:=true; end;
+  if not rejected then raise exception 'unverified early opportunity claimed open tender'; end if;
+  rejected:=false;
+  begin
+    insert into public.intelligence_opportunities(owner_id,candidate_id,scope,package_name_zh,
+      participation_status,evidence_fact_number,evidence_quote,source_sha256)
+      values(owner_id,candidate_id,'early','缺少假设','unverified',1,'New data center announced.',repeat('a',64));
+  exception when check_violation then rejected:=true; end;
+  if not rejected then raise exception 'early opportunity without hypothesis accepted'; end if;
+  rejected:=false;
+  begin
+    insert into public.intelligence_opportunities(owner_id,candidate_id,scope,package_name_zh,
+      participation_status,evidence_fact_number,evidence_quote,source_sha256)
+      values(owner_id,candidate_id,'equipment','缺少项目','unverified',1,'Equipment tender is open.',repeat('a',64));
+  exception when check_violation then rejected:=true; end;
+  if not rejected then raise exception 'equipment opportunity without project accepted'; end if;
   rejected:=false;
   begin
     insert into public.intelligence_opportunities(owner_id,candidate_id,project_id,scope,package_name_zh,
