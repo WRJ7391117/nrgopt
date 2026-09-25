@@ -166,6 +166,9 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.ok(request.body.messages.some(message => message.content.includes('<source>')));
   assert.ok(request.body.messages.some(message => message.content.includes('classification 内另输出 early_opportunities')));
   assert.ok(request.body.messages.some(message => message.content.includes('若 classification.project 或 classification.procurement 非 null，classification.early_opportunities 必须为 []')));
+  assert.ok(request.body.messages.some(message => message.content.includes('重大停电、供能中断、安全或资源事件、监管紧急调查、重大制度变化属于trigger候选')));
+  assert.ok(request.body.messages.some(message => message.content.includes('保持project=null、procurement=null')));
+  assert.ok(request.body.messages.some(message => message.content.includes('不得升级为BESS、设备采购或具体项目')));
   await extract({ title: 'Energy', url: 'https://source.example', sourceText,
     formatRepairCode: 'extraction_invalid_early_opportunity_evidence' });
   assert.ok(request.body.messages.some(message => message.content.includes('唯一一次格式修复机会')));
