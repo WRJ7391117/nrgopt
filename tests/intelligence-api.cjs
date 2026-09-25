@@ -563,6 +563,30 @@ test('a plausible second source is cross-checked and linked without requiring hu
   assert.deepEqual(calls.find(call => call.name === 'saveCrossCheck').args.slice(0, 3), [candidate.id, peer.id, admin]);
 });
 
+test('manual extraction makes one budgeted format repair before returning failure', async () => {
+  const bytes = Buffer.from('<html><main>Official source evidence.</main></html>');
+  const saved = { ...source, content_type: 'text/html', content_sha256: createHash('sha256').update(bytes).digest('hex') };
+  const extraction = { summary_zh: '中文摘要', why_it_matters_zh: '为什么重要',
+    known_facts: [{ claim_zh: '存在官方证据。', evidence_quote: 'Official source evidence.' }],
+    unknowns_zh: ['后续状态未知。'], hypotheses: [], next_signals_zh: ['继续观察。'], gcc_relevance_zh: '海合会来源。',
+    maturity: 'signal', caution_zh: '仅按原文记录。', classification: { disposition: 'source_only', radars: [], countries: [],
+      importance: 'low', evidence_status: 'sourced', urgency: 'none', title_zh: '官方来源', organizations: [], project: null, procurement: null } };
+  const seen = [];
+  const { request, calls } = setup({
+    overrides: { evidence: async () => ({ source: saved, bytes }) },
+    modelFactory: () => async input => {
+      seen.push(input.formatRepairCode);
+      if (seen.length === 1) throw Object.assign(new Error('invalid output'), { code: 'extraction_invalid_early_opportunity_evidence', status: 422 });
+      return { extraction, provider: 'deepseek', model: 'deepseek-flash', usage: {} };
+    }
+  });
+  assert.equal((await request('extract', { method: 'POST', body: {} })).code, 200);
+  assert.deepEqual(seen, [null, 'extraction_invalid_early_opportunity_evidence']);
+  assert.equal(calls.filter(call => call.name === 'reserveBudget').length, 2);
+  assert.equal(calls.filter(call => call.name === 'failExtraction').length, 1);
+  assert.equal(calls.filter(call => call.name === 'saveExtraction').length, 1);
+});
+
 test('model failures save only a stable failure state and never persist extraction output', async () => {
   const bytes = Buffer.from('<html><main>Official source evidence.</main></html>');
   const saved = { ...source, content_type: 'text/html', content_sha256: createHash('sha256').update(bytes).digest('hex') };
@@ -573,7 +597,9 @@ test('model failures save only a stable failure state and never persist extracti
   const response = await request('extract', { method: 'POST', body: {} });
   assert.equal(response.code, 422);
   assert.deepEqual(response.body, { error: 'extraction_invalid_known_fact_quote', message: '模型给出的原文引文与来源正文不一致，未保存本次结果。' });
-  assert.deepEqual(calls.find(call => call.name === 'failExtraction').args, [id, admin, 'extraction_invalid_known_fact_quote']);
+  assert.equal(calls.filter(call => call.name === 'failExtraction').length, 2);
+  assert.deepEqual(calls.filter(call => call.name === 'failExtraction').at(-1).args, [id, admin, 'extraction_invalid_known_fact_quote']);
+  assert.equal(calls.filter(call => call.name === 'reserveBudget').length, 2);
   assert.ok(!calls.some(call => call.name === 'saveExtraction'));
   assert.ok(!JSON.stringify(response.body).includes('private provider response'));
 });

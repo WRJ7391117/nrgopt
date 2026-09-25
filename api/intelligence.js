@@ -277,7 +277,16 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'extract') {
         if (!config.writes) throw failure('writes_disabled', 403);
         try {
-          const result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
+          let result;
+          try {
+            result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
+          } catch (error) {
+            const invalid = error?.code === 'extraction_invalid'
+              || /^extraction_invalid_[a-z_]{1,40}$/.test(error?.code || '');
+            if (!invalid) throw error;
+            result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory,
+              balanceReaderFactory, formatRepairCode: error.code });
+          }
           return res.status(200).json({ source: result.source, candidate: await store.candidateBySource(req.query.id, user.id),
             history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
         }
