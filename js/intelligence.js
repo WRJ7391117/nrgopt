@@ -434,6 +434,12 @@
   }
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
+    var countryNames = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var fixedCountries = result.fixed_source_countries || [];
+    var missingCountries = Object.keys(countryNames).filter(function (code) { return !fixedCountries.includes(code); });
+    byId('fixed-source-coverage').textContent = '已登记固定公告入口：' + (fixedCountries.map(function (code) { return countryNames[code]; }).filter(Boolean).join('、') || '暂无')
+      + '。' + (missingCountries.length ? missingCountries.map(function (code) { return countryNames[code]; }).join('、') + '暂无固定入口，仍安排基础搜索；' : '六国均有固定入口；')
+      + '入口实际抓取结果以任务记录为准。';
     var archiveStates = { disabled: '尚未启用云端归档入口，待归档原件继续保留在云端。',
       missing_token: '归档凭据尚未配置，节点暂时无法连接。', read_only: '当前部署只读，不能领取或确认归档任务。',
       enabled: '云端入口已启用；仍需归档节点实际拉取并校验，不代表原件已经完成归档。' };

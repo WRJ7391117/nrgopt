@@ -226,6 +226,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         return res.status(200).json({ ok: true, resumed });
       }
       if (action === 'operations') return res.status(200).json({ ...(await store.operations(user.id)),
+        fixed_source_countries: [...new Set(registry.map(entry => entry.country))],
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes,
         archive_status: env.NRGOPT_ARCHIVE_ENABLED !== '1' ? 'disabled' : !env.NRGOPT_ARCHIVE_TOKEN ? 'missing_token' : !config.writes ? 'read_only' : 'enabled' });
       if (action === 'provider-history') return res.status(200).json(await store.providerHistory(user.id));

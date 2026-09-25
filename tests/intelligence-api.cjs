@@ -350,7 +350,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   await request('overview');
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   const operations = await request('operations');
-  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], scheduler_enabled: false, archive_status: 'disabled' });
+  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA'], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
   assert.match(overviewPage.body, /三个雷达分别看什么/);
