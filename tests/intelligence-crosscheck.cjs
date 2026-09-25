@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createDeepSeekCrossChecker, plausibleSameProject, validateCrossCheck } = require('../lib/intelligence/crosscheck.cjs');
+const { createDeepSeekCrossChecker, plausibleSameProject, plausibleCorrectionPair, correctionContext,
+  validateCrossCheck } = require('../lib/intelligence/crosscheck.cjs');
 const { ENDPOINT } = require('../lib/intelligence/deepseek.cjs');
 
 const left = {
@@ -21,6 +22,23 @@ test('strict project prefilter requires country, a named project token and an or
   assert.equal(plausibleSameProject(left, { ...right, occurrence_countries: ['AE'] }), false);
   assert.equal(plausibleSameProject(left, { ...right, project_zh: { name_zh: 'Bisha 风电项目' } }), false);
   assert.equal(plausibleSameProject(left, { ...right, organizations_zh: [{ canonical_name: 'Unrelated Developer' }] }), false);
+});
+
+test('same-publisher correction candidate requires an explicit change and shared project evidence', () => {
+  const oldNotice = { ...left, organizations_zh: [{ canonical_name: 'هيئة مشروعات الشراكة بين القطاعين العام والخاص' }],
+    project_zh: { name_zh: 'Al-Khairan Phase One' }, extraction_zh: { known_facts: [
+      { claim_zh: 'Al-Khairan一期资格预审截止2022年8月16日。' }
+    ] } };
+  const newNotice = { ...right, organizations_zh: [{ canonical_name: 'هيئة مشروعات الشراكة بين القطاعين العام والخاص' }],
+    project_zh: { name_zh: 'محطة الخيران المرحلة الأولى' }, extraction_zh: { known_facts: [
+      { claim_zh: '官方取消旧邀请并重新邀请Al-Khairan一期资格申请，截止2023年7月11日。' }
+    ] } };
+  assert.equal(correctionContext(oldNotice, newNotice), true);
+  assert.equal(plausibleCorrectionPair(oldNotice, newNotice), true);
+  assert.equal(plausibleCorrectionPair(oldNotice, { ...newNotice, extraction_zh: { known_facts: [
+    { claim_zh: '另一项目发布了新的资格预审邀请。' }
+  ] } }), false);
+  assert.equal(plausibleCorrectionPair(oldNotice, { ...newNotice, organizations_zh: [{ canonical_name: '另一机构' }] }), false);
 });
 
 test('cross-check output must reference facts that exist on both saved sources', () => {

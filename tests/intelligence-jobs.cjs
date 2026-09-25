@@ -449,6 +449,29 @@ test('already queued cross-check skips another version from the same publisher',
   assert.ok(!store.calls.some(call => ['reserveBudget', 'saveCrossCheck'].includes(call[0])));
 });
 
+test('same publisher correction with shared project evidence is cross-checked', async () => {
+  const peerId = '22222222-2222-4222-8222-222222222222';
+  const store = fakeStore({ item: { id: 'item-cross-correction', job_run_id: 'job-1',
+    item_key: `cross:${sourceId}:${peerId}`, attempts: 1,
+    checkpoint: { left_source_id: sourceId, right_source_id: peerId } } });
+  const candidate = id => ({ id, related_sources: [], disposition: 'candidate', occurrence_countries: ['KW'],
+    organizations_zh: [{ canonical_name: 'هيئة مشروعات الشراكة بين القطاعين العام والخاص' }],
+    project_zh: { name_zh: id === sourceId ? 'Al-Khairan Phase One' : 'محطة الخيران المرحلة الأولى' } });
+  const extraction = id => ({ known_facts: [{ claim_zh: id === sourceId
+    ? 'Al-Khairan一期资格预审截止2022年8月16日。'
+    : '官方取消旧邀请并重新邀请Al-Khairan一期资格申请，截止2023年7月11日。' }] });
+  store.candidateBySource = async id => candidate(id);
+  store.get = async id => ({ final_url: `https://official.example/${id}`, content_sha256: id,
+    extracted_at: '2026-09-25T00:00:00Z', extraction_zh: extraction(id) });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: {
+    DEEPSEEK_API_KEY: 'test-key', NRGOPT_DEEPSEEK_EXTRACTION_RESERVE_MICROCNY: '500000'
+  }, ...dependencies, crossCheckFactory: () => async () => ({ same_project: true, same_scope: true,
+    matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '同一项目资格预审更新。' }], conflicting_facts: [] }) });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(store.calls.some(call => call[0] === 'reserveBudget'));
+  assert.ok(store.calls.some(call => call[0] === 'saveCrossCheck'));
+});
+
 test('saved extraction durably queues prior hypotheses for evidence assessment', async () => {
   const hypothesisId = '22222222-2222-4222-8222-222222222222';
   const store = fakeStore({ item: { id: 'extract-item', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
