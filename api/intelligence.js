@@ -50,7 +50,9 @@ const messages = {
   archive_disabled: '归档节点尚未接入。', archive_unauthorized: '归档凭据无效。',
   feishu_disabled: '飞书通知尚未启用。', feishu_not_configured: '飞书机器人尚未配置。',
   feishu_auth_failed: '飞书应用凭据无效或应用尚不可用。', feishu_chat_access_required: '飞书机器人尚无权读取所在群聊。',
-  feishu_chat_target_required: '飞书机器人未加入唯一测试群，或已加入多个群但尚未指定目标群。', feishu_send_rejected: '飞书拒绝了卡片发送，请检查机器人消息权限和目标群成员状态。',
+  feishu_chat_membership_required: '飞书机器人尚未加入测试群。', feishu_chat_target_required: '飞书机器人已加入多个群，请指定目标群。',
+  feishu_user_access_required: '飞书机器人尚无权读取目标群成员。', feishu_user_target_required: '无法从目标群唯一确定本人，请指定个人 open_id。',
+  feishu_send_rejected: '飞书拒绝了卡片发送，请检查机器人消息权限和目标成员状态。',
   delivery_failed: '飞书未接受本次通知，已保留待重试记录。', delivery_unknown: '飞书响应结果不明，已停止自动重发。'
 };
 const { countries, discoverCountry } = require('../lib/intelligence/discovery.cjs');
@@ -155,7 +157,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const config = settings(env);
         if (!config.writes) throw failure('writes_disabled', 403);
         const send = notificationFactory({ webhookUrl: env.FEISHU_WEBHOOK_URL, appId: env.FEISHU_APP_ID,
-          appSecret: env.FEISHU_APP_SECRET, chatId: env.FEISHU_CHAT_ID });
+          appSecret: env.FEISHU_APP_SECRET, chatId: env.FEISHU_CHAT_ID, userOpenId: env.FEISHU_USER_OPEN_ID });
         const store = storeFactory(config);
         const notification = await store.claimNotification(config.adminId);
         if (!notification) return res.status(200).json({ status: 'idle' });
@@ -166,13 +168,16 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           candidate = await store.candidateBySource(notification.payload.source_id, config.adminId);
         }
         try {
-          const delivered = await send({ notification, source, candidate, baseUrl: config.origin });
+          const delivered = await send({ notification, source, candidate, baseUrl: config.origin,
+            onTargetAccepted: deliveredTarget => store.recordNotificationTarget(config.adminId, notification.id,
+              notification.payload, deliveredTarget) });
           await store.finishNotification(config.adminId, notification.id, 'accepted', delivered.responseCode);
           return res.status(200).json({ status: 'accepted', notification_id: notification.id,
-            message_id: delivered.messageId || null, chat_id: delivered.chatId || null });
+            message_id: delivered.messageId || null, message_ids: delivered.messageIds || [], chat_id: delivered.chatId || null });
         } catch (error) {
           const unknown = error.code === 'delivery_unknown';
-          const safeCode = ['feishu_auth_failed', 'feishu_chat_access_required', 'feishu_chat_target_required', 'feishu_send_rejected'].includes(error.code)
+          const safeCode = ['feishu_auth_failed', 'feishu_chat_access_required', 'feishu_chat_membership_required', 'feishu_chat_target_required',
+            'feishu_user_access_required', 'feishu_user_target_required', 'feishu_send_rejected'].includes(error.code)
             ? error.code : unknown ? 'delivery_result_unknown' : 'delivery_failed';
           await store.finishNotification(config.adminId, notification.id, unknown ? 'unknown' : 'retry', error.responseCode || null,
             safeCode);

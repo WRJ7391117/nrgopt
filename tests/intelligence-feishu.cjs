@@ -33,27 +33,35 @@ test('Feishu sender accepts only official webhook hosts and classifies lost resp
   await assert.rejects(unknown(input), { code: 'delivery_unknown' });
 });
 
-test('Feishu app bot obtains a tenant token, resolves its only chat and sends the card', async () => {
+test('Feishu app bot resolves its only chat and user, then sends both cards', async () => {
   const requests = [];
   const responses = [
     new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 }),
     new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_authorized_test_chat' }] } }), { status: 200 }),
-    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_test_message' } }), { status: 200 })
+    new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ member_id: 'ou_authorized_test_user' }] } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_chat_message' } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_user_message' } }), { status: 200 })
   ];
   const sender = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret',
     fetchImpl: async (url, init = {}) => { requests.push({ url: String(url), init }); return responses.shift(); } });
+  const accepted = [];
   const result = await sender({ notification: { notification_type: 'system', payload: { schedule_key: '2026-09-25', health: 'ok' } },
-    baseUrl: 'https://nrgopt.example' });
-  assert.deepEqual(result, { responseCode: 200, messageId: 'om_test_message', chatId: 'oc_authorized_test_chat' });
+    baseUrl: 'https://nrgopt.example', onTargetAccepted: item => accepted.push(item.target) });
+  assert.deepEqual(result, { responseCode: 200, messageId: 'om_user_message', messageIds: ['om_chat_message', 'om_user_message'],
+    chatId: 'oc_authorized_test_chat' });
+  assert.deepEqual(accepted, ['chat', 'user']);
   assert.match(requests[0].url, /tenant_access_token\/internal$/);
   assert.match(requests[1].url, /\/im\/v1\/chats\?page_size=100$/);
   assert.equal(requests[1].init.headers.Authorization, 'Bearer tenant-token');
-  const sent = JSON.parse(requests[2].init.body);
-  assert.equal(sent.receive_id, 'oc_authorized_test_chat');
-  assert.equal(sent.msg_type, 'interactive');
-  assert.match(sent.content, /系统运行告警/);
+  assert.match(requests[2].url, /\/chats\/oc_authorized_test_chat\/members\?member_id_type=open_id/);
+  const chat = JSON.parse(requests[3].init.body);
+  const direct = JSON.parse(requests[4].init.body);
+  assert.equal(chat.receive_id, 'oc_authorized_test_chat');
+  assert.equal(direct.receive_id, 'ou_authorized_test_user');
+  assert.equal(chat.msg_type, 'interactive');
+  assert.match(chat.content, /系统运行告警/);
   assert.equal(JSON.parse(requests[0].init.body).app_secret, 'private-test-secret');
-  assert.ok(!requests[2].init.body.includes('private-test-secret'));
+  assert.ok(!requests[3].init.body.includes('private-test-secret'));
 });
 
 test('Feishu app bot requires an explicit chat when it belongs to more than one', async () => {
@@ -63,6 +71,36 @@ test('Feishu app bot requires an explicit chat when it belongs to more than one'
       : new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_first_chat' }, { chat_id: 'oc_second_chat' }] } }), { status: 200 }) });
   await assert.rejects(sender({ notification: { notification_type: 'daily', payload: {} }, baseUrl: 'https://nrgopt.example' }),
     { code: 'feishu_chat_target_required' });
+});
+
+test('Feishu app bot retries only the rejected target after recording a partial success', async () => {
+  const input = { notification: { notification_type: 'daily', payload: {} }, baseUrl: 'https://nrgopt.example' };
+  const accepted = [];
+  const first = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret',
+    chatId: 'oc_authorized_test_chat', userOpenId: 'ou_authorized_test_user', fetchImpl: async url => {
+      if (String(url).includes('tenant_access_token')) return new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 });
+      if (String(url).includes('receive_id_type=chat_id')) return new Response(JSON.stringify({ code: 0, data: { message_id: 'om_chat' } }), { status: 200 });
+      return new Response(JSON.stringify({ code: 230001, msg: 'rejected' }), { status: 200 });
+    } });
+  await assert.rejects(first({ ...input, onTargetAccepted: item => accepted.push(item.target) }), error => {
+    assert.equal(error.code, 'feishu_send_rejected');
+    assert.deepEqual(error.deliveries.map(item => item.target), ['chat']);
+    return true;
+  });
+  assert.deepEqual(accepted, ['chat']);
+
+  const sent = [];
+  const retry = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret',
+    chatId: 'oc_authorized_test_chat', userOpenId: 'ou_authorized_test_user', fetchImpl: async url => {
+      sent.push(String(url));
+      return String(url).includes('tenant_access_token')
+        ? new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 })
+        : new Response(JSON.stringify({ code: 0, data: { message_id: 'om_user' } }), { status: 200 });
+    } });
+  const result = await retry({ ...input, notification: { ...input.notification,
+    payload: { _delivery_targets: { chat: { status: 'accepted', response_code: 200 } } } } });
+  assert.deepEqual(sent.filter(url => url.includes('/messages?')), ['https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id']);
+  assert.deepEqual(result.messageIds, ['om_user']);
 });
 
 test('daily digest contains evidence and judgment, abbreviates accepted FLASH and discloses incomplete coverage', () => {

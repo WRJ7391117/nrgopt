@@ -60,7 +60,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     syncProviderBalance: async () => true,
     claimArchive: async () => null, archiveJob: async () => null, completeArchive: async () => true, failArchive: async () => true,
     jobRun: async () => ({ run: { status: 'running' }, items: [] }), enqueueDailyDigest: async () => '77777777-7777-4777-8777-777777777777', enqueueNotification: async () => '77777777-7777-4777-8777-777777777777',
-    claimNotification: async () => null, finishNotification: async () => true,
+    claimNotification: async () => null, finishNotification: async () => true, recordNotificationTarget: async () => true,
     failExtraction: async () => {}, recordFailure: async () => {}, ...overrides
   };
   for (const [name, fn] of Object.entries(store)) store[name] = async (...args) => { calls.push({ name, args }); return fn(...args); };
@@ -296,11 +296,17 @@ test('notification worker records accepted and unknown delivery outcomes without
     FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/test-hook-value' };
   const notification = { id: '88888888-8888-4888-8888-888888888888', notification_type: 'daily', payload: { schedule_key: '2026-09-22', items: [] } };
   const accepted = setup({ environment: workerEnv, overrides: { claimNotification: async () => notification },
-    notificationFactory: options => { assert.equal(options.webhookUrl, workerEnv.FEISHU_WEBHOOK_URL); return async () => ({ responseCode: 200, messageId: 'om_test', chatId: 'oc_test' }); } });
+    notificationFactory: options => { assert.equal(options.webhookUrl, workerEnv.FEISHU_WEBHOOK_URL); return async input => {
+      await input.onTargetAccepted({ target: 'chat', responseCode: 200, messageId: 'om_test' });
+      return { responseCode: 200, messageId: 'om_test', messageIds: ['om_test'], chatId: 'oc_test' };
+    }; } });
   const response = await accepted.request('notification-worker', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
   assert.equal(response.code, 200);
   assert.equal(response.body.message_id, 'om_test');
+  assert.deepEqual(response.body.message_ids, ['om_test']);
   assert.equal(response.body.chat_id, 'oc_test');
+  assert.deepEqual(accepted.calls.find(call => call.name === 'recordNotificationTarget').args,
+    [admin, notification.id, notification.payload, { target: 'chat', responseCode: 200, messageId: 'om_test' }]);
   assert.deepEqual(accepted.calls.find(call => call.name === 'finishNotification').args, [admin, notification.id, 'accepted', 200]);
 
   const unknown = setup({ environment: workerEnv, overrides: { claimNotification: async () => notification },
