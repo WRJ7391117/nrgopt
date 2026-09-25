@@ -34,6 +34,16 @@ test('validated extraction keeps bounded Chinese fields and exact source evidenc
   assert.equal(result.unknowns_zh.length, 1);
 });
 
+test('overlong Chinese summary ends at a complete sentence', () => {
+  const summary = `${'项目披露了明确进展，'.repeat(25)}已确认阶段。${'后续细节尚未披露，'.repeat(30)}`;
+  const result = validateExtraction({ ...valid, summary_zh: summary }, sourceText);
+  assert.ok(result.summary_zh.length <= 500);
+  assert.ok(result.summary_zh.endsWith('已确认阶段。'));
+  assert.ok(!result.summary_zh.includes('后续细节'));
+  const storedTruncation = summary.slice(0, 500);
+  assert.equal(validateExtraction({ ...valid, summary_zh: storedTruncation }, sourceText).summary_zh, result.summary_zh);
+});
+
 test('a single-source model cannot award cross-check, conflict or correction status', () => {
   for (const status of ['checked', 'conflict', 'corrected']) {
     const result = validateExtraction({ ...valid, classification: { ...valid.classification, evidence_status: status } }, sourceText);
