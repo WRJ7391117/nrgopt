@@ -62,7 +62,7 @@ test('Feishu app bot requires an explicit chat when it belongs to more than one'
       ? new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 })
       : new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_first_chat' }, { chat_id: 'oc_second_chat' }] } }), { status: 200 }) });
   await assert.rejects(sender({ notification: { notification_type: 'daily', payload: {} }, baseUrl: 'https://nrgopt.example' }),
-    { code: 'feishu_not_configured' });
+    { code: 'feishu_chat_target_required' });
 });
 
 test('daily digest contains evidence and judgment, abbreviates accepted FLASH and discloses incomplete coverage', () => {

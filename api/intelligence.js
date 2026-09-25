@@ -49,6 +49,8 @@ const messages = {
   scheduler_disabled: '自动扫描尚未启用。', scheduler_unauthorized: '自动扫描凭据无效。',
   archive_disabled: '归档节点尚未接入。', archive_unauthorized: '归档凭据无效。',
   feishu_disabled: '飞书通知尚未启用。', feishu_not_configured: '飞书机器人尚未配置。',
+  feishu_auth_failed: '飞书应用凭据无效或应用尚不可用。', feishu_chat_access_required: '飞书机器人尚无权读取所在群聊。',
+  feishu_chat_target_required: '飞书机器人未加入唯一测试群，或已加入多个群但尚未指定目标群。', feishu_send_rejected: '飞书拒绝了卡片发送，请检查机器人消息权限和目标群成员状态。',
   delivery_failed: '飞书未接受本次通知，已保留待重试记录。', delivery_unknown: '飞书响应结果不明，已停止自动重发。'
 };
 const { countries, discoverCountry } = require('../lib/intelligence/discovery.cjs');
@@ -170,9 +172,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
             message_id: delivered.messageId || null, chat_id: delivered.chatId || null });
         } catch (error) {
           const unknown = error.code === 'delivery_unknown';
+          const safeCode = ['feishu_auth_failed', 'feishu_chat_access_required', 'feishu_chat_target_required', 'feishu_send_rejected'].includes(error.code)
+            ? error.code : unknown ? 'delivery_result_unknown' : 'delivery_failed';
           await store.finishNotification(config.adminId, notification.id, unknown ? 'unknown' : 'retry', error.responseCode || null,
-            unknown ? 'delivery_result_unknown' : 'delivery_failed');
-          throw failure(unknown ? 'delivery_unknown' : 'delivery_failed', 502);
+            safeCode);
+          throw failure(unknown ? 'delivery_unknown' : safeCode, 502);
         }
       }
       const token = sessionToken(req, env);
