@@ -72,6 +72,23 @@ test('Feishu app bot requires an explicit chat when it belongs to more than one'
     { code: 'feishu_chat_target_required' });
 });
 
+test('Feishu app bot resolves the owner of an explicit chat without listing members', async () => {
+  const requests = [];
+  const responses = [
+    new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { owner_id: 'ou_authorized_test_user' } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_chat' } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_user' } }), { status: 200 })
+  ];
+  const sender = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret', chatId: 'oc_authorized_test_chat',
+    fetchImpl: async (url, init = {}) => { requests.push({ url: String(url), init }); return responses.shift(); } });
+  const result = await sender({ notification: { notification_type: 'system', payload: {} }, baseUrl: 'https://nrgopt.example' });
+  assert.match(requests[1].url, /\/chats\/oc_authorized_test_chat\?user_id_type=open_id$/);
+  assert.ok(!requests.some(request => request.url.includes('/members?')));
+  assert.equal(JSON.parse(requests[3].init.body).receive_id, 'ou_authorized_test_user');
+  assert.deepEqual(result.messageIds, ['om_chat', 'om_user']);
+});
+
 test('Feishu app bot retries only the rejected target after recording a partial success', async () => {
   const input = { notification: { notification_type: 'daily', payload: {} }, baseUrl: 'https://nrgopt.example' };
   const accepted = [];
