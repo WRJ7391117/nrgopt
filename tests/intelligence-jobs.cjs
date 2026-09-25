@@ -114,6 +114,18 @@ test('source failure keeps its safe cause and does not enqueue a model call', as
   assert.ok(!store.calls.some(call => ['reserveBudget', 'enqueueJobItems'].includes(call[0])));
 });
 
+test('discovered publisher listings are rejected as articles without retry or model call', async () => {
+  for (const finalUrl of ['https://masdar.ae/en/news/newsroom', 'https://www.omanpwp.om/public/index.php/news']) {
+    const work = sourceItem({ url: finalUrl }, 'AE');
+    const store = fakeStore({ item: { id: 'item-listing', item_key: work.item_key, attempts: 1, checkpoint: work.checkpoint } });
+    const result = await runDailyJobItem({ store, owner: 'owner-a', jobId: 'job-1', env: {}, ...dependencies,
+      sourceFetcher: async () => ({ finalUrl }) });
+    assert.equal(result.status, 'failed');
+    assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[5], 'source_listing_page');
+    assert.ok(!store.calls.some(call => ['save', 'reserveBudget', 'enqueueJobItems'].includes(call[0])));
+  }
+});
+
 test('saved empty shell stops before budget and model calls without repeated extraction', async () => {
   const store = fakeStore({ item: { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
   store.evidence = async () => ({ source: { id: sourceId, content_type: 'text/html' }, bytes: Buffer.from('<body><script>loadArticle()</script></body>') });
