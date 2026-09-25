@@ -165,6 +165,7 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.equal(request.body.max_tokens, 6000);
   assert.ok(request.body.messages.some(message => message.content.includes('<source>')));
   assert.ok(request.body.messages.some(message => message.content.includes('classification 内另输出 early_opportunities')));
+  assert.ok(request.body.messages.some(message => message.content.includes('若 classification.project 或 classification.procurement 非 null，classification.early_opportunities 必须为 []')));
   assert.equal(result.extraction.summary_zh, valid.summary_zh);
   assert.deepEqual(result.usage, { prompt_tokens: 100, completion_tokens: 50,
     prompt_cache_hit_tokens: 20, prompt_cache_miss_tokens: 80 });

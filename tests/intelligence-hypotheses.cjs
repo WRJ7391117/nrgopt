@@ -50,6 +50,7 @@ test('evaluator sends original context and citations, disables thinking and vali
   const input = JSON.parse(body.messages[1].content);
   assert.equal(input.original.facts.length, 1);
   assert.match(body.messages[0].content, /延期或缺少进展当成取消/);
+  assert.match(body.messages[0].content, /不要把整篇事实都列入/);
 });
 
 test('validated evidence is assessed through the existing provider budget and persisted', async () => {
