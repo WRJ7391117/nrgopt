@@ -688,6 +688,49 @@ test('strict project peers are cross-linked and exposed as one independently sup
 
 });
 
+test('same-publisher correction keeps history and selects the newer project state', async () => {
+  const state = backend();
+  const oldBytes = Buffer.from('<html><p>Old Al-Khairan qualification notice.</p></html>');
+  const newBytes = Buffer.from('<html><p>Replacement Al-Khairan qualification notice.</p></html>');
+  const oldSource = await state.store.save({ ...SOURCE, finalUrl: 'https://official.example/old', bytes: oldBytes,
+    sha256: createHash('sha256').update(oldBytes).digest('hex') }, 'owner-a');
+  const newSource = await state.store.save({ ...SOURCE, finalUrl: 'https://official.example/new', bytes: newBytes,
+    sha256: createHash('sha256').update(newBytes).digest('hex') }, 'owner-a');
+  const extraction = (title, project, fact, date) => ({ summary_zh: fact, maturity: 'procurement', hypotheses: [], next_signals_zh: ['继续观察。'],
+    classification: { disposition: 'candidate', radars: ['project'], countries: [{ code: 'KW', relation: 'occurrence', rationale_zh: '科威特项目。', evidence_fact_number: 1 }],
+      importance: 'high', evidence_status: 'unverified', urgency: 'deadline', title_zh: title,
+      organizations: [{ canonical_name: 'هيئة مشروعات الشراكة بين القطاعين العام والخاص', role_zh: '招标方', evidence_fact_number: 1 }],
+      project: { name_zh: project, stage_zh: fact, evidence_fact_number: 1 },
+      procurement: { package_zh: '资格预审', stage_zh: fact, deadline_text: date, evidence_fact_number: 1 } } });
+  const oldExtraction = extraction('旧资格预审', 'Al-Khairan Phase One', 'Al-Khairan一期资格预审截止2022年8月16日。', '2022-08-16');
+  const newExtraction = extraction('重新邀请资格预审', 'محطة الخيران المرحلة الأولى', '官方取消旧邀请并重新邀请Al-Khairan一期资格申请，截止2023年7月11日。', '2023-07-11');
+  await state.store.saveExtraction(oldSource.source.id, 'owner-a', { extraction: { ...oldExtraction,
+    known_facts: [{ claim_zh: oldExtraction.summary_zh, evidence_quote: 'Old Al-Khairan qualification notice.' }] }, provider: 'deepseek', model: 'deepseek-flash', usage: {} }, oldSource.source.content_sha256);
+  await state.store.saveExtraction(newSource.source.id, 'owner-a', { extraction: { ...newExtraction,
+    known_facts: [{ claim_zh: newExtraction.summary_zh, evidence_quote: 'Replacement Al-Khairan qualification notice.' }] }, provider: 'deepseek', model: 'deepseek-flash', usage: {} }, newSource.source.content_sha256);
+  const oldCandidate = await state.store.saveCandidate(oldSource.source.id, 'owner-a', oldExtraction, oldSource.source.content_sha256);
+  const newCandidate = await state.store.saveCandidate(newSource.source.id, 'owner-a', newExtraction, newSource.source.content_sha256);
+  const oldRecord = state.records.find(row => row.id === oldSource.source.id);
+  const newRecord = state.records.find(row => row.id === newSource.source.id);
+  oldRecord.publication_date = '2022-07-03';
+  newRecord.publication_date = '2023-05-28';
+  const peers = await state.store.findCandidatePeers(newCandidate, 'owner-a');
+  assert.equal(peers.length, 1);
+  assert.equal(peers[0].id, oldCandidate.id);
+  await state.store.saveCrossCheck(newCandidate.id, oldCandidate.id, 'owner-a', { same_scope: true,
+    source_snapshots: { left: { sha256: newRecord.content_sha256, extracted_at: newRecord.extracted_at },
+      right: { sha256: oldRecord.content_sha256, extracted_at: oldRecord.extracted_at } },
+    matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '同一项目资格预审更新。' }], conflicting_facts: [] });
+  const listed = await state.store.candidates('owner-a');
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].id, newCandidate.id);
+  assert.equal(listed[0].procurement_zh.deadline_text, '2023-07-11');
+  assert.equal(listed[0].evidence_status, 'corrected');
+  assert.equal(listed[0].grouped_sources.length, 2);
+  const detail = await state.store.candidateBySource(newSource.source.id, 'owner-a');
+  assert.equal(detail.related_sources[0].independence, 'same_publisher');
+});
+
 test('identical successful imports reuse the source without uploading evidence twice', async () => {
   const state = backend();
   const first = await state.store.save(SOURCE, 'owner-a');
