@@ -26,6 +26,8 @@ begin
   begin perform public.link_intelligence_project_identity(owner_id,projects[1],projects[2]);
   exception when others then rejected:=sqlerrm='project_identity_evidence_missing'; end;
   if not rejected then raise exception 'same name merged without evidence'; end if;
+  if public.try_link_intelligence_project_identity(owner_id,candidates[1],candidates[2]) is not null then
+    raise exception 'missing evidence returned a persistent identity'; end if;
 
   insert into public.intelligence_candidate_relations(owner_id,candidate_id,related_candidate_id,relation,same_scope,
     left_source_sha256,right_source_sha256,left_extracted_at,right_extracted_at)
@@ -34,9 +36,13 @@ begin
   begin perform public.link_intelligence_project_identity(owner_id,projects[1],projects[2]);
   exception when others then rejected:=sqlerrm='project_identity_evidence_missing'; end;
   if not rejected then raise exception 'different project scope merged'; end if;
+  if public.try_link_intelligence_project_identity(owner_id,candidates[1],candidates[2]) is not null then
+    raise exception 'different scope returned a persistent identity'; end if;
   update public.intelligence_candidate_relations set same_scope=true
     where candidate_id=candidates[1] and related_candidate_id=candidates[2];
   stable:=public.link_intelligence_project_identity(owner_id,projects[1],projects[2]);
+  if public.try_link_intelligence_project_identity(owner_id,candidates[1],candidates[2])<>stable then
+    raise exception 'supported pair did not retain its identity'; end if;
   if stable is null or (select count(*) from public.intelligence_projects where identity_id=stable)<>2 then
     raise exception 'supported pair lacks persistent identity'; end if;
 
@@ -60,6 +66,8 @@ begin
   begin perform public.link_intelligence_project_identity(other_owner,projects[1],projects[4]);
   exception when others then rejected:=sqlerrm='project_missing'; end;
   if not rejected then raise exception 'cross-owner identity accepted'; end if;
+  if public.try_link_intelligence_project_identity(other_owner,candidates[1],candidates[4]) is not null then
+    raise exception 'cross-owner wrapper returned identity'; end if;
   update public.intelligence_sources set extracted_at=extracted+interval '1 second' where id=sources[4];
   insert into public.intelligence_candidate_relations(owner_id,candidate_id,related_candidate_id,relation,same_scope,
     left_source_sha256,right_source_sha256,left_extracted_at,right_extracted_at)
@@ -70,8 +78,11 @@ begin
   begin perform public.link_intelligence_project_identity(owner_id,projects[1],projects[4]);
   exception when others then rejected:=sqlerrm='project_identity_evidence_missing'; end;
   if not rejected then raise exception 'stale extraction merged'; end if;
+  if public.try_link_intelligence_project_identity(owner_id,candidates[1],candidates[4]) is not null then
+    raise exception 'stale extraction returned identity'; end if;
   if has_table_privilege('anon','public.intelligence_project_identities','select')
-    or has_function_privilege('authenticated','public.link_intelligence_project_identity(uuid,uuid,uuid)','execute') then
+    or has_function_privilege('authenticated','public.link_intelligence_project_identity(uuid,uuid,uuid)','execute')
+    or has_function_privilege('authenticated','public.try_link_intelligence_project_identity(uuid,uuid,uuid)','execute') then
     raise exception 'public identity access'; end if;
   reset role;
 end $$;

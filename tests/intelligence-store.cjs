@@ -69,6 +69,12 @@ function backend() {
       }
       return json(true);
     }
+    if (url.pathname === '/rest/v1/rpc/try_link_intelligence_project_identity') {
+      const input = JSON.parse(init.body);
+      const projects = [input.p_left_candidate_id, input.p_right_candidate_id].map(candidateId =>
+        state.projects.find(row => row.owner_id === input.p_owner_id && row.candidate_id === candidateId && row.current_in_analysis !== false));
+      return json(projects.every(Boolean) ? 'identity-1' : null);
+    }
     if (url.pathname === '/rest/v1/intelligence_sources') {
       if (method === 'POST') {
         const record = JSON.parse(init.body);
@@ -603,9 +609,19 @@ test('strict project peers are cross-linked and exposed as one independently sup
   secondRecord.final_url = SOURCE.finalUrl;
   assert.equal((await state.store.findCandidatePeers(second, 'owner-a')).length, 0);
   secondRecord.final_url = originalUrl;
-  await state.store.saveCrossCheck(second.id, first.id, 'owner-a', {
+  const unsupportedIdentity = await state.store.saveCrossCheck(second.id, first.id, 'owner-a', {
     matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '两份来源披露相同容量。' }], conflicting_facts: []
   });
+  assert.equal(unsupportedIdentity.project_identity_id, null, 'comparison without current snapshots must not link projects');
+  assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/rpc/try_link_intelligence_project_identity').length, 0);
+  const linkedIdentity = await state.store.saveCrossCheck(second.id, first.id, 'owner-a', {
+    same_scope: true,
+    source_snapshots: { left: { sha256: secondSource.source.content_sha256, extracted_at: secondRecord.extracted_at },
+      right: { sha256: firstSource.source.content_sha256, extracted_at: state.records.find(row => row.id === first.source_id).extracted_at } },
+    matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '两份来源披露相同容量。' }], conflicting_facts: []
+  });
+  assert.equal(linkedIdentity.project_identity_id, 'identity-1');
+  assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/rpc/try_link_intelligence_project_identity').length, 1);
   assert.equal(state.relations.length, 2);
   assert.ok(state.candidates.every(item => item.evidence_status === 'checked'));
   const listed = await state.store.candidates('owner-a');
