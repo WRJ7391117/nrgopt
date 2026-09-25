@@ -192,6 +192,10 @@ async function main() {
     }
     responses = [{ error: Object.assign(new Error('certificate detail'), { code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' }) }];
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_tls_error' });
+    for (const [networkCode, safeCode] of [['ECONNRESET', 'source_connection_reset'], ['ETIMEDOUT', 'source_connection_timeout']]) {
+      responses = [{ error: Object.assign(new Error('private transport detail'), { code: networkCode }) }];
+      await assert.rejects(fetchSource('https://public.example/'), { code: safeCode });
+    }
     responses = [{ bytes: Buffer.from('<title>Ministry</title><body><script>loadArticle()</script></body>') }];
     await assert.rejects(fetchSource('https://public.example/'), { code: 'source_empty_document' });
     responses = [{ bytes: Buffer.from('<title>Under Construction</title><main><p>Unrelated project headlines and capacity figures.</p></main>') }];
