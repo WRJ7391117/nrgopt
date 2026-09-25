@@ -65,6 +65,9 @@ async function main() {
   assert.deepEqual(nama, { title: 'Adam Solar qualification', excerpt: 'Adam Solar qualification Qualification opens in Oman.' });
   const agency = extractDocument(Buffer.from('<title>Qatar news agency</title><meta property="og:title" content="MEEZA data centre contract"><header>Site navigation</header><main><div class="news-page-holder news-details-holder"><p>MEEZA awarded a construction contract.</p></div><p>Other project news</p></main>'), 'text/html');
   assert.deepEqual(agency, { title: 'MEEZA data centre contract', excerpt: 'MEEZA awarded a construction contract.' });
+  const fsa = extractDocument(Buffer.from('<div role="main">Share With</div><main><div class="body-content"><div class="breadcrumb">Other news</div><h2>Official decision</h2><div class="newsimg"><p>22 June 2025</p></div><p>Power agreement disclosure decision.</p><a class="nextpreviuse">Next unrelated report</a></div></main>'),
+    'text/html', 2_000, 'https://fsa.gov.om/Home/SearchNews/12?newsId=10711');
+  assert.deepEqual(fsa, { title: 'Official decision', excerpt: 'Official decision 22 June 2025 Power agreement disclosure decision.' });
   const dataCentre = extractDocument(Buffer.from('<main><section class="press-release-detail"><div class="content-sec"><h1>Data centre design certification</h1><p>100 MW total IT load.</p></div><div class="recent-release"><h4>Recent Press Release</h4><p>Unrelated technology agreement.</p></div></section></main>'), 'text/html');
   assert.deepEqual(dataCentre, { title: 'Data centre design certification', excerpt: 'Data centre design certification 100 MW total IT load.' });
   for (const container of ['<section class="our-blog"><div class="entry-content">BODY</div></section>',
@@ -125,6 +128,12 @@ async function main() {
     assert.ok(requests.at(-1).options.ca.length > 100);
     responses = [{}];
     await fetchSource('https://omannews.gov.om.evil.example/story');
+    assert.equal(requests.at(-1).options.ca, undefined);
+    responses = [{}];
+    await fetchSource('https://fsa.gov.om/Home/SearchNews/12?newsId=10711');
+    assert.ok(requests.at(-1).options.ca.length > 100);
+    responses = [{}];
+    await fetchSource('https://fsa.gov.om.evil.example/story');
     assert.equal(requests.at(-1).options.ca, undefined);
     responses = [{ bytes: memBytes, headers: { 'content-type': 'application/json; charset=utf-8' } }];
     const memSource = await fetchSource(memUrl);

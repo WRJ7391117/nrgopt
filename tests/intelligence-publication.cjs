@@ -106,3 +106,12 @@ test('MEM publication date comes from the matching official article response', (
   assert.equal(parseJson(item, `https://mem.gov.om.evil.example/public/news/${id}`).publication_date, null);
   assert.equal(parseJson({ data: { ...item.data, documentId: 'different' } }).publication_date, null);
 });
+
+test('FSA publication date comes from its article header rather than a related item', () => {
+  const body = '<main><div class="body-content"><h2>Official decision</h2><div class="newsimg"><p>22 June 2025</p></div></div></main>';
+  const related = '<aside class="newsimg"><p>23 June 2025</p></aside>';
+  const url = 'https://fsa.gov.om/Home/SearchNews/12?newsId=10711';
+  assert.equal(parse(body + related, url).publication_date, '2025-06-22');
+  assert.equal(parse(body, 'https://fsa.gov.om.evil.example/').publication_date, null);
+  assert.equal(parse('<main><p>22 June 2025</p></main>', url).publication_date, null);
+});
