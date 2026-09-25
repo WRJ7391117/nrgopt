@@ -22,7 +22,7 @@ const SOURCE = {
 // This models only the REST contract used here, including PostgREST projection.
 // It does not exercise Supabase authentication, RLS, SQL constraints or Storage.
 function backend() {
-  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], opportunities: [], opportunityHistory: [], providerConfigs: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
+  const state = { records: [], candidates: [], hypotheses: [], watches: [], relations: [], organizations: [], aliases: [], projects: [], procurements: [], opportunities: [], opportunityLinks: [], opportunityHistory: [], providerConfigs: [], archiveJobs: [], objects: new Map(), calls: [], failUpload: false };
   const json = (value, status = 200) => new Response(JSON.stringify(value), { status });
   state.fetch = async (input, init) => {
     const url = new URL(input);
@@ -77,6 +77,7 @@ function backend() {
       return json(projects.every(Boolean) ? 'identity-1' : null);
     }
     if (url.pathname === '/rest/v1/rpc/sync_intelligence_opportunity_links') return json(0);
+    if (url.pathname === '/rest/v1/rpc/current_intelligence_opportunity_links') return json(state.opportunityLinks);
     if (url.pathname === '/rest/v1/intelligence_sources') {
       if (method === 'POST') {
         const record = JSON.parse(init.body);
@@ -858,8 +859,13 @@ test('opportunity overview shows only current, owner-scoped, hash-bound sources 
   state.records.find(row => row.id === 'stale').content_sha256 = 'changed'.repeat(9).slice(0, 64);
   const visible = [{ id: 'a', disposition: 'candidate', review_status: 'auto_validated',
     grouped_sources: [{ candidate_id: 'a' }, { candidate_id: 'b' }, { candidate_id: 'stale' }, { candidate_id: 'other' }] }];
+  state.opportunityLinks.push({ left_opportunity_id: 'opp-a', right_opportunity_id: 'opp-b' });
   const listed = await state.store.currentOpportunities('owner-a', visible);
   assert.deepEqual(listed.map(item => item.source_id), ['a', 'b'], 'same-name packages remain separate source records');
+  assert.deepEqual(listed.map(item => item.related_sources), [
+    [{ source_id: 'b', participation_status: 'public_tender_open' }],
+    [{ source_id: 'a', participation_status: 'public_tender_open' }]
+  ]);
   assert.ok(listed.every(item => item.evidence_quote === 'Battery tender open.'));
   assert.ok(state.calls.filter(call => call.url.pathname.endsWith('intelligence_opportunities')).every(call =>
     call.url.searchParams.get('owner_id') === 'eq.owner-a'));

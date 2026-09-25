@@ -448,7 +448,20 @@
         + (entry.scope === 'early' ? ' · 关联待验证假设，详情见来源' : '');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
-      item.append(link, meta, quote); list.append(item);
+      item.append(link, meta, quote);
+      if (entry.related_sources && entry.related_sources.length) {
+        var related = document.createElement('p');
+        related.textContent = '同包件证据关联（各来源状态独立）：';
+        entry.related_sources.forEach(function (source, index) {
+          if (index) related.append('、');
+          var sourceLink = document.createElement('a');
+          setSourceLink(sourceLink, source.source_id);
+          sourceLink.textContent = '来源' + (index + 1) + '：' + (states[source.participation_status] || states.unverified);
+          related.append(sourceLink);
+        });
+        item.append(related);
+      }
+      list.append(item);
     });
     byId('overview-opportunities-empty').hidden = opportunities.length !== 0;
   }

@@ -48,18 +48,27 @@ begin
     where left_opportunity_id=least(opportunities[1],opportunities[2]);
   if first_sync<>1 or second_sync<>1 or link_count<>1 then
     raise exception 'explicit package fact was not linked idempotently: %, %, %',first_sync,second_sync,link_count; end if;
+  if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>1 then
+    raise exception 'current package link not readable'; end if;
+  update public.intelligence_sources set extracted_at=extracted+interval '1 second' where id=sources[2];
+  if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>0 then
+    raise exception 'stale package link still current'; end if;
+  update public.intelligence_sources set extracted_at=extracted where id=sources[2];
   if public.sync_intelligence_opportunity_links(other_owner,candidates[1],candidates[2])<>0 then
     raise exception 'cross-owner package link accepted'; end if;
   update public.intelligence_opportunities set package_name_zh='另一批电池设备包' where id=opportunities[2];
   if public.sync_intelligence_opportunity_links(owner_id,candidates[1],candidates[2])<>0 then
     raise exception 'different package name accepted'; end if;
+  if (select count(*) from public.current_intelligence_opportunity_links(owner_id))<>0 then
+    raise exception 'historical link claimed current after package rename'; end if;
   update public.intelligence_opportunities set package_name_zh='电池设备包',scope='service'
     where id=opportunities[2];
   if public.sync_intelligence_opportunity_links(owner_id,candidates[1],candidates[2])<>0 then
     raise exception 'equipment and service packages merged'; end if;
   if has_table_privilege('anon','public.intelligence_opportunity_links','select')
     or has_table_privilege('authenticated','public.intelligence_opportunity_links','select')
-    or has_function_privilege('authenticated','public.sync_intelligence_opportunity_links(uuid,uuid,uuid)','execute') then
+    or has_function_privilege('authenticated','public.sync_intelligence_opportunity_links(uuid,uuid,uuid)','execute')
+    or has_function_privilege('authenticated','public.current_intelligence_opportunity_links(uuid)','execute') then
     raise exception 'public package link access'; end if;
   reset role;
 end $$;
