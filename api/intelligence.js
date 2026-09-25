@@ -211,7 +211,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id),
         candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
-      if (action === 'overview') return res.status(200).json({ candidates: await store.candidates(user.id) });
+      if (action === 'overview') {
+        const candidates = await store.candidates(user.id);
+        return res.status(200).json({ candidates, opportunities: await store.currentOpportunities(user.id, candidates) });
+      }
       if (action === 'source-controls') {
         const controls = await store.sourceControls(user.id);
         return res.status(200).json({ writable: config.writes, sources: registry.map(({ id, name, url }) => ({

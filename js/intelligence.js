@@ -432,6 +432,25 @@
     byId('candidate-empty').textContent = country || radar ? '当前筛选没有匹配的候选；不代表当地没有市场变化。可返回六国全景查看其他内容。'
       : '当前没有三雷达候选。宏观背景会保留在来源层，不会为填满页面自动创建项目。';
   }
+  function renderOverviewOpportunities(opportunities) {
+    var list = byId('overview-opportunities');
+    list.replaceChildren();
+    var scopes = { equipment: '设备包', service: '服务包' };
+    var states = { unverified: '可参与状态待核', public_tender_open: '采购开放已披露，参与资格待核',
+      package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
+    opportunities.forEach(function (entry) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      setSourceLink(link, entry.source_id);
+      link.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh;
+      var meta = document.createElement('p');
+      meta.textContent = (entry.title_zh || '来源未命名') + ' · ' + (states[entry.participation_status] || states.unverified);
+      var quote = document.createElement('blockquote');
+      quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
+      item.append(link, meta, quote); list.append(item);
+    });
+    byId('overview-opportunities-empty').hidden = opportunities.length !== 0;
+  }
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
     var countryNames = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
@@ -586,6 +605,7 @@
       var result = results[0];
       overviewCandidates = result.candidates;
       renderOverview(result.candidates);
+      renderOverviewOpportunities(result.opportunities || []);
       renderOperations(results[1]);
       var visibleCount = result.candidates.filter(function (item) {
         return item.disposition === 'candidate' && item.review_status !== 'rejected';

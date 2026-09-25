@@ -45,7 +45,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
-    candidates: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
     notificationSettings: async () => ({ quiet_enabled: true, quiet_start_hour: 23, quiet_end_hour: 7, timezone: 'Asia/Shanghai', flash_breaks_quiet: false }),
     saveNotificationSettings: async (_owner, record) => record,
@@ -349,6 +349,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'sourceHistory').args, [id, admin]);
   await request('overview');
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
+  assert.deepEqual(calls.find(call => call.name === 'currentOpportunities').args, [admin, []]);
   const operations = await request('operations');
   assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA', 'KW'], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
@@ -360,6 +361,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, /机会、采购、合同和交付属于后续商业阶段/);
   assert.match(overviewPage.body, /不要求逐级升级/);
   assert.match(overviewPage.body, /任务与预算状态/);
+  assert.match(overviewPage.body, /设备与服务机会/);
   const page = await request('detail-page');
   assert.match(page.body, /中文注释/);
   assert.match(page.body, /查看英文原文摘录/);

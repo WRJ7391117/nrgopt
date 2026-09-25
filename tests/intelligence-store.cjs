@@ -208,10 +208,13 @@ function backend() {
     }
     if (url.pathname === '/rest/v1/intelligence_opportunities') {
       const owner = url.searchParams.get('owner_id')?.slice(3);
-      const candidate = url.searchParams.get('candidate_id')?.slice(3);
+      const candidateFilter = url.searchParams.get('candidate_id');
+      const candidate = candidateFilter?.startsWith('eq.') ? candidateFilter.slice(3) : null;
+      const candidateIds = candidateFilter?.match(/^in\.\((.*)\)$/)?.[1].split(',') || [];
       const id = url.searchParams.get('id')?.slice(3);
       const matches = state.opportunities.filter(row => (!owner || row.owner_id === owner)
-        && (!candidate || row.candidate_id === candidate) && (!id || row.id === id));
+        && (!candidate || row.candidate_id === candidate) && (!candidateIds.length || candidateIds.includes(row.candidate_id))
+        && (!id || row.id === id) && (url.searchParams.get('current_in_analysis') !== 'eq.true' || row.current_in_analysis));
       if (method === 'GET') return json(matches);
       if (method === 'PATCH') {
         matches.forEach(row => Object.assign(row, JSON.parse(init.body)));
@@ -796,6 +799,26 @@ test('overview keeps the newest saved URL analysis even when an older version wa
   assert.equal(JSON.stringify({ records: state.records, candidates: state.candidates }), before);
   assert.equal((await state.store.candidateBySource('old', 'owner-a')).source_id, 'old', 'old detail remains accessible');
   assert.ok(state.calls.every(call => call.method === 'GET'));
+});
+
+test('opportunity overview shows only current, owner-scoped, hash-bound sources without merging names', async () => {
+  const state = backend();
+  for (const [id, hash, owner = 'owner-a'] of [['a', 'a'.repeat(64)], ['b', 'b'.repeat(64)], ['stale', 'c'.repeat(64)], ['other', 'd'.repeat(64), 'owner-b']]) {
+    state.records.push({ id, owner_id: owner, content_sha256: hash, extraction_source_sha256: hash, extraction_status: 'extracted' });
+    state.candidates.push({ id, owner_id: owner, source_id: id, title_zh: '同名包件来源', source_sha256: hash,
+      disposition: 'candidate', review_status: 'auto_validated', occurrence_countries: ['SA'] });
+    state.opportunities.push({ id: `opp-${id}`, owner_id: owner, candidate_id: id, scope: 'equipment',
+      package_name_zh: '电池设备包', participation_status: 'public_tender_open', evidence_fact_number: 1,
+      evidence_quote: 'Battery tender open.', source_sha256: hash, current_in_analysis: true });
+  }
+  state.records.find(row => row.id === 'stale').content_sha256 = 'changed'.repeat(9).slice(0, 64);
+  const visible = [{ id: 'a', disposition: 'candidate', review_status: 'auto_validated',
+    grouped_sources: [{ candidate_id: 'a' }, { candidate_id: 'b' }, { candidate_id: 'stale' }, { candidate_id: 'other' }] }];
+  const listed = await state.store.currentOpportunities('owner-a', visible);
+  assert.deepEqual(listed.map(item => item.source_id), ['a', 'b'], 'same-name packages remain separate source records');
+  assert.ok(listed.every(item => item.evidence_quote === 'Battery tender open.'));
+  assert.ok(state.calls.filter(call => call.url.pathname.endsWith('intelligence_opportunities')).every(call =>
+    call.url.searchParams.get('owner_id') === 'eq.owner-a'));
 });
 
 test('overview groups only supported equal scopes and retains partial scopes, conflicts and review decisions', async () => {
