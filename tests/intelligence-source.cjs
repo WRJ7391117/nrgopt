@@ -68,6 +68,13 @@ async function main() {
   const fsa = extractDocument(Buffer.from('<div role="main">Share With</div><main><div class="body-content"><div class="breadcrumb">Other news</div><h2>Official decision</h2><div class="newsimg"><p>22 June 2025</p></div><p>Power agreement disclosure decision.</p><a class="nextpreviuse">Next unrelated report</a></div></main>'),
     'text/html', 2_000, 'https://fsa.gov.om/Home/SearchNews/12?newsId=10711');
   assert.deepEqual(fsa, { title: 'Official decision', excerpt: 'Official decision 22 June 2025 Power agreement disclosure decision.' });
+  const kapp = extractDocument(Buffer.from('<title>KAPP || Kuwait Authority</title><main><p>Unrelated navigation</p>'
+    + '<div class="blog-items"><div class="blog-content"><div class="item"><div class="info content-box">'
+    + '<span>03 Feb, 2026</span> <h3>اتفاقيات محطة الزور</h3><p>توليد الطاقة الكهربائية وتحلية المياه.</p>'
+    + '<div class="post-pagi-area"><a>Previous</a><a>Next</a></div></div></div></div></div>'
+    + '<p>Other project news</p></main>'), 'text/html', 2_000, 'https://www.kapp.gov.kw/media/get_details/126');
+  assert.deepEqual(kapp, { title: 'اتفاقيات محطة الزور',
+    excerpt: '03 Feb, 2026 اتفاقيات محطة الزور توليد الطاقة الكهربائية وتحلية المياه.' });
   const dataCentre = extractDocument(Buffer.from('<main><section class="press-release-detail"><div class="content-sec"><h1>Data centre design certification</h1><p>100 MW total IT load.</p></div><div class="recent-release"><h4>Recent Press Release</h4><p>Unrelated technology agreement.</p></div></section></main>'), 'text/html');
   assert.deepEqual(dataCentre, { title: 'Data centre design certification', excerpt: 'Data centre design certification 100 MW total IT load.' });
   for (const container of ['<section class="our-blog"><div class="entry-content">BODY</div></section>',
@@ -134,6 +141,12 @@ async function main() {
     assert.ok(requests.at(-1).options.ca.length > 100);
     responses = [{}];
     await fetchSource('https://fsa.gov.om.evil.example/story');
+    assert.equal(requests.at(-1).options.ca, undefined);
+    responses = [{}];
+    await fetchSource('https://www.kapp.gov.kw/media/get_details/126');
+    assert.ok(requests.at(-1).options.ca.length > 100);
+    responses = [{}];
+    await fetchSource('https://www.kapp.gov.kw.evil.example/story');
     assert.equal(requests.at(-1).options.ca, undefined);
     responses = [{ bytes: memBytes, headers: { 'content-type': 'application/json; charset=utf-8' } }];
     const memSource = await fetchSource(memUrl);

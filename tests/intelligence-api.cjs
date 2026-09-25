@@ -115,7 +115,7 @@ test('quiet-hour settings validate hours, timezone and owner without enabling de
 test('source controls validate publisher, boolean, owner and write permission', async () => {
   const { request, calls } = setup();
   const listed = await request('source-controls');
-  assert.equal(listed.body.sources.length, 5);
+  assert.equal(listed.body.sources.length, 6);
   const id = listed.body.sources[0].id;
   assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 200);
   assert.deepEqual(calls.find(call => call.name === 'setSourceControl').args, [admin, 'acwapower.com', true]);
@@ -350,7 +350,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   await request('overview');
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   const operations = await request('operations');
-  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA'], scheduler_enabled: false, archive_status: 'disabled' });
+  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA', 'KW'], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
   assert.match(overviewPage.body, /三个雷达分别看什么/);

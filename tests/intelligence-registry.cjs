@@ -25,6 +25,14 @@ test('Bahrain dated news cards exclude navigation and resolve relative links', (
   ['https://www.ewa.bh/en/official-announcement']);
 });
 
+test('Kuwait KAPP listing accepts only official numbered article links', () => {
+  const kapp = registry.find(e => e.id === 'kapp-news');
+  const source = { finalUrl: kapp.url, bytes: Buffer.from('<a href="/media/get_details/126">energy</a>'
+    + '<a href="https://www.kapp.gov.kw/media/get_details/126?utm_source=feed">same</a>'
+    + '<a href="/media/get_details/other">other</a><a href="https://other.example/media/get_details/127">offsite</a>') };
+  assert.deepEqual(registryLinks(kapp, source), ['https://www.kapp.gov.kw/media/get_details/126']);
+});
+
 test('cursor only advances over queued links and preserves bounded correction overlap', () => {
   const urls = Array.from({ length: 60 }, (_, i) => article(String(i)));
   const first = registryPlan(urls);
