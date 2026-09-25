@@ -391,8 +391,9 @@ test('overview login keeps allowed filters and discards unknown redirect paramet
   assert.equal(new URL(invalid.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
 });
 
-test('imports stay disabled by default and in production without the release switch', async () => {
-  for (const environment of [{ ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' }, { ...env, VERCEL_ENV: 'production' }]) {
+test('imports stay disabled by default and in cloud environments without release switches', async () => {
+  for (const environment of [{ ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' }, { ...env, VERCEL_ENV: 'production' },
+    { ...env, VERCEL_ENV: 'preview' }]) {
     let fetched = false;
     const { request, calls } = setup({ environment, sourceFetcher: async () => { fetched = true; } });
     assert.equal((await request('import', { method: 'POST', body: { url: 'https://source.example/article' } })).code, 403);

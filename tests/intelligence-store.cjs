@@ -280,6 +280,9 @@ test('settings require configuration, default to read-only, and disable producti
   assert.equal(settings(ENV).writes, false);
   assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: 'true' }).writes, false);
   assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1' }).writes, true);
+  assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', VERCEL_ENV: 'preview' }).writes, false);
+  assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', VERCEL_ENV: 'preview',
+    NRGOPT_INTELLIGENCE_PREVIEW_WRITE_ENABLED: '1' }).writes, true);
   assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', VERCEL_ENV: 'production' }).writes, false);
   assert.equal(settings({ ...ENV, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '1', VERCEL_ENV: 'production',
     NRGOPT_INTELLIGENCE_PRODUCTION_WRITE_ENABLED: '1' }).writes, true);
