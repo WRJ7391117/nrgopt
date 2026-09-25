@@ -115,3 +115,19 @@ test('FSA publication date comes from its article header rather than a related i
   assert.equal(parse(body, 'https://fsa.gov.om.evil.example/').publication_date, null);
   assert.equal(parse('<main><p>22 June 2025</p></main>', url).publication_date, null);
 });
+
+test('KAPP article date comes only from its own header', () => {
+  const article = '<div class="blog-items"><div class="blog-content"><div class="item"><div class="info content-box">'
+    + '<div class="meta"><div class="date">03 Feb, 2026</div></div><h3>مشروع محطة الزور</h3></div></div></div></div>';
+  const related = '<aside><div class="date">24 Sep, 2026</div></aside>';
+  const url = 'https://www.kapp.gov.kw/media/get_details/126';
+  const result = parse(article + related, url);
+  assert.equal(result.publication_date, '2026-02-03');
+  assert.equal(result.published_at, null);
+  assert.equal(result.publication_evidence, 'publisher_dateline: 03 Feb, 2026');
+  assert.equal(parse(article, 'https://www.kapp.gov.kw/news-media').publication_date, null);
+  assert.equal(parse(article, 'https://www.kapp.gov.kw.evil.example/media/get_details/126').publication_date, null);
+  assert.equal(parse(article.replace('03 Feb', '31 Feb'), url).publication_date, null);
+  assert.equal(parse(article + '<meta property="article:published_time" content="2026-02-04">', url).publication_method,
+    'conflicting_metadata');
+});
