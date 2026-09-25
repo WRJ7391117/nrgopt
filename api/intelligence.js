@@ -152,7 +152,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!env.CRON_SECRET || req.headers.authorization !== `Bearer ${env.CRON_SECRET}`) throw failure('scheduler_unauthorized', 401);
         const config = settings(env);
         if (!config.writes) throw failure('writes_disabled', 403);
-        const send = notificationFactory({ webhookUrl: env.FEISHU_WEBHOOK_URL });
+        const send = notificationFactory({ webhookUrl: env.FEISHU_WEBHOOK_URL, appId: env.FEISHU_APP_ID,
+          appSecret: env.FEISHU_APP_SECRET, chatId: env.FEISHU_CHAT_ID });
         const store = storeFactory(config);
         const notification = await store.claimNotification(config.adminId);
         if (!notification) return res.status(200).json({ status: 'idle' });
@@ -165,7 +166,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         try {
           const delivered = await send({ notification, source, candidate, baseUrl: config.origin });
           await store.finishNotification(config.adminId, notification.id, 'accepted', delivered.responseCode);
-          return res.status(200).json({ status: 'accepted', notification_id: notification.id });
+          return res.status(200).json({ status: 'accepted', notification_id: notification.id,
+            message_id: delivered.messageId || null, chat_id: delivered.chatId || null });
         } catch (error) {
           const unknown = error.code === 'delivery_unknown';
           await store.finishNotification(config.adminId, notification.id, unknown ? 'unknown' : 'retry', error.responseCode || null,
@@ -234,7 +236,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         archive_status: env.NRGOPT_ARCHIVE_ENABLED !== '1' ? 'disabled' : !env.NRGOPT_ARCHIVE_TOKEN ? 'missing_token' : !config.writes ? 'read_only' : 'enabled' });
       if (action === 'provider-history') return res.status(200).json(await store.providerHistory(user.id));
       if (action === 'notification-settings') return res.status(200).json({ settings: await store.notificationSettings(user.id), writable: config.writes,
-        delivery_enabled: env.NRGOPT_FEISHU_ENABLED === '1' && Boolean(env.FEISHU_WEBHOOK_URL) });
+        delivery_enabled: env.NRGOPT_FEISHU_ENABLED === '1' && Boolean(env.FEISHU_WEBHOOK_URL || (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET)) });
       if (action === 'save-notification-settings') {
         if (!config.writes) throw failure('writes_disabled', 403);
         const { quiet_enabled, quiet_start_hour, quiet_end_hour, timezone, flash_breaks_quiet } = body;

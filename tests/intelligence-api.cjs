@@ -296,9 +296,11 @@ test('notification worker records accepted and unknown delivery outcomes without
     FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/test-hook-value' };
   const notification = { id: '88888888-8888-4888-8888-888888888888', notification_type: 'daily', payload: { schedule_key: '2026-09-22', items: [] } };
   const accepted = setup({ environment: workerEnv, overrides: { claimNotification: async () => notification },
-    notificationFactory: options => { assert.equal(options.webhookUrl, workerEnv.FEISHU_WEBHOOK_URL); return async () => ({ responseCode: 200 }); } });
+    notificationFactory: options => { assert.equal(options.webhookUrl, workerEnv.FEISHU_WEBHOOK_URL); return async () => ({ responseCode: 200, messageId: 'om_test', chatId: 'oc_test' }); } });
   const response = await accepted.request('notification-worker', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
   assert.equal(response.code, 200);
+  assert.equal(response.body.message_id, 'om_test');
+  assert.equal(response.body.chat_id, 'oc_test');
   assert.deepEqual(accepted.calls.find(call => call.name === 'finishNotification').args, [admin, notification.id, 'accepted', 200]);
 
   const unknown = setup({ environment: workerEnv, overrides: { claimNotification: async () => notification },

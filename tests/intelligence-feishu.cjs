@@ -33,6 +33,38 @@ test('Feishu sender accepts only official webhook hosts and classifies lost resp
   await assert.rejects(unknown(input), { code: 'delivery_unknown' });
 });
 
+test('Feishu app bot obtains a tenant token, resolves its only chat and sends the card', async () => {
+  const requests = [];
+  const responses = [
+    new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_authorized_test_chat' }] } }), { status: 200 }),
+    new Response(JSON.stringify({ code: 0, data: { message_id: 'om_test_message' } }), { status: 200 })
+  ];
+  const sender = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret',
+    fetchImpl: async (url, init = {}) => { requests.push({ url: String(url), init }); return responses.shift(); } });
+  const result = await sender({ notification: { notification_type: 'system', payload: { schedule_key: '2026-09-25', health: 'ok' } },
+    baseUrl: 'https://nrgopt.example' });
+  assert.deepEqual(result, { responseCode: 200, messageId: 'om_test_message', chatId: 'oc_authorized_test_chat' });
+  assert.match(requests[0].url, /tenant_access_token\/internal$/);
+  assert.match(requests[1].url, /\/im\/v1\/chats\?page_size=100$/);
+  assert.equal(requests[1].init.headers.Authorization, 'Bearer tenant-token');
+  const sent = JSON.parse(requests[2].init.body);
+  assert.equal(sent.receive_id, 'oc_authorized_test_chat');
+  assert.equal(sent.msg_type, 'interactive');
+  assert.match(sent.content, /系统运行告警/);
+  assert.equal(JSON.parse(requests[0].init.body).app_secret, 'private-test-secret');
+  assert.ok(!requests[2].init.body.includes('private-test-secret'));
+});
+
+test('Feishu app bot requires an explicit chat when it belongs to more than one', async () => {
+  const sender = createFeishuSender({ appId: 'cli_test_app', appSecret: 'private-test-secret', fetchImpl: async url =>
+    String(url).includes('tenant_access_token')
+      ? new Response(JSON.stringify({ code: 0, tenant_access_token: 'tenant-token' }), { status: 200 })
+      : new Response(JSON.stringify({ code: 0, data: { has_more: false, items: [{ chat_id: 'oc_first_chat' }, { chat_id: 'oc_second_chat' }] } }), { status: 200 }) });
+  await assert.rejects(sender({ notification: { notification_type: 'daily', payload: {} }, baseUrl: 'https://nrgopt.example' }),
+    { code: 'feishu_not_configured' });
+});
+
 test('daily digest contains evidence and judgment, abbreviates accepted FLASH and discloses incomplete coverage', () => {
   const card = buildCard({ baseUrl: 'https://nrgopt.example', notification: { notification_type: 'daily', payload: {
     schedule_key: '2026-09-24', status: 'partial', coverage: { succeeded: 20, failed: 1, paused: 2 }, remaining_changes: 3,
