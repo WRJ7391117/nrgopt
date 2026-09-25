@@ -85,4 +85,7 @@ test('quality report names evidence overreach, missing fields and set errors wit
   assert.deepEqual(report.error_types, {
     unsupported_inference: 1, field_missing: 1, set_missing_and_extra: 1, prediction_missing: 1, stage_mismatch: 1
   });
+  assert.deepEqual(report.languages.zh.error_types, { unsupported_inference: 1 });
+  assert.deepEqual(report.languages.ar.error_types, { set_missing_and_extra: 1 });
+  assert.deepEqual(report.languages.en.error_types, { field_missing: 1, prediction_missing: 1, stage_mismatch: 1 });
 });

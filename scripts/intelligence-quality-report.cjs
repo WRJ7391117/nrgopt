@@ -56,6 +56,9 @@ function evaluateQuality(cases, predictions) {
   }
   const caseIds = new Set(cases.map(row => row.id));
   const countErrors = rows => rows.reduce((counts, item) => { counts[item.reason] = (counts[item.reason] || 0) + 1; return counts; }, {});
+  for (const [language, stats] of Object.entries(languages)) {
+    stats.error_types = countErrors(failures.filter(item => item.language === language));
+  }
   return { scope: 'Only explicitly referenced fields and labelled early-signal positives; not whole-product accuracy certification.',
     total, languages, unmatched_predictions: predictions.filter(row => !caseIds.has(row.id)).length,
     error_types: countErrors(failures), failures };
