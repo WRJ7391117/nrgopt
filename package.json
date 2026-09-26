@@ -2,9 +2,15 @@
   "name": "nrgopt",
   "private": true,
   "scripts": {
-    "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js"
+    "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js && npm run test:intelligence",
+    "test:intelligence": "node tests/intelligence-source.cjs && node --test tests/intelligence-api.cjs tests/intelligence-archive-client.cjs tests/intelligence-crosscheck.cjs tests/intelligence-deepseek.cjs tests/intelligence-feishu.cjs tests/intelligence-hypotheses.cjs tests/intelligence-jobs.cjs tests/intelligence-minimax.cjs tests/intelligence-provider-billing.cjs tests/intelligence-publication.cjs tests/intelligence-quality-fixtures.cjs tests/intelligence-registry.cjs tests/intelligence-store.cjs tests/intelligence-watch-search.cjs",
+    "dev:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-dev.cjs",
+    "archive:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-archive-pull.cjs",
+    "archive:verify": "node --env-file-if-exists=.env.local scripts/intelligence-archive-verify.cjs"
   },
   "dependencies": {
+    "cheerio": "1.2.0",
+    "ipaddr.js": "2.2.0",
     "nodemailer": "^9.0.5"
   }
 }

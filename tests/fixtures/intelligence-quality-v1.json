@@ -1,0 +1,77 @@
+[
+  {
+    "id": "en-pif-seven-renewable-projects",
+    "language": "en",
+    "source_url": "https://www.pif.gov.sa/en/news-and-insights/newswire/2025/acwa-power-badeel-and-sapco-to-invest-approximately-8-3-billion-to-develop-15000-mw-of-renewable-energy-projects-in-saudi-arabia/",
+    "source_page_sha256": "7471175cf8f96c34aa8322639391b02e07d24ea0c4b5c0550d700641a50881b8",
+    "acquired_at": "2026-09-22",
+    "usage_note": "Public official announcement; short excerpts retained for offline extraction-quality testing with attribution.",
+    "text": "ACWA Power, Badeel and SAPCO announced the signing of power purchase agreements (PPAs) with the Saudi Power Procurement Company (SPPC) as the procurer and off-taker for the development of five large-scale solar photovoltaic plants and two large-scale wind energy plants across Saudi Arabia. With a total investment value of approximately $8.3 billion (more than SAR 31 billion), the seven new projects aim to generate a combined capacity of 15,000 MW (12,000 MW solar PV and 3000 MW wind energy).",
+    "expected": {
+      "disposition": "candidate",
+      "radars": ["project"],
+      "occurrence_country": "SA",
+      "maturity": "contract",
+      "facts": [
+        {
+          "claim_zh": "七个项目已签署购电协议。",
+          "evidence_quote": "announced the signing of power purchase agreements (PPAs) with the Saudi Power Procurement Company (SPPC)"
+        },
+        {
+          "claim_zh": "七个项目合计15000兆瓦，其中光伏12000兆瓦、风电3000兆瓦。",
+          "evidence_quote": "the seven new projects aim to generate a combined capacity of 15,000 MW (12,000 MW solar PV and 3000 MW wind energy)"
+        }
+      ]
+    }
+  },
+  {
+    "id": "zh-spa-bess-group-two",
+    "language": "zh",
+    "source_url": "https://www.spa.gov.sa/zh/N2569655",
+    "source_page_sha256": "aa74f6e0b910f2140e00e85b66391b0fd30eb318f431ba6f19ddd2c6ef187818",
+    "acquired_at": "2026-09-22",
+    "usage_note": "Public official Saudi Press Agency announcement; short excerpts retained for offline extraction-quality testing with attribution.",
+    "text": "在沙特能源部的监督下，沙特电力采购公司（“主要采购方”）宣布，已开放第二批电池储能系统项目的竞标资格预审。本批项目包括6个储能项目，均采用建设—拥有—运营（BOO）模式开发。中标联合体将持有各项目公司100%的股权，这些项目公司将负责独立储能项目（ISP）的开发与运营。每个项目公司将与“主要采购方”签署储能服务协议。这些项目总装机容量为3000兆瓦，储能时长为4小时，总储能容量达12000兆瓦时。",
+    "expected": {
+      "disposition": "candidate",
+      "radars": ["project"],
+      "occurrence_country": "SA",
+      "maturity": "procurement",
+      "facts": [
+        {
+          "claim_zh": "第二批六个电池储能项目已开放竞标资格预审。",
+          "evidence_quote": "已开放第二批电池储能系统项目的竞标资格预审。本批项目包括6个储能项目"
+        },
+        {
+          "claim_zh": "项目合计3000兆瓦、4小时、12000兆瓦时。",
+          "evidence_quote": "这些项目总装机容量为3000兆瓦，储能时长为4小时，总储能容量达12000兆瓦时"
+        }
+      ]
+    }
+  },
+  {
+    "id": "ar-spa-solar-stage-five",
+    "language": "ar",
+    "source_url": "https://www.spa.gov.sa/ar/w1996227",
+    "source_page_sha256": "c05d34572e99cff2dd017ba56111e18ec1e300ca91ed44b276267207b31dc87a",
+    "acquired_at": "2026-09-22",
+    "usage_note": "Public official Saudi Press Agency announcement; short excerpts retained for offline extraction-quality testing with attribution.",
+    "text": "أعلنت الشركة السعودية لشراء الطاقة \"المشتري الرئيس\" فتح باب التأهُّل للمنافسة على 4 مشروعات جديدة لإنتاج الكهرباء باستخدام الطاقة الشمسية، ضمن المرحلة الخامسة من مشروعات البرنامج الوطني للطاقة المتجددة، الذي تُشرف عليه وزارة الطاقة. وتشمل المشروعات التي تبلغ سعتها الإجمالية 3700 ميجاواط، كلًّا من: مشروع الصداوي، في المنطقة الشرقية، بطاقة تبلغ (2000) ميجاواط، ومشروع المصع، في منطقة حائل، بطاقة تبلغ (1000) ميجاواط، ومشروعٍ الحناكية (2)، في منطقة المدينة المنورة، بطاقة تبلغ (400) ميجاواط، ومشروع رابغ (2)، في منطقة مكة المكرمة، بطاقة تبلغ (300) ميجاواط.",
+    "expected": {
+      "disposition": "candidate",
+      "radars": ["project"],
+      "occurrence_country": "SA",
+      "maturity": "procurement",
+      "facts": [
+        {
+          "claim_zh": "第五阶段四个光伏项目开放资格预审。",
+          "evidence_quote": "فتح باب التأهُّل للمنافسة على 4 مشروعات جديدة لإنتاج الكهرباء باستخدام الطاقة الشمسية"
+        },
+        {
+          "claim_zh": "四个项目合计3700兆瓦。",
+          "evidence_quote": "المشروعات التي تبلغ سعتها الإجمالية 3700 ميجاواط"
+        }
+      ]
+    }
+  }
+]
