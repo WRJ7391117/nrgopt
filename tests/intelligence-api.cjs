@@ -260,7 +260,8 @@ test('scheduled Kuwait retry searches the project developer and still rejects se
   });
   const result = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer cron-test-secret' } });
   assert.equal(result.code, 200);
-  assert.equal(input.query, 'Kuwait energy projects site:acwapower.com');
+  assert.match(input.query, /^Kuwait \(regulation OR security OR industry/);
+  assert.match(input.query, /site:acwapower\.com$/);
   assert.equal(result.body.result.resultCount, 1);
 });
 
@@ -402,7 +403,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, /本期值得关注的能源变化/);
   assert.match(overviewPage.body, />总览</);
   assert.match(overviewPage.body, />早期信号</);
-  assert.match(overviewPage.body, /为什么现在值得关注/);
+  assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
   assert.match(overviewPage.body, /谁需要解决什么问题/);
   assert.match(overviewPage.body, /项目进展到哪一步/);
   assert.match(overviewPage.body, /可参与环节与待验证机会/);
@@ -412,6 +413,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(settingsPage.body, /查看最近计划日和故障诊断明细/);
   const page = await request('detail-page');
   assert.match(page.body, /中文注释/);
+  assert.match(page.body, /区域变化与能源韧性路径/);
   assert.match(page.body, /查看英文原文摘录/);
   assert.ok(!page.body.includes(source.title));
   assert.equal((await request('source', { sourceId: '../secret' })).code, 400);

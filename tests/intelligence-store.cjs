@@ -828,10 +828,16 @@ test('source persistence retains explicit publication evidence and overview expo
   assert.equal(source.publication_date, '2025-02-20');
   assert.equal(source.published_at, null);
   assert.match(source.publication_evidence, /2025-02-20/);
+  const resilienceSignal = { category: 'infrastructure', affected_objects_zh: ['关键设施'],
+    energy_impact_mechanism_zh: '基础设施变化影响供能可靠性。', resilience_needs_zh: ['连续供电'], possible_responses_zh: ['核对备用方案'] };
+  Object.assign(state.records.find(row => row.id === source.id), { extraction_status: 'extracted', extraction_source_sha256: source.content_sha256,
+    extraction_zh: { why_it_matters_zh: '需要关注。', unknowns_zh: [], next_signals_zh: ['核对后续证据。'],
+      classification: { resilience_signal: resilienceSignal } } });
   state.candidates.push({ id: '33333333-3333-4333-8333-333333333333', owner_id: 'owner-a', source_id: source.id });
   const candidates = await state.store.candidates('owner-a');
   assert.equal(candidates[0].source_timing.publication_date, '2025-02-20');
   assert.equal(candidates[0].source_timing.fetched_at, source.fetched_at);
+  assert.deepEqual(candidates[0].resilience_signal, resilienceSignal);
 });
 
 test('overview keeps the newest saved URL analysis even when an older version was reanalysed later', async () => {

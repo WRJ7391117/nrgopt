@@ -156,6 +156,49 @@ test('energy scope blocks unrelated GCC projects while preserving legacy extract
     'stored extractions created before energy_scope remain readable');
 });
 
+test('regional resilience signals require a complete energy impact path without inventing an opportunity', () => {
+  const source = 'Flooding disrupted access to two hospitals and damaged the district electricity substation.';
+  const signal = structuredClone(valid);
+  signal.summary_zh = '洪水影响医院通行并损坏区域变电站。';
+  signal.known_facts = [{ claim_zh: '洪水影响两家医院并损坏变电站。', evidence_quote: source }];
+  signal.next_signals_zh = ['核对医院关键负荷恢复时间、变电站修复进度及备用供电安排。'];
+  signal.classification = {
+    ...signal.classification, disposition: 'candidate', energy_scope: 'resilience_driver', radars: ['trigger'],
+    countries: [{ code: 'SA', relation: 'occurrence', rationale_zh: '事件发生在沙特。', evidence_fact_number: 1 }],
+    early_opportunities: [], resilience_signal: {
+      category: 'natural_hazard', affected_objects_zh: ['医院关键负荷', '区域配电设施'],
+      energy_impact_mechanism_zh: '变电站受损可能降低医院供电可靠性并延长恢复时间。',
+      resilience_needs_zh: ['关键负荷连续供电', '灾后快速恢复'],
+      possible_responses_zh: ['临时备用电源', '配电设施修复', '微电网方案评估']
+    }
+  };
+  const result = validateExtraction(signal, source);
+  assert.equal(result.classification.energy_scope, 'resilience_driver');
+  assert.equal(result.classification.resilience_signal.category, 'natural_hazard');
+  assert.deepEqual(result.classification.early_opportunities, []);
+
+  const missingPath = structuredClone(signal);
+  missingPath.classification.resilience_signal = null;
+  assert.throws(() => validateExtraction(missingPath, source), { code: 'extraction_invalid_resilience_signal' });
+
+  const inventedOpportunity = structuredClone(signal);
+  inventedOpportunity.classification.early_opportunities = [{ opportunity_zh: '医院备用电源采购', hypothesis_number: 1, evidence_fact_number: 1 }];
+  assert.throws(() => validateExtraction(inventedOpportunity, source), { code: 'extraction_invalid_early_opportunity_evidence' });
+});
+
+test('ordinary regional news without an energy impact path remains source-only', () => {
+  const news = structuredClone(valid);
+  news.classification.energy_scope = 'none';
+  news.classification.resilience_signal = null;
+  assert.equal(validateExtraction(news, sourceText).classification.disposition, 'source_only');
+
+  news.classification.resilience_signal = {
+    category: 'political_regulatory', affected_objects_zh: ['普通行政机构'],
+    energy_impact_mechanism_zh: '没有来源事实支持。', resilience_needs_zh: ['未识别'], possible_responses_zh: ['继续观察']
+  };
+  assert.throws(() => validateExtraction(news, sourceText), { code: 'extraction_invalid_resilience_signal' });
+});
+
 test('early opportunity requires a real fact and a retained hypothesis without a project', () => {
   const candidate = structuredClone(valid);
   candidate.classification.disposition = 'candidate';
@@ -199,12 +242,13 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.deepEqual(request.body.thinking, { type: 'disabled' });
   assert.equal(request.body.max_tokens, 6000);
   assert.ok(request.body.messages.some(message => message.content.includes('<source>')));
-  assert.ok(request.body.messages.some(message => message.content.includes('classification 内另输出 early_opportunities')));
-  assert.ok(request.body.messages.some(message => message.content.includes('若 classification.project 或 classification.procurement 非 null，classification.early_opportunities 必须为 []')));
-  assert.ok(request.body.messages.some(message => message.content.includes('重大停电、供能中断、安全或资源事件、监管紧急调查、重大制度变化属于trigger候选')));
-  assert.ok(request.body.messages.some(message => message.content.includes('保持project=null、procurement=null')));
-  assert.ok(request.body.messages.some(message => message.content.includes('不得升级为BESS、设备采购或具体项目')));
-  assert.ok(request.body.messages.some(message => message.content.includes('普通房地产、咨询、通信网络、奖项')));
+  assert.ok(request.body.messages.some(message => message.content.includes('classification 内另输出 resilience_signal')));
+  assert.ok(request.body.messages.some(message => message.content.includes('classification.project 或 classification.procurement 非 null，classification.early_opportunities')));
+  assert.ok(request.body.messages.some(message => message.content.includes('重大停电、供能中断、安全或资源事件、监管变化')));
+  assert.ok(request.body.messages.some(message => message.content.includes('不得升级为采购、设备机会或具体项目')));
+  assert.ok(request.body.messages.some(message => message.content.includes('普通政治、房地产、咨询、通信网络、奖项')));
+  assert.ok(request.body.messages.some(message => message.content.includes('区域变化→受影响对象→能源影响机制→韧性需求→可能响应→下一验证证据')));
+  assert.ok(request.body.messages.some(message => message.content.includes('trigger早期信号的classification.early_opportunities必须为[]')));
   await extract({ title: 'Energy', url: 'https://source.example', sourceText,
     formatRepairCode: 'extraction_invalid_early_opportunity_evidence' });
   assert.ok(request.body.messages.some(message => message.content.includes('唯一一次格式修复机会')));

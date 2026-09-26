@@ -97,6 +97,29 @@
       element.append(row);
     });
   }
+  function renderResilienceChain(element, signal, change, nextSignals) {
+    var categoryLabels = { political_regulatory: '政治与监管', security_geopolitical: '安全与地缘',
+      economic_industrial: '经济与产业', public_services: '民生与公共服务', climate_environment: '气候与环境',
+      natural_hazard: '自然灾害', infrastructure: '基础设施', energy_market: '能源市场' };
+    var steps = [
+      ['区域变化', (categoryLabels[signal.category] ? categoryLabels[signal.category] + '：' : '') + change],
+      ['受影响对象', (signal.affected_objects_zh || []).join('；')],
+      ['能源影响机制', signal.energy_impact_mechanism_zh],
+      ['韧性需求', (signal.resilience_needs_zh || []).join('；')],
+      ['可能响应（待验证）', (signal.possible_responses_zh || []).join('；')],
+      ['下一验证证据', (nextSignals || []).join('；')]
+    ];
+    element.replaceChildren();
+    steps.forEach(function (step) {
+      var item = document.createElement('li');
+      var title = document.createElement('strong');
+      var copy = document.createElement('p');
+      title.textContent = step[0];
+      copy.textContent = step[1] || '尚待确认';
+      item.append(title, copy);
+      element.append(item);
+    });
+  }
   function renderExtraction(source, candidate) {
     var extraction = source.extraction_zh;
     var button = byId('extract-button');
@@ -127,6 +150,10 @@
       byId('extraction-classification-summary').textContent = classification.disposition === 'candidate'
         ? '候选分类：' + (classification.radars || []).map(function (item) { return radarLabels[item] || item; }).join(' / ') + ' · 发生国：' + occurred.join('、') + ' · 重要性：' + importanceLabels[classification.importance] + ' · 证据：' + evidenceLabels[evidenceStatus] + (relatedCount ? '（另有 ' + relatedCount + ' 份关联原文）' : '') + ' · 成熟度：' + maturityLabels[extraction.maturity] + ' · 紧迫度：' + urgencyLabels[classification.urgency]
         : '仅保留在来源层：没有足够证据进入海合会三雷达候选。';
+      var resilienceSection = byId('extraction-resilience-section');
+      resilienceSection.hidden = !classification.resilience_signal;
+      if (classification.resilience_signal) renderResilienceChain(byId('extraction-resilience-chain'), classification.resilience_signal,
+        extraction.summary_zh, extraction.next_signals_zh);
       byId('extraction-project-section').hidden = !classification.project;
       if (classification.project) byId('extraction-project').textContent = classification.project.name_zh + (classification.project.stage_zh ? ' · ' + classification.project.stage_zh : '') + ' · 证据见事实 ' + classification.project.evidence_fact_number;
       byId('extraction-procurement-section').hidden = !classification.procurement;
@@ -385,7 +412,7 @@
     });
     var viewCopy = {
       overview: ['本期值得关注的能源变化', '先看重要变化，再进入早期信号、需求、项目或机会。所有判断都可以回到来源和原文证据。', '决策摘要', '本期重点变化'],
-      signal: ['早期信号', '查看可能改变能源决策的政策、价格、供电事件和资源约束，并继续验证它们是否形成真实需求。', '为什么现在值得关注', '早期信号'],
+      signal: ['区域变化与能源韧性早期信号', '查看监管、安全、产业、公共服务、气候灾害和基础设施变化如何传导到能源需求，并沿验证证据继续跟踪。', '从区域变化到能源响应', '早期信号'],
       demand: ['能源需求', '查看哪些业主或设施已出现新增负荷、可靠性、并网、成本或减碳需求。', '谁需要解决什么问题', '需求'],
       project: ['能源项目', '查看已经出现项目级证据的公告、可研、融资、招标、授标、建设和投运进展。', '项目进展到哪一步', '项目'],
       opportunity: ['商业机会', '查看由原文事实支持的早期参与方向、设备包和服务包，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
@@ -439,31 +466,38 @@
       timing.className = 'intel-source-meta';
       timing.textContent = '来源公布：' + publicationLabel(candidate.source_timing) + ' · 情报更新：' + dateLabel(candidate.updated_at);
       item.append(row, meta, timing);
-      var decision = document.createElement('div');
-      decision.className = 'intel-decision-grid';
-      var change = document.createElement('section');
-      change.className = 'intel-decision-change';
-      change.innerHTML = '<strong>发生了什么</strong><p></p>';
-      change.querySelector('p').textContent = candidate.summary_zh;
-      decision.append(change);
-      if (candidate.why_it_matters_zh) {
-        var why = document.createElement('section');
-        why.innerHTML = '<strong>为什么重要</strong><p></p>';
-        why.querySelector('p').textContent = candidate.why_it_matters_zh;
-        decision.append(why);
+      if (view === 'signal' && candidate.resilience_signal) {
+        var signalChain = document.createElement('ol');
+        signalChain.className = 'intel-signal-chain';
+        renderResilienceChain(signalChain, candidate.resilience_signal, candidate.summary_zh, candidate.next_signals_zh);
+        item.append(signalChain);
+      } else {
+        var decision = document.createElement('div');
+        decision.className = 'intel-decision-grid';
+        var change = document.createElement('section');
+        change.className = 'intel-decision-change';
+        change.innerHTML = '<strong>发生了什么</strong><p></p>';
+        change.querySelector('p').textContent = candidate.summary_zh;
+        decision.append(change);
+        if (candidate.why_it_matters_zh) {
+          var why = document.createElement('section');
+          why.innerHTML = '<strong>为什么重要</strong><p></p>';
+          why.querySelector('p').textContent = candidate.why_it_matters_zh;
+          decision.append(why);
+        }
+        if ((candidate.next_signals_zh || []).length) {
+          var next = document.createElement('section');
+          next.innerHTML = '<strong>下一步观察</strong><p></p>';
+          next.querySelector('p').textContent = candidate.next_signals_zh[0];
+          decision.append(next);
+        } else if ((candidate.unknowns_zh || []).length) {
+          var unknown = document.createElement('section');
+          unknown.innerHTML = '<strong>仍需确认</strong><p></p>';
+          unknown.querySelector('p').textContent = candidate.unknowns_zh[0];
+          decision.append(unknown);
+        }
+        if (decision.children.length) item.append(decision);
       }
-      if ((candidate.next_signals_zh || []).length) {
-        var next = document.createElement('section');
-        next.innerHTML = '<strong>下一步观察</strong><p></p>';
-        next.querySelector('p').textContent = candidate.next_signals_zh[0];
-        decision.append(next);
-      } else if ((candidate.unknowns_zh || []).length) {
-        var unknown = document.createElement('section');
-        unknown.innerHTML = '<strong>仍需确认</strong><p></p>';
-        unknown.querySelector('p').textContent = candidate.unknowns_zh[0];
-        decision.append(unknown);
-      }
-      if (decision.children.length) item.append(decision);
       var evidenceLink = document.createElement('a');
       evidenceLink.className = 'intel-evidence-link';
       evidenceLink.textContent = '打开情报详情与原文证据 →';

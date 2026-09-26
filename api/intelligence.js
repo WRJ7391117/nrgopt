@@ -33,6 +33,8 @@ const messages = {
   extraction_invalid_project_evidence: '项目判断缺少名称或有效的事实编号，未保存本次结果。',
   extraction_invalid_procurement_evidence: '采购判断缺少名称或有效的事实编号，未保存本次结果。',
   extraction_invalid_candidate_scope: '候选情报缺少已发生国家或三雷达分类，未保存本次结果。',
+  extraction_invalid_energy_scope: '来源没有形成可验证的能源供给、需求或韧性影响路径，未发布为候选情报。',
+  extraction_invalid_resilience_signal: '早期信号缺少完整的区域变化与能源韧性影响路径，未保存本次结果。',
   extraction_invalid_source_only_consistency: '背景来源与项目或雷达分类互相冲突，未保存本次结果。',
   extraction_invalid_response: '模型没有返回可解析的正文，未保存本次结果。',
   extraction_invalid_json: '模型返回内容不是有效 JSON，未保存本次结果。',
