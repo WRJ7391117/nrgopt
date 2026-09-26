@@ -136,7 +136,7 @@
     byId('extraction-importance').textContent = extraction.why_it_matters_zh;
     byId('extraction-relevance').textContent = extraction.gcc_relevance_zh;
     var classification = extraction.classification;
-    var radarLabels = { trigger: '触发雷达', demand: '需求雷达', project: '项目雷达' };
+    var radarLabels = { trigger: '早期信号', demand: '需求', project: '项目' };
     var countryLabels = { SA: '沙特阿拉伯', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
     var importanceLabels = { low: '低', medium: '中', high: '高', critical: '重大' };
     var evidenceLabels = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '跨来源内容已比对', conflict: '有冲突', corrected: '已更正' };
@@ -147,9 +147,31 @@
       var occurred = (classification.countries || []).filter(function (item) { return item.relation === 'occurrence'; }).map(function (item) { return countryLabels[item.code] || item.code; });
       var evidenceStatus = candidate?.evidence_status || classification.evidence_status;
       var relatedCount = candidate?.related_sources?.length || 0;
-      byId('extraction-classification-summary').textContent = classification.disposition === 'candidate'
-        ? '候选分类：' + (classification.radars || []).map(function (item) { return radarLabels[item] || item; }).join(' / ') + ' · 发生国：' + occurred.join('、') + ' · 重要性：' + importanceLabels[classification.importance] + ' · 证据：' + evidenceLabels[evidenceStatus] + (relatedCount ? '（另有 ' + relatedCount + ' 份关联原文）' : '') + ' · 成熟度：' + maturityLabels[extraction.maturity] + ' · 紧迫度：' + urgencyLabels[classification.urgency]
-        : '仅保留在来源层：没有足够证据进入海合会三雷达候选。';
+      var fields = byId('extraction-classification-summary');
+      fields.replaceChildren();
+      fields.hidden = classification.disposition !== 'candidate';
+      var note = byId('extraction-classification-note');
+      note.hidden = classification.disposition === 'candidate';
+      note.textContent = '仅保留为背景资料：尚无足够证据进入早期信号、需求或项目分类。';
+      if (classification.disposition === 'candidate') {
+        [
+          ['业务分类', (classification.radars || []).map(function (item) { return radarLabels[item] || item; }).join(' / ') || '未分类'],
+          ['发生国家', occurred.join('、') || '尚未明确'],
+          ['重要性', importanceLabels[classification.importance]],
+          ['证据状态', evidenceLabels[evidenceStatus] + (relatedCount ? '（另有 ' + relatedCount + ' 份关联原文）' : '')],
+          ['成熟度', maturityLabels[extraction.maturity]],
+          ['紧迫度', urgencyLabels[classification.urgency]]
+        ].forEach(function (field) {
+          var item = document.createElement('div');
+          var label = document.createElement('dt');
+          var value = document.createElement('dd');
+          label.textContent = field[0];
+          value.textContent = field[1];
+          item.append(label, value);
+          fields.append(item);
+        });
+      }
+      byId('extraction-classification-evidence').hidden = !classification.project && !classification.procurement;
       var resilienceSection = byId('extraction-resilience-section');
       resilienceSection.hidden = !classification.resilience_signal;
       if (classification.resilience_signal) renderResilienceChain(byId('extraction-resilience-chain'), classification.resilience_signal,
