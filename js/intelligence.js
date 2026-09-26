@@ -864,8 +864,51 @@
   }
 
   byId('themeBtn').addEventListener('click', function () { window.toggleTheme(); });
+  var resetPasswordForm = byId('reset-password-form');
+  if (resetPasswordForm) {
+    var recovery = new URLSearchParams(location.hash.slice(1));
+    var recoveryToken = recovery.get('type') === 'recovery' ? recovery.get('access_token') : null;
+    history.replaceState(null, '', location.pathname);
+    if (!recoveryToken) {
+      resetPasswordForm.querySelector('button[type="submit"]').disabled = true;
+      status('reset-password-status', '重置链接无效或已过期，请返回登录页重新发送。', 'error');
+    }
+    resetPasswordForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var password = byId('new-password').value;
+      var button = resetPasswordForm.querySelector('button[type="submit"]');
+      if (password !== byId('confirm-password').value) {
+        status('reset-password-status', '两次输入的密码不一致。', 'error');
+        return;
+      }
+      button.disabled = true;
+      status('reset-password-status', '正在保存新密码…');
+      try {
+        await api('reset-password', { token: recoveryToken, password: password });
+        byId('new-password').value = '';
+        byId('confirm-password').value = '';
+        recoveryToken = null;
+        status('reset-password-status', '密码已更新，请返回登录。');
+      } catch (error) {
+        status('reset-password-status', error.message, 'error');
+        button.disabled = false;
+      }
+    });
+    return;
+  }
   var loginForm = byId('login-form');
   if (loginForm) {
+    byId('reset-request-button').addEventListener('click', async function (event) {
+      if (!byId('email').reportValidity()) return;
+      var button = event.currentTarget;
+      button.disabled = true;
+      status('login-status', '正在发送重置邮件…');
+      try {
+        var result = await api('request-password-reset', { email: byId('email').value.trim() });
+        status('login-status', result.message);
+      } catch (error) { status('login-status', error.message, 'error'); }
+      finally { button.disabled = false; }
+    });
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
       var button = loginForm.querySelector('button[type="submit"]');

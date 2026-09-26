@@ -43,6 +43,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
   const store = {
     sourceControls: async () => [], setSourceControl: async () => 0,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
+    requestPasswordReset: async () => ({}), resetPassword: async () => ({ id: admin }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
     candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
@@ -132,11 +133,47 @@ test('login cookie is secure, HttpOnly and bounded; tokens and keys never enter 
   const { request } = setup();
   const page = await request('login-page', { loggedIn: false });
   assert.match(page.body, /<form id="login-form"[^>]*method="post"[^>]*action="\/api\/intelligence\?action=login"/);
+  assert.match(page.body, /id="reset-request-button"/);
   const response = await request('login', { method: 'POST', loggedIn: false, body: { email: 'local@example.test', password: 'test-password' } });
   assert.equal(response.code, 200);
   assert.deepEqual(response.body, { ok: true });
   assert.match(response.headers['set-cookie'], /^__Host-nrgopt_session=/);
   for (const flag of ['Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=3600', 'Secure']) assert.ok(response.headers['set-cookie'].includes(flag));
+});
+
+test('password recovery uses the production callback and changes only the configured admin password', async () => {
+  const { request, calls } = setup();
+  const page = await request('reset-password-page', { loggedIn: false });
+  assert.match(page.body, /<form id="reset-password-form"[^>]*action="\/api\/intelligence\?action=reset-password"/);
+  const requested = await request('request-password-reset', { method: 'POST', loggedIn: false,
+    body: { email: 'local@example.test' } });
+  assert.equal(requested.code, 200);
+  assert.deepEqual(requested.body, { ok: true, message: '如果该邮箱已注册，重置邮件已发送。' });
+  assert.deepEqual(calls.find(call => call.name === 'requestPasswordReset').args,
+    ['local@example.test', 'https://preview.example/intelligence/reset-password']);
+
+  const changed = await request('reset-password', { method: 'POST', loggedIn: false,
+    body: { token: 'recovery.token', password: 'new-password' } });
+  assert.equal(changed.code, 200);
+  assert.deepEqual(calls.find(call => call.name === 'resetPassword').args, ['recovery.token', 'new-password']);
+  assert.equal(changed.headers['set-cookie'], undefined);
+});
+
+test('password recovery rejects bad tokens, expired links and a different user', async () => {
+  const invalid = setup();
+  assert.equal((await invalid.request('reset-password', { method: 'POST', loggedIn: false,
+    body: { token: 'bad token', password: 'new-password' } })).code, 400);
+  assert.ok(!invalid.calls.some(call => call.name === 'resetPassword'));
+
+  const expired = setup({ overrides: { resetPassword: async () => { throw failure('auth_required', 401); } } });
+  const expiredResponse = await expired.request('reset-password', { method: 'POST', loggedIn: false,
+    body: { token: 'expired.token', password: 'new-password' } });
+  assert.equal(expiredResponse.code, 401);
+  assert.equal(expiredResponse.body.error, 'password_reset_failed');
+
+  const wrong = setup({ overrides: { resetPassword: async () => ({ id: 'other' }) } });
+  assert.equal((await wrong.request('reset-password', { method: 'POST', loggedIn: false,
+    body: { token: 'recovery.token', password: 'new-password' } })).code, 403);
 });
 
 test('wrong allowed user and revoked or invalid upstream session cannot access private data', async () => {
@@ -158,7 +195,7 @@ test('wrong allowed user and revoked or invalid upstream session cannot access p
 
 test('mutations reject cross-origin or missing origin; bad methods cause no work', async () => {
   const { request, calls } = setup();
-  for (const action of ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings']) {
+  for (const action of ['login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings']) {
     for (const origin of ['https://attacker.example', undefined]) assert.equal((await request(action, { method: 'POST', body: {}, headers: { origin } })).code, 403);
     assert.equal((await request(action)).code, 405);
   }

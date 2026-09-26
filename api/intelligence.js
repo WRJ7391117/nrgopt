@@ -7,14 +7,14 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
-const { loginPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
+const { loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
-  auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
+  auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
@@ -80,13 +80,14 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['login', 'logout', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['login-page', 'reset-password-page', 'page', 'overview-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
       }
       if (action === 'login-page') return html(loginPage());
+      if (action === 'reset-password-page') return html(resetPasswordPage());
       if (action.startsWith('archive-')) {
         if (env.NRGOPT_ARCHIVE_ENABLED !== '1') throw failure('archive_disabled', 503);
         if (!env.NRGOPT_ARCHIVE_TOKEN || req.headers.authorization !== `Bearer ${env.NRGOPT_ARCHIVE_TOKEN}`) throw failure('archive_unauthorized', 401);
@@ -185,7 +186,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         }
       }
       const token = sessionToken(req, env);
-      if (!token && !['login', 'logout'].includes(action)) throw failure('auth_required', 401);
+      if (!token && !['login', 'logout', 'request-password-reset', 'reset-password'].includes(action)) throw failure('auth_required', 401);
       const config = settings(env);
       if (post && !config.origins.includes(req.headers.origin)) throw failure('origin_rejected', 403);
       const store = storeFactory(config);
@@ -210,6 +211,23 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!result?.user || result.user.id !== config.adminId) throw failure('forbidden', 403);
         if (typeof result.access_token !== 'string' || !/^[A-Za-z0-9._-]+$/.test(result.access_token)) throw failure('upstream_unavailable');
         res.setHeader('Set-Cookie', sessionCookie(result.access_token, Math.min(Number(result.expires_in) || 3600, 3600), env));
+        return res.status(200).json({ ok: true });
+      }
+      if (action === 'request-password-reset') {
+        if (typeof body.email !== 'string' || body.email.length > 254 || !body.email.trim()) throw failure('invalid_request', 400);
+        await store.requestPasswordReset(body.email.trim(), `${config.origin}/intelligence/reset-password`);
+        return res.status(200).json({ ok: true, message: '如果该邮箱已注册，重置邮件已发送。' });
+      }
+      if (action === 'reset-password') {
+        if (typeof body.token !== 'string' || !/^[A-Za-z0-9._-]{1,8192}$/.test(body.token) ||
+            typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 1024) throw failure('invalid_request', 400);
+        let result;
+        try { result = await store.resetPassword(body.token, body.password); }
+        catch (error) {
+          if (error.code === 'auth_required') throw failure('password_reset_failed', 401);
+          throw error;
+        }
+        if (!result || result.id !== config.adminId) throw failure('forbidden', 403);
         return res.status(200).json({ ok: true });
       }
       const user = await store.user(token);
