@@ -396,17 +396,28 @@
     });
     byId('source-only-count').textContent = '另有 ' + candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条背景资料';
     byId('opportunity-count').textContent = overviewOpportunities.length;
-    document.querySelectorAll('.intel-country-card').forEach(function (card) {
-      var count = active.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); }).length;
-      card.querySelector('.intel-country-count').textContent = count;
-      card.querySelector('.intel-country-state').textContent = count ? '有 ' + count + ' 条带原文证据的情报。' : '尚未形成有明确发生国证据的情报。';
-      card.dataset.active = count ? 'true' : 'false';
-    });
     var list = byId('candidate-list');
     list.replaceChildren();
     var filters = byId('candidate-filters');
     var country = filters.elements.country.value, view = filters.elements.view.value || 'overview';
     var radar = { signal: 'trigger', demand: 'demand', project: 'project' }[view];
+    var viewLabel = { overview: '情报', signal: '早期信号', demand: '需求', project: '项目', opportunity: '机会' }[view];
+    document.querySelectorAll('.intel-country-card').forEach(function (card) {
+      var countryItems = active.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
+      var countryOpportunities = overviewOpportunities.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
+      var count = view === 'opportunity' ? countryOpportunities.length : countryItems.filter(function (item) {
+        return !radar || (item.radars || []).includes(radar);
+      }).length;
+      card.querySelector('.intel-country-count').textContent = count;
+      card.querySelector('.intel-country-unit').textContent = ' 条' + viewLabel;
+      card.querySelector('.intel-country-breakdown').textContent = ['trigger', 'demand', 'project'].map(function (type) {
+        var label = { trigger: '早期信号', demand: '需求', project: '项目' }[type];
+        return label + ' ' + countryItems.filter(function (item) { return (item.radars || []).includes(type); }).length;
+      }).join(' · ');
+      card.querySelector('.intel-country-opportunities').textContent = '关联机会 ' + countryOpportunities.length + ' 条（单独计数）';
+      card.querySelector('.intel-country-state').textContent = count ? '点击查看该国' + viewLabel : '当前没有该国' + viewLabel + '条目';
+      card.dataset.active = count ? 'true' : 'false';
+    });
     var filtered = active.filter(function (item) {
       return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
     });
@@ -428,7 +439,7 @@
     document.querySelectorAll('.intel-country-card').forEach(function (card) { card.setAttribute('aria-pressed', card.dataset.country === country ? 'true' : 'false'); });
     var visibleOpportunities = overviewOpportunities.filter(function (item) { return !country || (item.occurrence_countries || []).includes(country); });
     byId('candidate-filter-status').textContent = filters.elements.country.selectedOptions[0].textContent + ' · ' + filters.elements.view.selectedOptions[0].textContent + ' · '
-      + (view === 'opportunity' ? visibleOpportunities.length + ' 条有原文依据的机会' : filtered.length + ' 条有效情报');
+      + (view === 'opportunity' ? visibleOpportunities.length + ' 条有原文依据的机会' : filtered.length + ' 条情报');
     var importanceOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     filtered.sort(function (left, right) {
       return (importanceOrder[left.importance] ?? 9) - (importanceOrder[right.importance] ?? 9)
@@ -731,7 +742,7 @@
       var visibleCount = result.candidates.filter(function (item) {
         return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
-      status('page-status', '最近分析窗口共有 ' + visibleCount + ' 条有效情报、' + overviewOpportunities.length + ' 条有原文依据的机会。重复原文和已核对的同范围内容已合并。');
+      status('page-status', '最近分析窗口共有 ' + visibleCount + ' 条情报、' + overviewOpportunities.length + ' 条有原文依据的机会。重复原文和已核对的同范围内容已合并。');
     } catch (error) { status('page-status', error.message, 'error'); }
   }
   async function loadOperations() {
