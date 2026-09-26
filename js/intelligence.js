@@ -769,10 +769,21 @@
       status('settings-page-status', result.writable ? '当前配置已读取。修改后保存，下一次调用立即生效。' : '当前环境禁止写入，配置仅供查看。', result.writable ? 'success' : '');
     } catch (error) { status('settings-page-status', error.message, 'error'); }
   }
+  function updateNotificationSummary() {
+    var fields = byId('notification-settings-form').elements;
+    var start = Number(fields.quiet_start_hour.value), end = Number(fields.quiet_end_hour.value);
+    fields.quiet_end_hour.setCustomValidity(start === end ? '请选择与暂停时间不同的恢复时间。' : '');
+    var summary = !fields.quiet_enabled.checked ? '免打扰已关闭，通知不受此时段限制。' : start === end ? '暂停和恢复时间不能相同，请调整时间。' :
+      '按' + fields.timezone.options[fields.timezone.selectedIndex].text + '，每天 ' + String(start).padStart(2, '0') + ':00 暂停通知，' +
+      (start > end ? '次日 ' : '当天 ') + String(end).padStart(2, '0') + ':00 起恢复，积压消息随后陆续发送。' +
+      (fields.flash_breaks_quiet.checked ? '重大提醒仍可发送。' : '重大提醒也会延后。');
+    byId('notification-schedule-summary').textContent = '当前选择：' + summary;
+  }
   function fillNotificationForm(settings) {
     var form = byId('notification-settings-form');
     ['quiet_enabled', 'flash_breaks_quiet'].forEach(function (name) { form.elements[name].checked = settings[name]; });
     ['quiet_start_hour', 'quiet_end_hour', 'timezone'].forEach(function (name) { form.elements[name].value = settings[name]; });
+    updateNotificationSummary();
   }
   async function loadNotificationSettings() {
     try {
@@ -1137,6 +1148,7 @@
   var notificationForm = byId('notification-settings-form');
   if (notificationForm) {
     loadNotificationSettings();
+    notificationForm.addEventListener('change', updateNotificationSummary);
     notificationForm.addEventListener('submit', async function (event) {
       event.preventDefault();
       var button = notificationForm.querySelector('button[type="submit"]');
