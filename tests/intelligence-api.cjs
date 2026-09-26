@@ -435,11 +435,11 @@ test('archive readiness distinguishes missing credentials and read-only deployme
 
 test('overview login keeps allowed filters and discards unknown redirect parameters', async () => {
   const { request } = setup();
-  const result = await request('overview-page', { loggedIn: false, query: { country: 'QA', radar: 'demand', next: 'https://other.example' } });
-  assert.equal(new URL(result.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?country=QA&view=demand');
+  const result = await request('overview-page', { loggedIn: false, query: { country: 'QA', radar: 'demand', period: 'all', next: 'https://other.example' } });
+  assert.equal(new URL(result.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?country=QA&view=demand&period=all');
   const opportunity = await request('overview-page', { loggedIn: false, query: { view: 'opportunity' } });
   assert.equal(new URL(opportunity.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?view=opportunity');
-  const invalid = await request('overview-page', { loggedIn: false, query: { country: '//other.example', radar: 'unknown' } });
+  const invalid = await request('overview-page', { loggedIn: false, query: { country: '//other.example', radar: 'unknown', period: 'forever' } });
   assert.equal(new URL(invalid.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
 });
 
