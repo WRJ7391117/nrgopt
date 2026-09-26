@@ -200,6 +200,14 @@
 .intel-settings-wide { grid-column: 1 / -1; }
 .intel-settings-grid .intel-muted { margin: -10px 0 0; line-height: 1.6; }
 .intel-field-help { display: block; margin-top: 6px; color: var(--text-dim); font-size: .76rem; font-weight: 400; line-height: 1.5; }
+.intel-quiet-fields { min-width: 0; margin: 22px 0 0; padding: 0; border: 0; }
+.intel-panel .intel-quiet-check { display: flex; align-items: flex-start; gap: 10px; margin: 0; line-height: 1.6; cursor: pointer; }
+.intel-quiet-check input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; min-height: 0; margin: 3px 0 0; padding: 0; accent-color: var(--accent); }
+.intel-quiet-times { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.intel-quiet-times label { margin: 0; }
+.intel-quiet-times select { margin-top: 8px; }
+.intel-quiet-summary { margin: 16px 0 22px; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--form-bg); color: var(--text); font-size: .9rem; line-height: 1.7; }
+.intel-quiet-fields > button { margin-top: 24px; }
 @media (max-width: 640px) {
   .intel-header { flex-wrap: wrap; gap: 10px 16px; padding: 12px 20px; }
   .intel-private { order: 3; width: 100%; font-size: .75rem; }
@@ -223,6 +231,6 @@
   .intel-source-row { flex-direction: column; gap: 8px; }
   .intel-facts { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .intel-facts dd { margin-bottom: 12px; }
-  .intel-settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .intel-settings-grid, .intel-quiet-times { grid-template-columns: minmax(0, 1fr); }
   .intel-settings-wide { grid-column: auto; }
 }
