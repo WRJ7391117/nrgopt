@@ -260,7 +260,8 @@ test('scheduled Kuwait retry searches the project developer and still rejects se
   });
   const result = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer cron-test-secret' } });
   assert.equal(result.code, 200);
-  assert.equal(input.query, 'Kuwait energy projects site:acwapower.com');
+  assert.match(input.query, /^Kuwait \(regulation OR security OR industry/);
+  assert.match(input.query, /site:acwapower\.com$/);
   assert.equal(result.body.result.resultCount, 1);
 });
 
@@ -399,16 +400,20 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA', 'KW'], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
-  assert.match(overviewPage.body, /三个雷达分别看什么/);
-  assert.match(overviewPage.body, /为什么现在值得关注/);
+  assert.match(overviewPage.body, /本期值得关注的能源变化/);
+  assert.match(overviewPage.body, />总览</);
+  assert.match(overviewPage.body, />早期信号</);
+  assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
   assert.match(overviewPage.body, /谁需要解决什么问题/);
-  assert.match(overviewPage.body, /项目到了哪一步/);
-  assert.match(overviewPage.body, /机会、采购、合同和交付属于后续商业阶段/);
-  assert.match(overviewPage.body, /不要求逐级升级/);
-  assert.match(overviewPage.body, /任务与预算状态/);
-  assert.match(overviewPage.body, /设备与服务机会/);
+  assert.match(overviewPage.body, /项目进展到哪一步/);
+  assert.match(overviewPage.body, /可参与环节与待验证机会/);
+  assert.doesNotMatch(overviewPage.body, /跨来源核对/);
+  const settingsPage = await request('settings-page');
+  assert.match(settingsPage.body, /系统运行状态/);
+  assert.match(settingsPage.body, /查看最近计划日和故障诊断明细/);
   const page = await request('detail-page');
   assert.match(page.body, /中文注释/);
+  assert.match(page.body, /区域变化与能源韧性路径/);
   assert.match(page.body, /查看英文原文摘录/);
   assert.ok(!page.body.includes(source.title));
   assert.equal((await request('source', { sourceId: '../secret' })).code, 400);
@@ -431,7 +436,9 @@ test('archive readiness distinguishes missing credentials and read-only deployme
 test('overview login keeps allowed filters and discards unknown redirect parameters', async () => {
   const { request } = setup();
   const result = await request('overview-page', { loggedIn: false, query: { country: 'QA', radar: 'demand', next: 'https://other.example' } });
-  assert.equal(new URL(result.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?country=QA&radar=demand');
+  assert.equal(new URL(result.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?country=QA&view=demand');
+  const opportunity = await request('overview-page', { loggedIn: false, query: { view: 'opportunity' } });
+  assert.equal(new URL(opportunity.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview?view=opportunity');
   const invalid = await request('overview-page', { loggedIn: false, query: { country: '//other.example', radar: 'unknown' } });
   assert.equal(new URL(invalid.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
 });
@@ -498,7 +505,7 @@ test('provider-neutral pages describe capabilities instead of fixed vendors', as
   assert.ok(!sources.body.includes('MiniMax'));
   assert.ok(!sources.body.includes('DeepSeek'));
   assert.ok(!detail.body.includes('DeepSeek'));
-  assert.match(settingsPage.body, /模型服务配置/);
+  assert.match(settingsPage.body, /模型、预算与通知/);
   assert.match(settingsPage.body, /API Key 是只写字段/);
   assert.match(settingsPage.body, /人民币 CNY/);
   assert.match(settingsPage.body, /美元 USD/);
