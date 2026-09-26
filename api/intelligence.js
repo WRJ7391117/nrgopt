@@ -348,6 +348,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           const view = ['signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
             : ['trigger', 'demand', 'project'].includes(req.query.radar) ? (req.query.radar === 'trigger' ? 'signal' : req.query.radar) : null;
           if (view) params.set('view', view);
+          if (['30', '90', 'all', 'unknown'].includes(req.query.period)) params.set('period', req.query.period);
           if (params.size) target += '?' + params;
         }
         res.setHeader('Location', `/intelligence/login?returnTo=${encodeURIComponent(target)}`);

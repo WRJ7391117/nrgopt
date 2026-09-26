@@ -905,12 +905,15 @@ test('opportunity overview shows only current, owner-scoped, hash-bound sources 
       package_name_zh: '电池设备包', participation_status: 'public_tender_open', evidence_fact_number: 1,
       evidence_quote: 'Battery tender open.', source_sha256: hash, current_in_analysis: true });
   }
+  Object.assign(state.records.find(row => row.id === 'a'), { publication_date: '2019-12-01', publication_method: 'metadata', fetched_at: '2026-09-27T00:00:00Z' });
   state.records.find(row => row.id === 'stale').content_sha256 = 'changed'.repeat(9).slice(0, 64);
   const visible = [{ id: 'a', disposition: 'candidate', review_status: 'auto_validated',
     grouped_sources: [{ candidate_id: 'a' }, { candidate_id: 'b' }, { candidate_id: 'stale' }, { candidate_id: 'other' }] }];
   state.opportunityLinks.push({ left_opportunity_id: 'opp-a', right_opportunity_id: 'opp-b' });
   const listed = await state.store.currentOpportunities('owner-a', visible);
   assert.deepEqual(listed.map(item => item.source_id), ['a', 'b'], 'same-name packages remain separate source records');
+  assert.equal(listed[0].source_timing.publication_date, '2019-12-01', 'opportunity keeps its own source publication date, not a recent fetch or grouped peer date');
+  assert.equal(listed[1].source_timing.publication_date, null, 'missing dates stay unknown');
   assert.deepEqual(listed.map(item => item.related_sources), [
     [{ source_id: 'b', participation_status: 'public_tender_open' }],
     [{ source_id: 'a', participation_status: 'public_tender_open' }]

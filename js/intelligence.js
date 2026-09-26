@@ -18,7 +18,20 @@
     if (!value) return '未知（原文未提供可可靠识别的发布日期）';
     var age = (Date.now() - Date.parse(value + 'T00:00:00Z')) / 86400000;
     var label = source.published_at ? dateLabel(source.published_at) : value + '（仅日期）';
-    return label + (age > 30 ? ' · 历史公告（超过30天）' : age < -1 ? ' · 未来日期，待核验' : '');
+    return label + (age >= 30 ? ' · 历史公告（超过30天）' : age < -1 ? ' · 未来日期，待核验' : '');
+  }
+  function publicationAge(source) {
+    source = source || {};
+    if (source.publication_method === 'conflicting_metadata') return null;
+    var value = source.publication_date || (source.published_at || '').slice(0, 10);
+    var date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? Date.parse(value + 'T00:00:00Z') : NaN;
+    if (!Number.isFinite(date)) return null;
+    var age = Math.floor(Date.now() / 86400000) - Math.floor(date / 86400000);
+    return age < 0 ? null : age;
+  }
+  function inPublicationPeriod(source, period) {
+    var age = publicationAge(source);
+    return period === 'all' || (period === 'unknown' ? age === null : age !== null && age < Number(period));
   }
   function status(id, message, tone) {
     var element = byId(id);
@@ -32,6 +45,7 @@
       var view = params.get('view');
       if (!view && ['trigger', 'demand', 'project'].includes(params.get('radar'))) view = params.get('radar') === 'trigger' ? 'signal' : params.get('radar');
       if (['signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
+      if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return '/intelligence/overview' + (retained.size ? '?' + retained : '');
     }
     return value === '/intelligence' || value === '/intelligence/overview' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence';
@@ -132,6 +146,10 @@
       return;
     }
     status('extraction-status', '单一来源分析已生成；逐条引文已与保存的原文自动比对。', 'success');
+    var age = publicationAge(source);
+    var recencyNote = byId('extraction-recency');
+    recencyNote.hidden = age !== null && age < 30;
+    recencyNote.textContent = age === null ? '原文发布日期尚待核验，不能据采集时间判断为近期情报。以下为来源当时的分析。' : '历史资料 · 原文发布于 ' + (source.publication_date || source.published_at.slice(0, 10)) + '。以下阶段和参与方向反映当时披露，不能作为当前早期信号或仍开放的机会；需有近期证据重新确认。';
     byId('extraction-summary').textContent = extraction.summary_zh;
     byId('extraction-importance').textContent = extraction.why_it_matters_zh;
     byId('extraction-relevance').textContent = extraction.gcc_relevance_zh;
@@ -411,22 +429,27 @@
   }
   var overviewCandidates = [], overviewOpportunities = [];
   function renderOverview(candidates) {
-    var groupedCandidates = candidates.filter(function (item) { return item.disposition === 'candidate'; });
+    var filters = byId('candidate-filters');
+    var period = filters.elements.period.value;
+    var periodOpportunities = overviewOpportunities.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
+    var allActive = candidates.filter(function (item) { return item.disposition === 'candidate' && item.review_status !== 'rejected'; });
+    byId('recency-status').textContent = '按原文发布日期筛选，采集或重新分析不刷新日期。当前载入的情报中，' + allActive.filter(function (item) { var age = publicationAge(item.source_timing); return age !== null && age >= 30; }).length + ' 条超过30天，' + allActive.filter(function (item) { return publicationAge(item.source_timing) === null; }).length + ' 条日期待核验；可切换时间范围查阅。';
+    var periodCandidates = candidates.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
+    var groupedCandidates = periodCandidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
     ['trigger', 'demand', 'project'].forEach(function (radar) {
       byId('radar-' + radar + '-count').textContent = active.filter(function (item) { return (item.radars || []).includes(radar); }).length;
     });
-    byId('source-only-count').textContent = '另有 ' + candidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条背景资料';
-    byId('opportunity-count').textContent = overviewOpportunities.length;
+    byId('source-only-count').textContent = '本时间范围另有 ' + periodCandidates.filter(function (item) { return item.disposition === 'source_only'; }).length + ' 条背景资料';
+    byId('opportunity-count').textContent = periodOpportunities.length;
     var list = byId('candidate-list');
     list.replaceChildren();
-    var filters = byId('candidate-filters');
     var country = filters.elements.country.value, view = filters.elements.view.value || 'overview';
     var radar = { signal: 'trigger', demand: 'demand', project: 'project' }[view];
     var viewLabel = { overview: '情报', signal: '早期信号', demand: '需求', project: '项目', opportunity: '机会' }[view];
     document.querySelectorAll('.intel-country-card').forEach(function (card) {
       var countryItems = active.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
-      var countryOpportunities = overviewOpportunities.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
+      var countryOpportunities = periodOpportunities.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
       var count = view === 'opportunity' ? countryOpportunities.length : countryItems.filter(function (item) {
         return !radar || (item.radars || []).includes(radar);
       }).length;
@@ -442,6 +465,11 @@
     });
     var filtered = active.filter(function (item) {
       return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
+    });
+    document.querySelectorAll('.intel-nav [data-view], .intel-radar-summary a').forEach(function (link) {
+      var target = new URL(link.href, location.origin);
+      target.searchParams.set('period', period);
+      link.href = target.pathname + target.search;
     });
     var viewCopy = {
       overview: ['本期值得关注的能源变化', '先看重要变化，再进入早期信号、需求、项目或机会。所有判断都可以回到来源和原文证据。', '决策摘要', '本期重点变化'],
@@ -459,8 +487,8 @@
       else link.removeAttribute('aria-current');
     });
     document.querySelectorAll('.intel-country-card').forEach(function (card) { card.setAttribute('aria-pressed', card.dataset.country === country ? 'true' : 'false'); });
-    var visibleOpportunities = overviewOpportunities.filter(function (item) { return !country || (item.occurrence_countries || []).includes(country); });
-    byId('candidate-filter-status').textContent = filters.elements.country.selectedOptions[0].textContent + ' · ' + filters.elements.view.selectedOptions[0].textContent + ' · '
+    var visibleOpportunities = periodOpportunities.filter(function (item) { return !country || (item.occurrence_countries || []).includes(country); });
+    byId('candidate-filter-status').textContent = filters.elements.country.selectedOptions[0].textContent + ' · ' + filters.elements.view.selectedOptions[0].textContent + ' · ' + filters.elements.period.selectedOptions[0].textContent + ' · '
       + (view === 'opportunity' ? visibleOpportunities.length + ' 条有原文依据的机会' : filtered.length + ' 条情报');
     var importanceOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     filtered.sort(function (left, right) {
@@ -560,7 +588,7 @@
     byId('candidate-empty').textContent = country || radar ? '当前筛选没有匹配的情报；不代表当地没有市场变化。可返回六国全景查看其他内容。'
       : '当前没有符合条件的情报。背景资料会保留在来源层，不会为填满页面自动创建项目或机会。';
     byId('opportunities-section').hidden = !opportunityView;
-    renderOverviewOpportunities(overviewOpportunities, country);
+    renderOverviewOpportunities(periodOpportunities, country);
   }
   function renderOverviewOpportunities(opportunities, country) {
     var list = byId('overview-opportunities');
@@ -764,7 +792,7 @@
       var visibleCount = result.candidates.filter(function (item) {
         return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
-      status('page-status', '最近分析窗口共有 ' + visibleCount + ' 条情报、' + overviewOpportunities.length + ' 条有原文依据的机会。重复原文和已核对的同范围内容已合并。');
+      status('page-status', '已载入 ' + visibleCount + ' 条情报记录（含历史）。默认仅展示原文近30天发布的条目；历史资料保留供追溯。');
     } catch (error) { status('page-status', error.message, 'error'); }
   }
   async function loadOperations() {
@@ -1076,14 +1104,14 @@
     var filterParams = new URLSearchParams(location.search);
     var legacyRadar = filterParams.get('radar');
     if (!filterParams.get('view') && legacyRadar) filterParams.set('view', legacyRadar === 'trigger' ? 'signal' : legacyRadar);
-    ['country', 'view'].forEach(function (name) {
+    ['country', 'view', 'period'].forEach(function (name) {
       var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
       if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
     });
     function applyCandidateFilters() {
       var url = new URL(location.href);
       url.searchParams.delete('radar');
-      ['country', 'view'].forEach(function (name) {
+      ['country', 'view', 'period'].forEach(function (name) {
         var value = candidateFilters.elements[name].value;
         if (value && !(name === 'view' && value === 'overview')) url.searchParams.set(name, value); else url.searchParams.delete(name);
       });
@@ -1094,7 +1122,7 @@
     candidateFilters.addEventListener('submit', function (event) { event.preventDefault(); });
     candidateFilters.addEventListener('reset', function (event) {
       event.preventDefault();
-      candidateFilters.elements.country.value = ''; candidateFilters.elements.view.value = 'overview';
+      candidateFilters.elements.country.value = ''; candidateFilters.elements.view.value = 'overview'; candidateFilters.elements.period.value = '30';
       applyCandidateFilters();
     });
     document.querySelectorAll('.intel-country-card').forEach(function (card) {
