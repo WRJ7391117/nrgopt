@@ -34,6 +34,19 @@ test('validated extraction keeps bounded Chinese fields and exact source evidenc
   assert.equal(result.unknowns_zh.length, 1);
 });
 
+test('source-only extraction may omit commercial follow-up lists while candidates may not', () => {
+  const sourceOnly = structuredClone(valid);
+  sourceOnly.unknowns_zh = [];
+  sourceOnly.next_signals_zh = [];
+  assert.deepEqual(validateExtraction(sourceOnly, sourceText).next_signals_zh, []);
+
+  const candidate = structuredClone(sourceOnly);
+  candidate.classification.disposition = 'candidate';
+  candidate.classification.radars = ['demand'];
+  candidate.classification.countries = [{ code: 'SA', relation: 'occurrence', rationale_zh: '来源发生于沙特。', evidence_fact_number: 1 }];
+  assert.throws(() => validateExtraction(candidate, sourceText), { code: 'extraction_invalid_next_steps' });
+});
+
 test('overlong Chinese summary ends at a complete sentence', () => {
   const summary = `${'项目披露了明确进展，'.repeat(25)}已确认阶段。${'后续细节尚未披露，'.repeat(30)}`;
   const result = validateExtraction({ ...valid, summary_zh: summary }, sourceText);
