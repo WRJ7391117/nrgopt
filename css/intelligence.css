@@ -121,6 +121,13 @@
 .intel-analysis-grid section { padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
 .intel-analysis h3 { margin: 0 0 10px; font-size: .95rem; }
 .intel-classification { margin: 18px 0; padding: 16px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 8px; }
+.intelligence-app .intel-classification { background: transparent; }
+.intel-classification-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 24px; margin: 16px 0 0; }
+.intel-classification-fields > div { min-width: 0; padding-top: 10px; border-top: 1px solid var(--border); }
+.intel-classification-fields dt { color: var(--text-dim); font-size: .75rem; line-height: 1.5; }
+.intel-classification-fields dd { margin: 5px 0 0; color: var(--text); font-size: .9rem; line-height: 1.6; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .intel-classification-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .intel-classification-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 .intel-analysis section > p { color: var(--text-dim); line-height: 1.7; }
 .intel-analysis-list { margin: 0; padding-left: 20px; }
 .intel-analysis-list li { margin: 10px 0; line-height: 1.7; }
