@@ -198,6 +198,15 @@ test('missing key and upstream authentication errors expose stable codes', async
   await assert.rejects(extract({ title: '', url: 'https://source.example', sourceText }), { code: 'model_auth_failed', status: 502 });
 });
 
+test('controlled rate limit and timeout failures expose distinct stable codes', async () => {
+  const limited = createDeepSeekExtractor({ apiKey: 'key', fetchImpl: async () => new Response('', { status: 429 }) });
+  await assert.rejects(limited({ title: '', url: 'https://source.example', sourceText }), { code: 'model_rate_limited', status: 429 });
+  const timeout = createDeepSeekExtractor({ apiKey: 'key', fetchImpl: async () => {
+    throw Object.assign(new Error('controlled timeout'), { name: 'AbortError' });
+  } });
+  await assert.rejects(timeout({ title: '', url: 'https://source.example', sourceText }), { code: 'model_timeout', status: 504 });
+});
+
 test('analysis provider accepts configured identity, model and endpoint', async () => {
   let request;
   const extract = createDeepSeekExtractor({ apiKey: 'key', provider: 'custom-analysis', model: 'analysis-v2',

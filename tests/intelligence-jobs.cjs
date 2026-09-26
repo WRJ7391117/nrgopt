@@ -256,6 +256,26 @@ test('failed extraction retries only its item and records a stable source failur
   assert.equal(store.calls.filter(call => call[0] === 'finishJobItem').length, 1);
 });
 
+test('controlled model rate limits and timeouts retry once claimed and become visible terminal failures', async () => {
+  for (const code of ['model_rate_limited', 'model_timeout']) {
+    const first = fakeStore({ item: { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 1,
+      checkpoint: { source_id: sourceId } } });
+    const options = { owner: 'owner-a', jobId: 'job-1', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000' },
+      discover: async () => [], ...dependencies,
+      modelFactory: () => async () => { throw Object.assign(new Error('controlled provider failure'), { code }); } };
+    assert.equal((await runDailyJobItem({ ...options, store: first })).status, 'retry');
+    assert.deepEqual(first.calls.find(call => call[0] === 'failExtraction').slice(1), [sourceId, 'owner-a', code]);
+    assert.equal(first.calls.find(call => call[0] === 'finishJobItem')[5], code);
+
+    const terminal = fakeStore({ item: { id: 'item-extract', item_key: `extract:${sourceId}`, attempts: 3,
+      checkpoint: { source_id: sourceId } } });
+    assert.equal((await runDailyJobItem({ ...options, store: terminal })).status, 'failed');
+    assert.deepEqual(terminal.calls.find(call => call[0] === 'failExtraction').slice(1), [sourceId, 'owner-a', code]);
+    assert.equal(terminal.calls.find(call => call[0] === 'finishJobItem')[3], 'failed');
+    assert.equal(terminal.calls.find(call => call[0] === 'finishJobItem')[5], code);
+  }
+});
+
 test('a missing provider configuration releases a manual reservation without marking it spent', async () => {
   const store = fakeStore();
   await assert.rejects(runPaidCall({ store, owner: 'owner-a', operation: 'extraction', currency: 'CNY',
