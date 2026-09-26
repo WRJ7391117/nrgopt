@@ -134,6 +134,28 @@ test('source-only background cannot silently carry radar or project claims', () 
   }
 });
 
+test('energy scope blocks unrelated GCC projects while preserving legacy extractions', () => {
+  const unrelated = structuredClone(valid);
+  unrelated.classification = {
+    ...unrelated.classification,
+    disposition: 'candidate', energy_scope: 'none', radars: ['project'],
+    countries: [{ code: 'SA', relation: 'occurrence', rationale_zh: '来源发生于沙特。', evidence_fact_number: 1 }]
+  };
+  assert.throws(() => validateExtraction(unrelated, sourceText), { code: 'extraction_invalid_energy_scope' });
+
+  const demandDriver = structuredClone(unrelated);
+  demandDriver.classification.energy_scope = 'demand_driver';
+  assert.throws(() => validateExtraction(demandDriver, sourceText), { code: 'extraction_invalid_energy_scope' });
+  demandDriver.classification.radars = ['demand'];
+  assert.equal(validateExtraction(demandDriver, sourceText).classification.energy_scope, 'demand_driver');
+
+  const direct = structuredClone(unrelated);
+  direct.classification.energy_scope = 'direct';
+  assert.equal(validateExtraction(direct, sourceText).classification.energy_scope, 'direct');
+  assert.equal(validateExtraction(valid, sourceText).classification.energy_scope, null,
+    'stored extractions created before energy_scope remain readable');
+});
+
 test('early opportunity requires a real fact and a retained hypothesis without a project', () => {
   const candidate = structuredClone(valid);
   candidate.classification.disposition = 'candidate';
@@ -182,6 +204,7 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.ok(request.body.messages.some(message => message.content.includes('重大停电、供能中断、安全或资源事件、监管紧急调查、重大制度变化属于trigger候选')));
   assert.ok(request.body.messages.some(message => message.content.includes('保持project=null、procurement=null')));
   assert.ok(request.body.messages.some(message => message.content.includes('不得升级为BESS、设备采购或具体项目')));
+  assert.ok(request.body.messages.some(message => message.content.includes('普通房地产、咨询、通信网络、奖项')));
   await extract({ title: 'Energy', url: 'https://source.example', sourceText,
     formatRepairCode: 'extraction_invalid_early_opportunity_evidence' });
   assert.ok(request.body.messages.some(message => message.content.includes('唯一一次格式修复机会')));

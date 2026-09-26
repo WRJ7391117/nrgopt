@@ -343,7 +343,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (action === 'overview-page') {
           const params = new URLSearchParams();
           if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(req.query.country)) params.set('country', req.query.country);
-          if (['trigger', 'demand', 'project'].includes(req.query.radar)) params.set('radar', req.query.radar);
+          const view = ['signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
+            : ['trigger', 'demand', 'project'].includes(req.query.radar) ? (req.query.radar === 'trigger' ? 'signal' : req.query.radar) : null;
+          if (view) params.set('view', view);
           if (params.size) target += '?' + params;
         }
         res.setHeader('Location', `/intelligence/login?returnTo=${encodeURIComponent(target)}`);
