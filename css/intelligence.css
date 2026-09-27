@@ -277,10 +277,10 @@
 .intel-workbench-list > li:first-child { border-top: 0; }
 .intel-workbench-list h3 { margin: 0 0 .65rem; }
 .intel-workbench-list p { margin: .5rem 0; }
-.intel-decision-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; margin-bottom: 1.5rem; }
-.intel-decision-steps section { min-width: 0; overflow-wrap: anywhere; }
+.intel-decision-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+.intel-decision-steps section { min-width: 0; padding: 0; background: none; overflow-wrap: anywhere; }
+.intel-decision-steps section + section { padding-top: 1.5rem; border-top: 1px solid var(--border); }
 .intel-decision-steps h2 { font-size: 1.15rem; }
 #detail-evidence > summary { margin-bottom: 1rem; font-weight: 600; cursor: pointer; }
 #followup-section, #detail-evidence, [id^="workbench-"] { scroll-margin-top: 6rem; }
 .intel-management-links { margin: 1rem 0 2rem; }
-@media (max-width: 640px) { .intel-decision-steps { grid-template-columns: 1fr; gap: 1rem; } }
