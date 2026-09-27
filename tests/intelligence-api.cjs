@@ -399,14 +399,14 @@ test('private read passes owner filter and server HTML never embeds source data'
   const operations = await request('operations');
   assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: [...new Set(require('../lib/intelligence/registry.cjs').registry.map(item => item.country))], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
-  const overviewPage = await request('overview-page');
-  assert.match(overviewPage.body, /近30天的能源变化/);
+  const overviewPage = await request('discover-page');
+  assert.match(overviewPage.body, /发现情报/);
   assert.match(overviewPage.body, />总览</);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
   assert.match(overviewPage.body, /谁需要解决什么问题/);
   assert.match(overviewPage.body, /项目进展到哪一步/);
-  assert.match(overviewPage.body, /可参与环节与待验证机会/);
+  assert.match(overviewPage.body, /哪些环节可能参与/);
   assert.doesNotMatch(overviewPage.body, /跨来源核对/);
   const settingsPage = await request('settings-page');
   assert.match(settingsPage.body, /系统运行状态/);
@@ -414,7 +414,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   const page = await request('detail-page');
   assert.match(page.body, /中文注释/);
   assert.match(page.body, /区域变化与能源韧性路径/);
-  assert.match(page.body, /查看英文原文摘录/);
+  assert.match(page.body, /查看来源原文摘录/);
   assert.ok(!page.body.includes(source.title));
   assert.equal((await request('source', { sourceId: '../secret' })).code, 400);
 });
@@ -724,7 +724,7 @@ test('entry routes open overview while source tools and deep links keep their lo
   const { rewrites } = require('../vercel.json');
   const entry = rewrites.find(route => route.source === '/intelligence');
   const action = new URL(entry.destination, 'https://preview.example').searchParams.get('action');
-  assert.match((await request(action)).body, /近30天的能源变化/);
+  assert.match((await request(action)).body, /今天值得关注什么/);
   const redirect = await request(action, { loggedIn: false });
   assert.equal(new URL(redirect.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
   assert.equal(rewrites.find(route => route.source === '/intelligence/sources').destination, '/api/intelligence?action=page');
@@ -762,7 +762,7 @@ test('workflow page and data require the administrator, preserve login return an
 
 test('MENA pages use compact groups and accept only supported country, group and topic return parameters', async () => {
   const { request } = setup();
-  const page = await request('overview-page');
+  const page = await request('discover-page');
   assert.match(page.body, /中东和北非能源情报/);
   assert.match(page.body, /data-region="north-africa"/);
   assert.match(page.body, /option value="EG"/);
@@ -830,4 +830,18 @@ test('follow-up APIs enforce authentication, owner, write flag, origin, revision
   assert.equal((await disabled.request('save-followup', { method: 'POST', body: followupInput })).code, 403);
   const conflict = setup({ overrides: { saveFollowup: async () => { throw failure('followup_conflict', 409); } } });
   assert.equal((await conflict.request('save-followup', { method: 'POST', body: followupInput })).body.error, 'followup_conflict');
+});
+
+test('decision workbench is private, read-only and separate from filtered discovery', async()=>{
+  const {request,calls}=setup({overrides:{workbench:async(owner,day)=>{assert.equal(owner,admin);assert.equal(day,require('../lib/intelligence/jobs.cjs').scheduleDate());return {discoveries:[],updates:[],due:[]};}}});
+  assert.equal((await request('workbench',{loggedIn:false})).code,401);
+  assert.equal((await request('workbench',{method:'POST'})).code,405);
+  assert.equal((await request('workbench')).code,200);
+  const page=await request('overview-page');
+  for(const label of ['新发现','跟踪有更新','需要处理','发现情报','我的跟踪','管理'])assert.ok(page.body.includes(label));
+  assert.doesNotMatch(page.body,/id="overview-list"/);
+  assert.match((await request('overview-page',{query:{view:'project'}})).body,/id="overview-title"/);
+  const redirect=await request('discover-page',{loggedIn:false,query:{country:'EG',view:'demand',period:'90'}});
+  assert.equal(new URL(redirect.headers.location,'https://preview.example').searchParams.get('returnTo'),'/intelligence/discover?country=EG&view=demand&period=90');
+  assert.ok(!calls.some(c=>/save|enqueue|claim/.test(c.name)));
 });
