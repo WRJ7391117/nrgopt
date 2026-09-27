@@ -291,7 +291,7 @@
     });
     byId('numeric-facts-empty').hidden = Boolean(extraction.numeric_facts?.length);
     byId('numeric-facts-empty').textContent = extraction.numeric_facts == null ? '这份历史分析尚未提取结构化数值，原始披露见上方事实与引文。' : '本次分析未列出关键数值；不代表容量或金额为零。';
-    var scopeLabels = { project: '项目建设', development_rights: '开发权', ppa: '购电协议（PPA）', epc: '工程总承包（EPC）', construction_contract: '施工合同（未推定EPC范围）', equipment: '设备包', service: '服务包' };
+    var scopeLabels = { project: '项目建设', development_rights: '开发权', ppa: '购电协议（PPA）', epc: '工程总承包（EPC）', construction_contract: '施工合同（未推定EPC范围）', equipment: '设备采购', service: '服务采购' };
     var eventStages = { planned: '计划中', open: '采购开放', shortlisted: '已入围', awarded: '已授标', signed: '已签约', construction: '建设中', delivered: '已交付', operating: '已投运', cancelled: '已取消' };
     var commercialEvents = byId('extraction-commercial-events');
     commercialEvents.replaceChildren();
@@ -307,11 +307,11 @@
       item.append(label, quote, link);
       commercialEvents.append(item);
     });
-    byId('commercial-events-note').textContent = extraction.commercial_events == null ? '这份历史分析尚未区分包件状态，请结合上方原文。' :
-      extraction.commercial_events.some(function (event) { return event.scope === 'equipment'; }) ? '设备采购状态仅适用于列出的具名设备包，其他包件仍未知。' : '设备采购状态未知：本次分析没有设备包的明确披露。EPC或PPA签约不能代替设备采购证据。';
+    byId('commercial-events-note').textContent = extraction.commercial_events == null ? '这份历史分析尚未分别记录各项采购进展，请查看原文核实。' :
+      extraction.commercial_events.some(function (event) { return event.scope === 'equipment'; }) ? '这里的设备采购进展仅适用于上方明确列出的采购事项，其他采购进展仍待核实。' : '设备采购进展待核实：本次分析未找到明确的设备采购披露。仅凭工程总承包或购电协议签约，无法判断设备是否已采购。';
     var contextIssues = extraction.context_issues || [];
     byId('fact-context-issues').hidden = !contextIssues.length;
-    byId('fact-context-issues').textContent = contextIssues.length ? contextIssues.length + ' 项数值或包件提取未通过原文/口径校验，已排除出以上结构化结果，不能用于统计或判断：' + contextIssues.map(function (issue) {
+    byId('fact-context-issues').textContent = contextIssues.length ? contextIssues.length + ' 项数值或采购信息未通过原文/口径校验，已排除出以上结构化结果，不能用于统计或判断：' + contextIssues.map(function (issue) {
       return issue.object_zh + (issue.evidence_fact_number ? '（见事实 ' + issue.evidence_fact_number + '）' : '（事实引用无效）');
     }).join('；') + '。基础事实与原文仍保留在上方。' : '';
     var hypotheses = byId('extraction-hypotheses');
@@ -535,7 +535,7 @@
       signal: ['区域变化与能源韧性早期信号', '查看监管、安全、产业、公共服务、气候灾害和基础设施变化如何传导到能源需求，并沿验证证据继续跟踪。', '从区域变化到能源响应', '早期信号'],
       demand: ['能源需求', '查看哪些业主或设施已出现新增负荷、可靠性、并网、成本或减碳需求。', '谁需要解决什么问题', '需求'],
       project: ['能源项目', '查看已经出现项目级证据的公告、可研、融资、招标、授标、建设和投运进展。', '项目进展到哪一步', '项目'],
-      opportunity: ['商业机会', '查看由原文事实支持的早期参与方向、设备包和服务包，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
+      opportunity: ['商业机会', '查看有原文依据的早期参与方向、设备采购和服务采购机会，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
     }[view];
     byId('overview-title').textContent = '发现情报 · ' + (view === 'overview' ? prefix : prefix + ' · ' + viewCopy[0]);
     byId('overview-intro').textContent = viewCopy[1];
@@ -688,7 +688,7 @@
   function renderOverviewOpportunities(opportunities, country) {
     var list = byId('overview-opportunities');
     list.replaceChildren();
-    var scopes = { early: '早期机会', equipment: '设备包', service: '服务包' };
+    var scopes = { early: '早期机会', equipment: '设备采购', service: '服务采购' };
     var states = { unverified: '待验证，未披露采购开放', public_tender_open: '采购开放已披露，参与资格待核',
       package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
     var visible = opportunities.filter(function (entry) { return !country || (entry.occurrence_countries || []).includes(country); });
@@ -696,7 +696,7 @@
       var item = document.createElement('li');
       var link = document.createElement('a');
       setSourceLink(link, entry.source_id);
-      link.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh;
+      link.textContent = (scopes[entry.scope] || '采购事项') + '：' + entry.package_name_zh;
       var meta = document.createElement('p');
       meta.textContent = (entry.title_zh || '来源未命名') + ' · ' + (states[entry.participation_status] || states.unverified)
         + (entry.scope === 'early' ? ' · 关联待验证假设，详情见来源' : '');
@@ -708,7 +708,7 @@
       item.append(link, meta, timing, quote);
       if (entry.related_sources && entry.related_sources.length) {
         var related = document.createElement('p');
-        related.textContent = '同包件证据关联（各来源状态独立）：';
+        related.textContent = '同一采购事项的相关证据（各来源状态分别保留）：';
         entry.related_sources.forEach(function (source, index) {
           if (index) related.append('、');
           var sourceLink = document.createElement('a');
@@ -1099,7 +1099,7 @@
   }
   function renderBusinessHistory(history) {
     var list = byId('business-history'); list.replaceChildren();
-    var names = { unspecified: '范围未细分', development_rights: '开发权', ppa: '购电协议', epc: 'EPC 总包', construction_contract: '施工合同', equipment: '设备包', service: '服务包' };
+    var names = { unspecified: '范围未细分', development_rights: '开发权', ppa: '购电协议', epc: '工程总承包（EPC）', construction_contract: '施工合同', equipment: '设备采购', service: '服务采购' };
     var stages = { planned: '规划', open: '采购开放', shortlisted: '已入围', awarded: '已授标', signed: '已签约', construction: '建设中', delivered: '已交付', operating: '已投运', cancelled: '已取消' };
     var seen = new Set();
     history.forEach(function (item) {
@@ -1118,7 +1118,7 @@
     var list = byId('opportunities-list');
     if (!list) return;
     list.replaceChildren();
-    var scopes = { early: '早期机会', equipment: '设备包', service: '服务包' };
+    var scopes = { early: '早期机会', equipment: '设备采购', service: '服务采购' };
     var states = { unverified: '待验证，未披露采购开放', public_tender_open: '采购开放已披露，参与资格待核',
       package_awarded: '该包已授标或签约', cancelled: '该包已取消' };
     opportunities.forEach(function (entry) {
@@ -1127,7 +1127,7 @@
       var earlyStatus = hypothesis && ({ rejected: '关联假设已否定，停止追踪', dormant: '关联假设休眠，停止主动追踪',
         confirmed: '关联假设已证实，待关联正式机会' })[hypothesis.status];
       var title = document.createElement('strong');
-      title.textContent = (scopes[entry.scope] || '包件') + '：' + entry.package_name_zh + ' · '
+      title.textContent = (scopes[entry.scope] || '采购事项') + '：' + entry.package_name_zh + ' · '
         + (entry.current_in_analysis ? (earlyStatus || states[entry.participation_status] || states.unverified) : '本次分析未再次确认');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
@@ -1210,7 +1210,7 @@
         item.append(change);
       }
       [{ value: version.project, evidence: version.project_evidence, name: '项目', field: 'name_zh' },
-        { value: version.procurement, evidence: version.procurement_evidence, name: '采购包', field: 'package_zh' }].forEach(function (entry) {
+        { value: version.procurement, evidence: version.procurement_evidence, name: '采购事项', field: 'package_zh' }].forEach(function (entry) {
         if (!entry.value) return;
         var label = document.createElement('p');
         label.textContent = entry.name + '：' + entry.value[entry.field] + (entry.value.stage_zh ? ' · ' + entry.value.stage_zh : '');
