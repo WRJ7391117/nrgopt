@@ -1224,3 +1224,24 @@ test('coverage reads only owner-scoped entry jobs for the requested day', async 
   }).dailyEntryStatus('owner-a','2026-09-27');
   assert.equal(queries.length,2);assert.equal(result.items[0].pending,14);
 });
+
+test('follow-up list paginates owner-scoped records without dropping the next page', async () => {
+  const calls = [];
+  const store = createStore(CONFIG, async (input, init) => {
+    const url = new URL(input); calls.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    if (url.pathname.endsWith('intelligence_watch_targets')) {
+      assert.equal(url.searchParams.get('followup'), 'not.is.null');
+      assert.equal(url.searchParams.get('status'), 'eq.completed');
+      assert.equal(url.searchParams.get('offset'), '25');
+      assert.equal(url.searchParams.get('limit'), '26');
+      return new Response(JSON.stringify(Array.from({ length: 26 }, (_, n) => ({ id: 'watch-' + n, candidate_id: 'candidate-' + n }))));
+    }
+    assert.ok(url.searchParams.get('id').includes('candidate-24'));
+    assert.ok(!url.searchParams.get('id').includes('candidate-25'));
+    return new Response(JSON.stringify([{ id: 'candidate-0', source_id: 'source', title_zh: '标题' }]));
+  });
+  const result = await store.followups('owner-a', 'completed', 25);
+  assert.equal(result.items.length, 25); assert.equal(result.more, true);
+  assert.equal(result.items[0].candidate.source_id, 'source'); assert.equal(calls.length, 2);
+});

@@ -801,3 +801,29 @@ test('every authenticated HTML page includes its verified account before loading
   assert.equal(anonymous.code, 303);
   assert.ok(!String(anonymous.body).includes('local@example.test'));
 });
+
+const followupInput = { revision: 0, status: 'active', reason: '验证需求', next_action: '核对新公告', priority: 'high', review_on: '2026-09-28', exit_condition: '该包件已取消', outcome: '', exit_reason: '' };
+test('follow-up APIs enforce authentication, owner, write flag, origin, revision and real dates', async () => {
+  const writes = [];
+  const { request } = setup({ overrides: {
+    followup: async (source, owner) => { assert.equal(source, id); assert.equal(owner, admin); return { watch: null, eligible: true, history: [] }; },
+    saveFollowup: async (source, owner, value) => { writes.push(value); assert.equal(source, id); assert.equal(owner, admin); return { revision: 1 }; },
+    followups: async (owner, state, offset) => { assert.equal(owner, admin); assert.equal(state, 'completed'); assert.equal(offset, 25); return { items: [], more: false }; }
+  } });
+  for (const action of ['followup','followups']) assert.equal((await request(action, { loggedIn: false })).code, 401);
+  assert.equal((await request('followups-page', { loggedIn: false })).code, 303);
+  assert.equal((await request('followups-page')).code, 200);
+  assert.equal((await request('followup')).body.eligible, true);
+  assert.equal((await request('followups', { query: { state: 'completed', offset: '25' } })).code, 200);
+  for (const bad of [{ review_on: '2026-02-30' }, { next_action: ' ' }, { revision: -1 }, { status: 'completed' }, { priority: 'x' }])
+    assert.equal((await request('save-followup', { method: 'POST', body: { ...followupInput, ...bad } })).code, 400);
+  assert.equal((await request('save-followup', { method: 'POST', loggedIn: false, body: followupInput })).code, 401);
+  assert.equal((await request('save-followup', { method: 'POST', body: followupInput, headers: { origin: 'https://evil.example' } })).code, 403);
+  assert.equal((await request('save-followup', { method: 'POST', sourceId: 'bad', body: followupInput })).code, 400);
+  assert.equal((await request('save-followup', { method: 'POST', body: followupInput })).body.watch.revision, 1);
+  assert.equal(writes.length, 1);
+  const disabled = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
+  assert.equal((await disabled.request('save-followup', { method: 'POST', body: followupInput })).code, 403);
+  const conflict = setup({ overrides: { saveFollowup: async () => { throw failure('followup_conflict', 409); } } });
+  assert.equal((await conflict.request('save-followup', { method: 'POST', body: followupInput })).body.error, 'followup_conflict');
+});
