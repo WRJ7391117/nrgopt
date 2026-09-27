@@ -144,3 +144,10 @@ test('NOC registry accepts article cards and excludes navigation pages', () => {
   assert.deepEqual(urls, ['https://noc.ly/en/pipeline-reopens/']);
   assert.equal(registryPlan(urls, {}, entry.maxNew).fresh_count, 1);
 });
+
+test('EEHC follows encoded Arabic article paths and keeps the one-new-article cap', () => {
+  const entry = registry.find(item => item.id === 'eehc-news');
+  const links = registryLinks(entry, { finalUrl: entry.url, bytes: Buffer.from('<a href="/CMSEehc/الاخبار/خبر-الشبكة/">Grid</a><a href="/CMSEehc/الاخبار/خبر-الشبكة/?x=1">Duplicate</a><a href="/CMSEehc/الاخبار/">Archive</a><a href="/CMSEehc/عن-الشركة/">About</a><a href="https://other.example/CMSEehc/الاخبار/خبر/">Other</a>') });
+  assert.deepEqual(links, [new URL('/CMSEehc/الاخبار/خبر-الشبكة/', entry.url).href]);
+  assert.equal(registryPlan(links, {}, entry.maxNew).fresh_count, 1);
+});

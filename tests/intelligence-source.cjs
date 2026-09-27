@@ -61,6 +61,8 @@ async function main() {
   assert.equal(longExcerpt.length, 2_000);
   assert.ok(longExcerpt.startsWith('Solar project facts.'));
   assert.ok(!longExcerpt.includes('Site navigation.'));
+  const eehc = extractDocument(Buffer.from('<title>EEHC</title><header>Other news</header><div class="col-7"><div class="row"><div class="col-2">الخبر</div><div class="col-10">Egypt grid and storage</div><div class="col-2">تاريخ الخبر</div><div class="col-10">21/09/2026</div><div class="col-2">تفاصيل الخبر</div><div class="col-10"><p>Grid expansion and battery storage reviewed.</p></div></div></div><footer>Unrelated project</footer>'), 'text/html', 2000, 'https://www.eehc.gov.eg/CMSEehc/' + encodeURIComponent('الاخبار') + '/grid/');
+  assert.deepEqual(eehc, { title: 'Egypt grid and storage', excerpt: 'Grid expansion and battery storage reviewed.' });
   const noc = extractDocument(Buffer.from('<title>Pipeline reopens</title><main><div>Other companies and latest headlines</div><div class="el-content uk-panel"><p>Valve 7 reopened and crude flow resumed.</p></div></main>'), 'text/html', 2000, 'https://noc.ly/en/pipeline-reopens/');
   assert.deepEqual(noc, { title: 'Pipeline reopens', excerpt: 'Valve 7 reopened and crude flow resumed.' });
   const nama = extractDocument(Buffer.from('<title>News - Nama Power &amp; Water Procurement</title><main><h1>News</h1><div class="news-dt-body"><h3>Adam Solar qualification</h3><p>Qualification opens in Oman.</p></div><section><h3>Latest News</h3><p>Unrelated Duqm project signed.</p></section></main>'), 'text/html');

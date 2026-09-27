@@ -116,7 +116,7 @@ test('quiet-hour settings validate hours, timezone and owner without enabling de
 test('source controls validate publisher, boolean, owner and write permission', async () => {
   const { request, calls } = setup();
   const listed = await request('source-controls');
-  assert.equal(listed.body.sources.length, 11);
+  assert.equal(listed.body.sources.length, 12);
   const id = listed.body.sources[0].id;
   assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 200);
   assert.deepEqual(calls.find(call => call.name === 'setSourceControl').args, [admin, 'acwapower.com', true]);
@@ -777,9 +777,9 @@ test('MENA manual discovery lists enabled regions and rejects pending regions be
   const { request, calls } = setup();
   const page = await request('page');
   const form = page.body.match(/<form id="discovery-form"[\s\S]*?<\/form>/)[0];
-  for (const code of ['SA', 'TR', 'MA', 'DZ']) assert.match(form, new RegExp('option value="' + code + '"'));
-  assert.doesNotMatch(form, /option value="EG"/);
-  const result = await request('discover', { method: 'POST', body: { country: 'EG' } });
+  for (const code of ['SA', 'TR', 'MA', 'DZ', 'EG']) assert.match(form, new RegExp('option value="' + code + '"'));
+  assert.doesNotMatch(form, /option value="IQ"/);
+  const result = await request('discover', { method: 'POST', body: { country: 'IQ' } });
   assert.equal(result.code, 400);
   assert.equal(result.body.error, 'discovery_country_not_enabled');
   assert.equal(calls.filter(item => /reserve|provider/i.test(item.name)).length, 0);
