@@ -469,7 +469,7 @@
   function emptyWorkList(list, message) {
     var item = document.createElement('li'); item.className = 'intel-muted'; item.textContent = message; list.append(item);
   }
-  function watchCard(watch) {
+  function watchCard(watch, writable) {
     var item = document.createElement('li'), f = watch.followup;
     var heading = document.createElement('h3'), link = document.createElement('a');
     link.href = '/intelligence/sources/' + encodeURIComponent(watch.candidate.source_id) + '#followup-section';
@@ -486,7 +486,56 @@
     if (f.outcome) paragraph(item, '上次记录的实际结果：' + f.outcome);
     if (watch.status !== 'active') paragraph(item, '暂缓 / 退出原因：' + f.exit_reason);
     var action = document.createElement('a'); action.className = 'intel-evidence-link'; action.href = link.href; action.textContent = '复核证据、记录结果或调整计划 →'; item.append(action);
+    if (writable !== undefined) appendWatchActions(item, watch, writable);
     return item;
+  }
+  function appendWatchActions(item, watch, writable) {
+    var actions = document.createElement('div'); actions.className = 'intel-watch-actions';
+    var form = document.createElement('form'); form.className = 'intel-watch-confirm'; form.hidden = true;
+    var heading = document.createElement('h4'), description = document.createElement('p'); description.className = 'intel-muted';
+    var label = document.createElement('label'), reasonLabel = document.createElement('span'), reason = document.createElement('textarea');
+    reason.required = true; reason.maxLength = 600; reason.rows = 2; label.append(reasonLabel, reason);
+    var controls = document.createElement('div'); controls.className = 'intel-watch-actions';
+    var confirm = document.createElement('button'); confirm.type = 'submit'; confirm.className = 'intel-button intel-button-primary';
+    var cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'intel-button'; cancel.textContent = '取消';
+    var feedback = document.createElement('p'); feedback.className = 'intel-status'; feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+    controls.append(confirm, cancel); form.append(heading, description, label, controls, feedback); item.append(actions, form);
+    var target, pending = false;
+    var labels = { active: ['恢复跟踪', '恢复原因', '确认恢复', '已恢复跟踪'], expired: ['暂缓跟踪', '暂缓原因', '确认暂缓', '已暂缓跟踪'], completed: ['退出跟踪', '退出原因', '确认退出', '已退出跟踪'] };
+    var destinations = watch.status === 'active' ? ['expired', 'completed'] : watch.status === 'expired' ? ['active', 'completed'] : ['active'];
+    destinations.forEach(function (state) {
+      var button = document.createElement('button'); button.type = 'button'; button.className = 'intel-button'; button.textContent = labels[state][0]; button.disabled = !writable;
+      button.addEventListener('click', function () {
+        target = state; heading.textContent = labels[state][0]; reasonLabel.textContent = labels[state][1]; confirm.textContent = labels[state][2];
+        description.textContent = state === 'active' ? '恢复后回到“正在跟踪”，原计划和复核日期保留。'
+          : state === 'expired' ? '暂时移出“正在跟踪”，可在“暂不关注 / 暂缓”中恢复。原计划、原文和历史记录都会保留。'
+            : '结束当前跟踪，移至“已退出”，以后仍可恢复。原计划、原文和历史记录都会保留。';
+        reason.value = ''; feedback.textContent = ''; form.hidden = false; reason.focus();
+      });
+      actions.append(button);
+    });
+    cancel.addEventListener('click', function () { form.hidden = true; actions.querySelector('button').focus(); });
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      if (pending) return;
+      if (!reason.value.trim()) { feedback.textContent = '请填写原因后再确认。'; feedback.dataset.tone = 'error'; reason.focus(); return; }
+      pending = true;
+      item.querySelectorAll('button, textarea').forEach(function (field) { field.disabled = true; });
+      confirm.textContent = '正在保存…'; feedback.textContent = '正在保存跟踪状态…'; feedback.dataset.tone = '';
+      try {
+        var saved = await api('save-followup', Object.assign({}, watch.followup, { revision: watch.revision, status: target, exit_reason: reason.value.trim() }), watch.candidate.source_id);
+        item.replaceChildren();
+        var title = document.createElement('h3'); title.textContent = watch.candidate.title_zh; item.append(title);
+        paragraph(item, labels[saved.watch.status][3] + ' · ' + dateLabel(saved.watch.updated_at) + '。原计划和历史记录已保留。', 'intel-status').dataset.tone = 'success';
+        var view = document.createElement('button'); view.type = 'button'; view.className = 'intel-button';
+        view.textContent = '查看' + ({ active: '正在跟踪', expired: '暂缓事项', completed: '已退出事项' }[saved.watch.status]);
+        view.addEventListener('click', function () { byId('followups-state').value = saved.watch.status; followupsOffset = 0; loadFollowups(); });
+        item.append(view); item.classList.add('intel-watch-receipt'); item.setAttribute('role', 'status');
+      } catch (error) {
+        feedback.textContent = error.message + ' 本次填写的原因已保留；状态以保存结果为准，如网络中断请刷新核对。'; feedback.dataset.tone = 'error';
+        item.querySelectorAll('button, textarea').forEach(function (field) { field.disabled = false; }); confirm.textContent = labels[target][2];
+      } finally { pending = false; }
+    });
   }
   async function loadWorkbench() {
     var button = byId('workbench-refresh'); button.disabled = true;
@@ -1396,7 +1445,7 @@
     try {
       var result = await api('followups&state=' + scope.value + '&offset=' + followupsOffset);
       var list = byId('followups-list'); list.replaceChildren();
-      result.items.forEach(function (watch) { list.append(watchCard(watch)); });
+      result.items.forEach(function (watch) { list.append(watchCard(watch, result.writable === true)); });
       if (!result.items.length) paragraph(list, scope.value === 'active' ? '尚无主动跟踪事项。从情报详情填写跟踪计划即可加入。' : '此范围暂无记录。', 'intel-muted');
       previous.disabled = followupsOffset === 0; next.disabled = !result.more;
       byId('followups-page').textContent = '第 ' + (followupsOffset / 25 + 1) + ' 页';

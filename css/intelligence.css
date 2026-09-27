@@ -294,3 +294,10 @@
 .intel-followup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
 #followup-save-status:not(:empty) { padding: 12px 16px; border: 1px solid currentColor; border-radius: 8px; line-height: 1.6; }
 #followup-reload-help { margin-top: 8px; font-size: .85rem; line-height: 1.6; }
+
+.intel-watch-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.intel-watch-confirm { margin-top: 16px; padding: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.intel-watch-confirm h4 { margin: 0 0 8px; }
+.intel-watch-confirm label { display: block; margin-top: 12px; }
+.intel-watch-confirm textarea { display: block; min-height: 88px; margin-top: 8px; }
+.intel-watch-receipt { padding: 16px; border: 1px solid var(--border); border-radius: 8px; list-style: none; }

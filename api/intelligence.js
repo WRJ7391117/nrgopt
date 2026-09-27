@@ -251,7 +251,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const state = req.query.state || 'active';
         const offset = Number(req.query.offset || 0);
         if (!['active', 'expired', 'completed'].includes(state) || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw failure('invalid_request', 400);
-        return res.status(200).json(await store.followups(user.id, state, offset));
+        return res.status(200).json({ ...(await store.followups(user.id, state, offset)), writable: config.writes });
       }
       if (action === 'save-followup') {
         if (!config.writes) throw failure('writes_disabled', 403);

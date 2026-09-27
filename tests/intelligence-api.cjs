@@ -819,6 +819,7 @@ test('follow-up APIs enforce authentication, owner, write flag, origin, revision
   assert.equal((await request('followups-page')).code, 200);
   assert.equal((await request('followup')).body.eligible, true);
   assert.equal((await request('followups', { query: { state: 'completed', offset: '25' } })).code, 200);
+  assert.equal((await request('followups', { query: { state: 'completed', offset: '25' } })).body.writable, true);
   for (const bad of [{ review_on: '2026-02-30' }, { next_action: ' ' }, { revision: -1 }, { status: 'completed' }, { priority: 'x' }])
     assert.equal((await request('save-followup', { method: 'POST', body: { ...followupInput, ...bad } })).code, 400);
   assert.equal((await request('save-followup', { method: 'POST', loggedIn: false, body: followupInput })).code, 401);
@@ -828,6 +829,8 @@ test('follow-up APIs enforce authentication, owner, write flag, origin, revision
   assert.equal(writes.length, 1);
   const disabled = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
   assert.equal((await disabled.request('save-followup', { method: 'POST', body: followupInput })).code, 403);
+  const readOnlyList = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' }, overrides: { followups: async () => ({ items: [], more: false }) } });
+  assert.equal((await readOnlyList.request('followups')).body.writable, false);
   const conflict = setup({ overrides: { saveFollowup: async () => { throw failure('followup_conflict', 409); } } });
   assert.equal((await conflict.request('save-followup', { method: 'POST', body: followupInput })).body.error, 'followup_conflict');
 });
