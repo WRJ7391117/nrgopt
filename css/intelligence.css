@@ -301,3 +301,22 @@
 .intel-watch-confirm label { display: block; margin-top: 12px; }
 .intel-watch-confirm textarea { display: block; min-height: 88px; margin-top: 8px; }
 .intel-watch-receipt { padding: 16px; border: 1px solid var(--border); border-radius: 8px; list-style: none; }
+
+/* Collection directions: one readable flow, with controls beside their feedback. */
+.intel-direction-list { display: grid; gap: 20px; }
+.intel-direction-list article { margin: 0; min-width: 0; }
+.intel-direction-list h3 { margin-top: 0; }
+.intel-direction-list p, .intel-direction-explainer p { overflow-wrap: anywhere; }
+.intel-direction-list details { margin: 16px 0; }
+.intel-direction-list summary { cursor: pointer; }
+.intel-direction-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.intel-direction-form { display: grid; gap: 18px; }
+.intel-direction-form > label { display: grid; gap: 8px; }
+.intel-direction-form > label:has(input[type="checkbox"]) { display: flex; align-items: center; }
+.intel-direction-form fieldset { min-width: 0; border: 1px solid var(--border); padding: 16px; border-radius: 10px; }
+.intel-direction-choices { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.intel-direction-choices label { display: flex; align-items: center; gap: 6px; }
+.intel-direction-form input[type="checkbox"] { width: auto; }
+#direction-editor, #direction-results-panel { margin-top: 24px; scroll-margin-top: 24px; }
+#direction-results li { display: grid; gap: 10px; }
+#direction-results a { overflow-wrap: anywhere; }

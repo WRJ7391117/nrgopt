@@ -1,0 +1,70 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { defaults, validateDirection, selectDirection, validateMatches } = require('../lib/intelligence/directions.cjs');
+const { discoveryQuery } = require('../lib/intelligence/discovery.cjs');
+const { watchSearchPlan } = require('../lib/intelligence/watch-search.cjs');
+const { createStore } = require('../lib/intelligence/store.cjs');
+const id='11111111-1111-4111-8111-111111111111';
+const d={id,revision:1,config:structuredClone(defaults[0].config)};
+test('direction inputs bound every user field and reject invalid or duplicate scopes',()=>{
+  assert.equal(validateDirection({revision:0,config:d.config}).config.name,d.config.name);
+  for(const change of [{countries:[]},{countries:['SA','SA']},{countries:['ZZ']},{targets:['order']},{enabled:'true'},{name:'x'.repeat(81)}])
+    assert.throws(()=>validateDirection({revision:0,config:{...d.config,...change}}),{code:'invalid_request'});
+  assert.throws(()=>validateDirection({id:'-'.repeat(36),revision:0,config:d.config}));
+});
+test('weighted rotation visits all enabled directions without expanding the country search count',()=>{
+  const plan=['high','normal','low'].map((priority,i)=>({...d,id:String(i),config:{...d.config,priority}}));
+  const counts=[0,0,0];
+  for(let i=1;i<=60;i++) counts[selectDirection(plan,'SA',new Date(Date.UTC(2026,8,i)).toISOString().slice(0,10)).id]++;
+  assert.deepEqual(counts,[30,20,10]);
+  assert.equal(selectDirection([{...d,config:{...d.config,enabled:false}}],'SA','2026-09-27'),null);
+  assert.equal(selectDirection([{...d,config:{...d.config,countries:['QA']}}],'SA','2026-09-27'),null);
+});
+test('direction queries retain approved domains on first attempt and retries, sanitizing user operators',()=>{
+  const changed={...d,config:{...d.config,name:'关注储能 site:evil.test " OR ',targets:['procurement'],exclude:'一般评论'}};
+  for(const attempt of [1,2,3]) {
+    const q=discoveryQuery('QA',attempt,changed);
+    assert.match(q,/关注储能/);assert.match(q,/采购机会/);assert.match(q,/一般评论/);
+    assert.ok(!q.includes('site:evil.test'));assert.match(q,/site:(gov.qa|qna.org.qa|qatarenergy.qa)/);
+  }
+});
+test('direction relevance requires the frozen revision and an existing validated fact',()=>{
+  const match={id,revision:1,relevant:true,reason_zh:'原文披露供能中断。',evidence_fact_number:1};
+  assert.equal(validateMatches([match],[d],[{claim_zh:'停电',evidence_quote:'outage'}])[0].relevant,true);
+  for(const value of [[{...match,revision:2}],[{...match,evidence_fact_number:2}],[],[match,match]])
+    assert.throws(()=>validateMatches(value,[d],[{}]),{code:'extraction_invalid_direction_matches'});
+  assert.equal(validateMatches([{...match,relevant:false,evidence_fact_number:99}],[d],[{}])[0].evidence_fact_number,null);
+});
+test('pausing the linked direction stops automatic evidence searches but respects explicit manual tracking',()=>{
+  const h={id:'h',status:'open',created_at:'2026-09-25T00:00:00Z',source_url:'https://example.test/a',source_title:'Public project',direction_ids:[id],candidate:{source_id:'s',occurrence_countries:['SA']}};
+  const paused=[{...d,config:{...d.config,enabled:false}}];
+  assert.equal(watchSearchPlan([h],'2026-09-27',paused).length,0);
+  assert.equal(watchSearchPlan([{...h,manual_followup:true}],'2026-09-27',paused).length,2);
+  const plan=watchSearchPlan([h],'2026-09-27',[d]);
+  assert.equal(plan.length,2);assert.match(plan[0].checkpoint.query,/地区冲突/);assert.match(plan[1].checkpoint.query,/cancelled/);
+});
+test('direction result verification is invalidated by source changes and reanalysis',async()=>{
+  const at='2026-09-27T00:00:00Z';
+  for(const change of [{},{content_sha256:'b'},{extracted_at:'2026-09-27T01:00:00Z'}]) {
+    const store=createStore({url:'https://db.test',serviceKey:'test'},async url=>{
+      const u=new URL(url);assert.equal(u.searchParams.get('owner_id'),'eq.owner');
+      const data=u.pathname.endsWith('intelligence_collection_directions')?[{id}]:u.pathname.endsWith('intelligence_direction_sources')?[{source_id:'s',match:{relevant:true},analysis_sha256:'a',analysis_extracted_at:at}]:u.pathname.endsWith('intelligence_sources')?[{id:'s',content_sha256:'a',extraction_source_sha256:'a',extraction_status:'extracted',extracted_at:at,...change}]:[];
+      return new Response(JSON.stringify(data));
+    });
+    assert.equal((await store.directionResults('owner',id)).items[0].verified,Object.keys(change).length===0);
+  }
+});
+
+test('a later direction reuses an already completed source job without enqueueing or paying again',async()=>{
+  const writes=[];
+  const store=createStore({url:'https://db.test',serviceKey:'test'},async(input,init)=>{
+    const url=new URL(input);
+    if(init.method==='POST'){writes.push(JSON.parse(init.body));return new Response('');}
+    assert.equal(url.searchParams.get('owner_id'),'eq.owner');
+    if(init.method==='PATCH'){writes.push(JSON.parse(init.body));return new Response('');}
+    assert.match(url.pathname,/intelligence_job_items$/);
+    return new Response(JSON.stringify([{checkpoint:{url:'https://example.test/a',source_id:'saved-source'}}]));
+  });
+  await store.recordDirectionSources('owner','run',[d],['https://example.test/a']);
+  assert.equal(writes[0][0].direction.revision,1);assert.deepEqual(writes[1],{source_id:'saved-source'});
+});

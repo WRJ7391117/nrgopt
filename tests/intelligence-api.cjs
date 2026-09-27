@@ -54,6 +54,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
+    snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -847,4 +848,20 @@ test('decision workbench is private, read-only and separate from filtered discov
   const redirect=await request('discover-page',{loggedIn:false,query:{country:'EG',view:'demand',period:'90'}});
   assert.equal(new URL(redirect.headers.location,'https://preview.example').searchParams.get('returnTo'),'/intelligence/discover?country=EG&view=demand&period=90');
   assert.ok(!calls.some(c=>/save|enqueue|claim/.test(c.name)));
+});
+
+test('collection directions require authentication, owner scope, valid revisions and write permission', async()=>{
+  const value={id:null,revision:0,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
+  const {request}=setup({overrides:{
+    collectionDirections:async(owner)=>{assert.equal(owner,admin);return {directions:[]};},
+    saveDirection:async(owner,input)=>{assert.equal(owner,admin);assert.deepEqual(input,value);return {id,effective_on:'2026-09-28'};}
+  }});
+  assert.equal((await request('directions',{loggedIn:false})).code,401);
+  const page=await request('directions-page',{loggedIn:false});assert.equal(page.code,303);assert.match(page.headers.location,/directions/);
+  assert.equal((await request('directions')).code,200);
+  assert.equal((await request('save-direction',{method:'POST',body:value})).body.direction.id,id);
+  assert.equal((await request('save-direction',{method:'POST',body:{...value,revision:-1}})).code,400);
+  assert.equal((await request('save-direction',{method:'POST',body:value,headers:{origin:'https://other.test'}})).code,403);
+  const locked=setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'}});
+  assert.equal((await locked.request('save-direction',{method:'POST',body:value})).code,403);
 });

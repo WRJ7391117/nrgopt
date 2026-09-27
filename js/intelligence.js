@@ -60,7 +60,7 @@
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/intelligence/directions' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (['/intelligence/overview', '/intelligence/discover'].includes(location.pathname) ? location.search : '')));
@@ -464,7 +464,7 @@
   var navigationPath = location.pathname;
   var navigationTarget = navigationPath === '/intelligence/overview' && !location.search || navigationPath === '/intelligence' ? '/intelligence/overview'
     : navigationPath === '/intelligence/followups' ? navigationPath
-      : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
+      : navigationPath === '/intelligence/directions' || navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
   document.querySelectorAll('.intel-nav a').forEach(function (link) { if (link.getAttribute('href') === navigationTarget) link.setAttribute('aria-current', 'page'); });
   function emptyWorkList(list, message) {
     var item = document.createElement('li'); item.className = 'intel-muted'; item.textContent = message; list.append(item);
@@ -1784,8 +1784,142 @@
       finally { extractButton.disabled = false; }
     });
   }
+  var directionData, editingDirection, directionResults = [], directionResultId = null;
+  function directionText(parent, tag, text, className) {
+    var node = document.createElement(tag); node.textContent = text;
+    if (className) node.className = className;
+    parent.appendChild(node); return node;
+  }
+  function renderDirections() {
+    var list = byId('direction-list'); list.replaceChildren();
+    byId('direction-new').disabled = !directionData.writable;
+    var priority = { high: '高', normal: '普通', low: '低' };
+    directionData.directions.forEach(function (d) {
+      var card = directionText(list, 'article', '', 'intel-panel');
+      directionText(card, 'h3', d.config.name);
+      var effective = directionData.effective.find(function (v) { return v.id === d.id; });
+      directionText(card, 'p', '当前生效：' + (effective ? (effective.config.enabled ? '已启用' : '已暂停') : '尚未生效') + (d.effective_on > directionData.day ? ' · 已保存' + (d.config.enabled ? '启用' : '暂停') + '，将于 ' + d.effective_on + ' 北京时间生效' : ''), 'intel-source-meta');
+      directionText(card, 'p', d.config.why);
+      directionText(card, 'p', '关注对象：' + d.config.industries);
+      directionText(card, 'p', '地区：' + d.config.countries.map(function (c) { return regionNames[c]; }).join('、'), 'intel-muted');
+      directionText(card, 'p', '希望找到：' + d.config.targets.map(function (t) { return ({signal:'值得留意的变化', investment:'投资动向', procurement:'采购机会'})[t]; }).join('、') + ' · 优先级：' + priority[d.config.priority], 'intel-muted');
+      if (d.config.exclude) directionText(card, 'p', '排除：' + d.config.exclude, 'intel-muted');
+      var task = directionData.tasks.find(function (t) { return t.checkpoint.direction.id === d.id; });
+      var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
+      directionText(card, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无按此方向执行的搜索记录；等待生效和地区轮转。', 'intel-source-meta');
+      if (task?.error_code) directionText(card, 'p', '本次搜索未完成，可在“采集流程与当天任务”查看原因。', 'intel-muted');
+      directionText(card, 'p', '最近保存：' + dateLabel(d.updated_at), 'intel-muted');
+      var details = document.createElement('details'); card.appendChild(details);
+      directionText(details, 'summary', '查看搜索网站与生效设置');
+      directionText(details, 'p', '这些是允许搜索的发布者网站，不表示今天均已采集成功。包含政府、项目业主、企业及机构；一篇原文也不等于独立交叉核验。', 'intel-muted');
+      d.config.countries.forEach(function (country) {
+        var row = directionText(details, 'p', regionNames[country] + '：');
+        (directionData.websites[country] || []).forEach(function (host) {
+          var a = directionText(row, 'a', host + ' '); a.href = 'https://' + host; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        });
+      });
+      if (effective) {
+        directionText(details, 'h4', '当前任务可使用的设置 · 版本 ' + effective.revision);
+        directionText(details, 'p', effective.config.name + '；' + effective.config.why + '；对象：' + effective.config.industries + '；地区：' + effective.config.countries.map(function(c){return regionNames[c];}).join('、'));
+      }
+      var history = directionData.versions.filter(function (v) { return v.direction_id === d.id; });
+      directionText(details, 'h4', '最近保存记录');
+      history.slice(0,5).forEach(function(v){ directionText(details,'p',dateLabel(v.recorded_at)+' · '+(v.config.enabled?'启用':'暂停')+' · '+v.config.name+' · '+v.effective_on+' 北京时间生效'); });
+      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
+      var edit = directionText(actions, 'button', '编辑方向', 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable;
+      edit.addEventListener('click',function(){ openDirection(d); });
+      var toggle = directionText(actions, 'button', d.config.enabled ? '暂停搜集' : '恢复搜集', 'intel-button intel-button-quiet'); toggle.type='button'; toggle.disabled=!directionData.writable;
+      toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
+      var results = directionText(actions, 'button', '查看搜集结果', 'intel-button intel-button-quiet'); results.type='button';
+      results.addEventListener('click',function(){ loadDirectionResults(d); });
+    });
+    if (!directionData.directions.length) directionText(list, 'p', '还没有搜集方向，请新增。');
+  }
+  function openDirection(direction, enabled) {
+    if (editingDirection && byId('direction-editor').hidden === false) {
+      status('direction-save-status','请先保存或放弃当前编辑，再打开另一个方向。','error');
+      byId('direction-editor').scrollIntoView({block:'start'}); return;
+    }
+    editingDirection = direction || { id:null, revision:0, config:{name:'',why:'',industries:'',exclude:'',countries:[],targets:['signal','investment','procurement'],priority:'normal',enabled:true} };
+    var config = editingDirection.config;
+    ['name','why','industries','exclude','priority'].forEach(function(k){byId('direction-'+k).value=config[k];});
+    document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=config.countries.includes(n.value);});
+    document.querySelectorAll('[name="direction-target"]').forEach(function(n){n.checked=config.targets.includes(n.value);});
+    byId('direction-enabled').checked = enabled === undefined ? config.enabled : enabled;
+    byId('direction-editor-title').textContent=direction ? '编辑：'+config.name : '新增搜集方向';
+    byId('direction-editor').hidden=false;
+    byId('direction-cancel').textContent='放弃修改';
+    status('direction-save-status',enabled === undefined ? '保存后次日生效。' : '请确认启用状态后点击“保存搜集方向”。暂停仅影响次日起此方向的新搜索，不删除已有情报和跟踪。');
+    byId('direction-editor').scrollIntoView({block:'start'});
+  }
+  async function loadDirections() {
+    directionData=await api('directions'); renderDirections();
+    status('page-status','设置与执行状态读取于 '+dateLabel(new Date().toISOString())+'。'+(!directionData.writable?' 当前为只读模式。':''));
+  }
+  async function loadDirectionResults(direction) {
+    directionResultId=direction.id;
+    byId('direction-results-panel').hidden=false;
+    byId('direction-results-title').textContent=direction.config.name+' · 搜集结果';
+    byId('direction-results').replaceChildren();
+    byId('direction-results-status').textContent='正在读取实际搜索记录…';
+    byId('direction-results-panel').scrollIntoView({block:'start'});
+    try {
+      var result=await api('direction-results',undefined,direction.id);
+      if(directionResultId!==direction.id)return;
+      directionResults=result.items;
+      byId('direction-results-status').textContent='仅展示这个方向实际搜索产生的记录；同一原文合并展示。搜索命中仍是线索，须看原文分析与日期。'+(result.limited?' 当前读取最近100条搜索记录。':'');
+      renderDirectionResults();
+    } catch(error){if(directionResultId===direction.id)byId('direction-results-status').textContent=error.message;}
+  }
+  function renderDirectionResults() {
+    var list=byId('direction-results');list.replaceChildren();
+    var seen=new Set(), filtered=0;
+    directionResults.forEach(function(item){
+      var key=item.source_id||item.url;if(seen.has(key))return;seen.add(key);
+      if(!inPublicationPeriod(item.source,byId('direction-period').value)){filtered++;return;}
+      var row=directionText(list,'li','');
+      var label=!item.source?'搜索线索 · 原文尚未就绪':item.source.extraction_status==='failed'?'原文分析失败':!item.verified?'搜索线索 · 尚未按此方向核验':!item.match.relevant?'经分析与此方向无关':item.candidate?.disposition!=='candidate'?'相关背景资料':'原文支持相关性';
+      if (!item.source && item.processing) label = ({queued:'等待获取原文',running:'正在获取原文',retry:'获取失败，等待重试',failed:'原文获取失败',manual_paused:'来源已暂停',budget_paused:'等待预算或账单恢复'})[item.processing.status] || label;
+      directionText(row,'strong',label);
+      var title=item.candidate?.title_zh||item.source?.title||new URL(item.url).hostname;
+      if(item.source){var link=directionText(row,'a',title);link.href='/intelligence/sources/'+item.source_id;}
+      else directionText(row,'p',title);
+      directionText(row,'p','原文发布：'+publicationLabel(item.source)+' · 搜集：'+dateLabel(item.created_at)+' · 方向版本 '+item.direction.revision,'intel-source-meta');
+      if(item.verified)directionText(row,'p',item.match.reason_zh+(item.match.evidence_fact_number?'（原文事实 '+item.match.evidence_fact_number+'）':''));
+      var url=webUrl(item.url);if(url){var original=directionText(row,'a','查看来源原文');original.href=url.href;original.target='_blank';original.rel='noopener noreferrer';}
+    });
+    if(!list.children.length)directionText(list,'li',filtered?'当前日期筛选下没有记录，可选择“全部”查看历史、待获取或日期未知的线索。':'尚无实际搜集结果。未执行、没有命中或采集失败，都不能据此判断没有价值。');
+  }
+  if(byId('direction-form')) {
+    byId('direction-new').addEventListener('click',function(){openDirection(null);});
+    byId('direction-period').addEventListener('change',renderDirectionResults);
+    byId('direction-cancel').addEventListener('click',function(){
+      if(this.textContent!=='确认放弃修改' && this.textContent!=='关闭编辑'){this.textContent='确认放弃修改';status('direction-save-status','再次点击将放弃本次未保存的编辑，已有设置保持不变。');return;}
+      editingDirection=null;byId('direction-editor').hidden=true;
+    });
+    byId('direction-form').addEventListener('input',function(){byId('direction-cancel').textContent='放弃修改';});
+    byId('direction-form').addEventListener('submit',async function(event){
+      event.preventDefault();if(!editingDirection)return;
+      var config={};['name','why','industries','exclude','priority'].forEach(function(k){config[k]=byId('direction-'+k).value;});
+      config.countries=Array.from(document.querySelectorAll('[name="direction-country"]:checked')).map(function(n){return n.value;});
+      config.targets=Array.from(document.querySelectorAll('[name="direction-target"]:checked')).map(function(n){return n.value;});
+      config.enabled=byId('direction-enabled').checked;
+      if(!config.countries.length||!config.targets.length){status('direction-save-status','请至少选择一个地区和一种希望找到的内容。','error');return;}
+      var buttons=this.querySelectorAll('button');buttons.forEach(function(b){b.disabled=true;});
+      status('direction-save-status','正在保存…');
+      try {
+        var result=await api('save-direction',{id:editingDirection.id,revision:editingDirection.revision,config});
+        editingDirection=result.direction;
+        status('direction-save-status','已保存。将于 '+result.direction.effective_on+' 北京时间 00:00 起生效，当天任务继续使用原设置。','success');
+        byId('direction-cancel').textContent='关闭编辑';
+        await loadDirections();
+      } catch(error){status('direction-save-status',error.message,'error');}
+      finally{buttons.forEach(function(b){b.disabled=false;});}
+    });
+  }
   (async function () {
     try {
+      if (byId('direction-list')) { await loadDirections(); return; }
       if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
