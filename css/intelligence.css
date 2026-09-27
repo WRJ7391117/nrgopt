@@ -288,3 +288,7 @@
 #detail-evidence > summary { margin-bottom: 1rem; font-weight: 600; cursor: pointer; }
 #followup-section, #detail-evidence, [id^="workbench-"] { scroll-margin-top: 6rem; }
 .intel-management-links { margin: 1rem 0 2rem; }
+
+.intel-followup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+#followup-save-status:not(:empty) { padding: 12px 16px; border: 1px solid currentColor; border-radius: 8px; line-height: 1.6; }
+#followup-reload-help { margin-top: 8px; font-size: .85rem; line-height: 1.6; }
