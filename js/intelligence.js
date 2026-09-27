@@ -463,8 +463,8 @@
   }
   var navigationPath = location.pathname;
   var navigationTarget = navigationPath === '/intelligence/overview' && !location.search || navigationPath === '/intelligence' ? '/intelligence/overview'
-    : navigationPath === '/intelligence/followups' ? navigationPath
-      : navigationPath === '/intelligence/directions' || navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
+    : navigationPath === '/intelligence/followups' || navigationPath === '/intelligence/directions' ? navigationPath
+      : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
   document.querySelectorAll('.intel-nav a').forEach(function (link) { if (link.getAttribute('href') === navigationTarget) link.setAttribute('aria-current', 'page'); });
   function emptyWorkList(list, message) {
     var item = document.createElement('li'); item.className = 'intel-muted'; item.textContent = message; list.append(item);
