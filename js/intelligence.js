@@ -48,7 +48,7 @@
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return '/intelligence/overview' + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence' || value === '/intelligence/overview' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence';
+    return value === '/intelligence/overview' || value === '/intelligence/sources' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (location.pathname === '/intelligence/overview' ? location.search : '')));

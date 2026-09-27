@@ -341,7 +341,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     } catch (error) {
       if (error.code === 'auth_required' && ['page', 'overview-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence';
+          : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (action === 'overview-page') {
           const params = new URLSearchParams();
           if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(req.query.country)) params.set('country', req.query.country);
