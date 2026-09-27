@@ -29,6 +29,22 @@ async function main() {
   const extracted = extractDocument(html, 'text/html; charset=UTF-8');
   assert.deepEqual(extracted, { title: 'Project & Energy', excerpt: 'First fact. 第二条事实。' });
   assert.equal(globalThis.sourceExecuted, undefined);
+  for (const loading of ['Loading...', ' Loading… ']) {
+    assert.equal(extractDocument(Buffer.from('<title>Energy news</title><main>' + loading + '</main>'), 'text/html').excerpt, '');
+  }
+  assert.equal(extractDocument(Buffer.from('Loading capacity increased at the oil terminal.'), 'text/plain').excerpt,
+    'Loading capacity increased at the oil terminal.');
+  let loadingFailure;
+  await assert.rejects(extractSavedSource({
+    store: {
+      evidence: async () => ({ source: { id: 'saved-loading', final_url: 'https://public.example/news',
+        title: 'Energy news', content_type: 'text/html' }, bytes: Buffer.from('<main>Loading...</main>') }),
+      failExtraction: async (id, owner, code) => { loadingFailure = [id, owner, code]; }
+    }, owner: 'owner-a', sourceId: 'saved-loading', env: {},
+    modelFactory: () => { throw Error('loading placeholder reached model'); }
+  }), { code: 'source_empty_document' });
+  assert.deepEqual(loadingFailure, ['saved-loading', 'owner-a', 'source_empty_document']);
+
   const metadataOnly = extractDocument(Buffer.from('<title>Official notice</title><meta name="description" content="First official fact. Second official fact."><script>{"content":"not executed"}</script><body></body>'), 'text/html');
   assert.deepEqual(metadataOnly, { title: 'Official notice', excerpt: 'First official fact. Second official fact.' });
   assert.throws(() => extractDocument(html, 'application/json'), { code: 'source_unsupported_type' });
