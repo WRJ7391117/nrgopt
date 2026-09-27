@@ -16,6 +16,7 @@ http.createServer(async (req, res) => {
     req.query = Object.fromEntries(url.searchParams);
     if (url.pathname === '/intelligence/login') req.query.action = 'login-page';
     else if (url.pathname === '/intelligence/overview') req.query.action = 'overview-page';
+    else if (url.pathname === '/intelligence/workflow') req.query.action = 'workflow-page';
     else if (url.pathname === '/intelligence/settings') req.query.action = 'settings-page';
     else if (url.pathname === '/intelligence') req.query.action = 'overview-page';
     else if (url.pathname === '/intelligence/sources') req.query.action = 'page';

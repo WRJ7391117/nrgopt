@@ -736,3 +736,26 @@ test('entry routes open overview while source tools and deep links keep their lo
     assert.equal(new URL(response.headers.location, 'https://preview.example').searchParams.get('returnTo'), expected);
   }
 });
+
+test('workflow page and data require the administrator, preserve login return and only read today', async () => {
+  const { request, calls } = setup({ overrides: { dailyTasks: async (_owner, day) => ({ day, run: null, items: [] }) } });
+  const anon = await request('workflow-page', { loggedIn: false });
+  assert.equal(anon.code, 303);
+  assert.equal(anon.headers.location, '/intelligence/login?returnTo=%2Fintelligence%2Fworkflow');
+  assert.equal((await request('workflow', { loggedIn: false })).code, 401);
+  const forbidden = setup({ overrides: { user: async () => ({ id }) } });
+  assert.equal((await forbidden.request('workflow')).code, 403);
+  const page = await request('workflow-page');
+  assert.equal(page.code, 200);
+  assert.match(page.body, /采集流程与当天任务/);
+  assert.match(page.body, /id="workflow-tasks"/);
+  const data = await request('workflow', { query: { day: '2000-01-01', owner: id } });
+  assert.equal(data.code, 200);
+  const call = calls.find(item => item.name === 'dailyTasks');
+  assert.equal(call.args[0], admin);
+  assert.equal(call.args[1], require('../lib/intelligence/jobs.cjs').scheduleDate());
+  assert.equal(data.body.user.email, 'local@example.test');
+  assert.ok(!calls.some(item => ['enqueueJob', 'claimJobItem', 'enqueueJobItems'].includes(item.name)));
+  const rewrite = require('../vercel.json').rewrites.find(item => item.source === '/intelligence/workflow');
+  assert.equal(rewrite.destination, '/api/intelligence?action=workflow-page');
+});

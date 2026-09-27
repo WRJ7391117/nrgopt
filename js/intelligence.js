@@ -56,7 +56,7 @@
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return '/intelligence/overview' + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/overview' || value === '/intelligence/sources' || value === '/intelligence/settings' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/intelligence/overview' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (location.pathname === '/intelligence/overview' ? location.search : '')));
@@ -669,6 +669,103 @@
     });
     byId('overview-opportunities-empty').hidden = visible.length !== 0;
   }
+  var workflowData, workflowPage = 0;
+  var taskStates = { running: '执行中', queued: '排队', retry: '待重试', failed: '失败', budget_paused: '预算暂停', manual_paused: '人工暂停', succeeded: '成功' };
+  var taskStages = { discover: '六国搜索', registry: '固定公告入口', watchsearch: '主动证据搜索', source: '原文抓取', watchsource: '关注来源抓取', extract: '情报分析', cross: '跨来源核对', hypothesis: '假设与反证判断' };
+  var taskErrors = { source_tls_error: '来源站点证书校验失败', source_listing_page: '这是目录页，未作为正文分析', source_empty_document: '没有可读取的正文，未调用模型', source_failed: '原文获取失败', source_not_found: '原公告已下线或网址失效', source_access_denied: '来源拒绝自动访问', source_dns_error: '来源域名无法解析', source_timeout: '原文获取超时', source_rate_limited: '来源站点限流', discovery_no_primary_sources: '没有找到符合要求的官方页面', discovery_failed: '来源搜索失败', model_timeout: '模型请求超时', model_rate_limited: '模型服务限流', extraction_failed: '情报提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设判断失败', watch_search_failed: '主动证据搜索失败', budget_exhausted: '调用预算不足', budget_not_configured: '尚未配置调用预算', billing_sync_pending: '等待账单同步', source_paused: '此发布方已暂停自动采集', lease_exhausted: '多次执行超时，已停止自动重试', registry_no_links: '没有读到公告链接，需要核查入口', upstream_unavailable: '数据服务暂时不可用', storage_failed: '原文保存失败' };
+  function taskDescription(item) {
+    var countries = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var stage = item.item_key.split(':')[0];
+    return item.title || item.object_zh || item.name || (stage === 'discover' ? (countries[item.country || item.item_key.split(':')[1]] || '') + '官方来源搜索' : item.url || '来源资料处理');
+  }
+  function taskError(item) {
+    if (!item.error_code) return '';
+    return taskErrors[item.error_code] || (/^extraction_invalid/.test(item.error_code) ? '模型结果未通过结构或原文证据校验' : '处理未成功，诊断代码见下方');
+  }
+  function renderWorkflowTasks() {
+    if (!workflowData) return;
+    var form = byId('workflow-filters'), state = form.elements.state.value, stage = form.elements.stage.value, search = form.elements.search.value.trim().toLowerCase();
+    var items = workflowData.items.filter(function (item) {
+      return (!state || (state === 'unfinished' ? !['succeeded', 'failed'].includes(item.status) : item.status === state))
+        && (!stage || item.item_key.split(':')[0] === stage)
+        && (!search || [taskDescription(item), item.url, item.error_code, taskError(item)].join(' ').toLowerCase().includes(search));
+    });
+    var priority = { running: 0, retry: 1, budget_paused: 2, manual_paused: 3, failed: 4, queued: 5, succeeded: 6 };
+    items.sort(function (a, b) { return (priority[a.status] ?? 7) - (priority[b.status] ?? 7) || b.updated_at.localeCompare(a.updated_at) || a.id.localeCompare(b.id); });
+    var pages = Math.max(1, Math.ceil(items.length / 25));
+    workflowPage = Math.min(workflowPage, pages - 1);
+    var list = byId('workflow-tasks'); list.replaceChildren();
+    items.slice(workflowPage * 25, (workflowPage + 1) * 25).forEach(function (item) {
+      var row = document.createElement('li'); row.dataset.state = item.status;
+      var head = document.createElement('div'); head.className = 'intel-task-heading';
+      var stage = document.createElement('strong'); stage.textContent = taskStages[item.item_key.split(':')[0]] || '采集任务';
+      var badge = document.createElement('span'); badge.className = 'intel-badge'; badge.textContent = taskStates[item.status] || item.status;
+      head.append(stage, badge);
+      var title = document.createElement('p'); title.className = 'intel-task-title'; title.textContent = taskDescription(item);
+      var timing = document.createElement('p'); timing.className = 'intel-muted'; timing.textContent = '已尝试 ' + item.attempts + ' 次 · 更新于 ' + dateLabel(item.updated_at);
+      row.append(head, title, timing);
+      if (item.status === 'retry' && item.next_attempt_at) {
+        var retry = document.createElement('p'); retry.className = 'intel-muted'; retry.textContent = '最早再次尝试：' + dateLabel(item.next_attempt_at) + '（仍受暂停与其他在途任务影响）'; row.append(retry);
+      }
+      if (item.error_code) {
+        var error = document.createElement('p'); error.className = 'intel-task-error'; error.textContent = taskError(item) + ' · ' + item.error_code; row.append(error);
+      }
+      if (item.outcome) {
+        var outcomes = { no_new_evidence: '搜索已完成，未找到符合要求的新来源，不代表假设被否定。', watch_window_closed: '关注窗口已结束，未调用搜索服务。', sources_found: '已找到来源并送入后续核验。' };
+        if (outcomes[item.outcome]) { var outcome = document.createElement('p'); outcome.textContent = outcomes[item.outcome]; row.append(outcome); }
+      }
+      if (item.source_id && new RegExp('^' + uuid + '$', 'i').test(item.source_id)) {
+        var link = document.createElement('a'); setSourceLink(link, item.source_id); link.textContent = '查看来源与证据'; row.append(link);
+      } else if (item.url) {
+        try {
+          var url = new URL(item.url);
+          if (['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) {
+            var external = document.createElement('a'); external.href = url.href; external.target = '_blank'; external.rel = 'noopener noreferrer'; external.textContent = '原文：' + url.hostname + url.pathname; row.append(external);
+          }
+        } catch { /* Invalid task URLs remain plain text. */ }
+      }
+      list.append(row);
+    });
+    byId('workflow-list-status').textContent = items.length ? '符合筛选 ' + items.length + ' 项 · 每页 25 项；执行中与需关注的任务优先。' : workflowData.run ? '没有符合当前筛选的任务。' : '今天尚无计划任务记录；这不表示当天已经完成。';
+    byId('workflow-page').textContent = (workflowPage + 1) + ' / ' + pages;
+    byId('workflow-prev').disabled = workflowPage === 0;
+    byId('workflow-next').disabled = workflowPage + 1 >= pages;
+  }
+  async function loadWorkflow() {
+    var button = byId('workflow-refresh'); button.disabled = true;
+    status('page-status', workflowData ? '正在刷新，下面暂为上次读取的记录…' : '正在读取当天任务…');
+    try {
+      var data = await api('workflow'); workflowData = data;
+      byId('account-email').textContent = data.user.email;
+      document.querySelector('.intel-nav a[href="/intelligence/workflow"]').setAttribute('aria-current', 'page');
+      byId('workflow-date').textContent = data.day + ' · 当天任务';
+      var counts = data.items.reduce(function (all, item) { all[item.status] = (all[item.status] || 0) + 1; return all; }, {});
+      var unfinished = data.items.some(function (item) { return !['succeeded', 'failed'].includes(item.status); });
+      var ended = data.run && ['succeeded', 'partial', 'failed'].includes(data.run.status) && data.items.length > 0 && !unfinished && !data.changed_during_read;
+      var summary = !data.run ? '尚未建立当天计划' : data.changed_during_read ? '任务在读取期间有变化，请刷新核对' : ended
+        ? counts.failed ? (counts.succeeded ? '已结束 · 有失败' : '已结束 · 全部失败') : '已结束 · 全部成功'
+        : ['budget_paused', 'manual_paused'].includes(data.run.status) ? (taskStates[data.run.status] + ' · 尚未完成') : '尚未结束';
+      byId('workflow-summary').textContent = summary;
+      byId('workflow-time').textContent = '读取时间：' + dateLabel(data.read_at) + (data.run ? ' · 计划建立：' + dateLabel(data.run.created_at) : '')
+        + (ended && data.run.finished_at ? ' · 结束时间：' + dateLabel(data.run.finished_at) : '');
+      var boxes = byId('workflow-counts'); boxes.replaceChildren();
+      [['全部任务', data.items.length]].concat(Object.keys(taskStates).map(function (key) { return [taskStates[key], counts[key] || 0]; })).forEach(function (pair) {
+        var box = document.createElement('div'), number = document.createElement('strong'), label = document.createElement('span');
+        number.textContent = pair[1]; label.textContent = pair[0]; box.append(number, label); boxes.append(box);
+      });
+      renderWorkflowTasks();
+      status('page-status', '已读取数据库任务记录。' + (data.changed_during_read ? '运行仍在变化，此次记录不用于判定完成。' : ''));
+    } catch (error) { status('page-status', error.message + (workflowData ? ' 下方保留上次记录，未更新为最新状态。' : ' 请点击刷新重试。'), 'error'); }
+    finally { button.disabled = false; }
+  }
+  if (byId('workflow-tasks')) {
+    byId('workflow-refresh').addEventListener('click', loadWorkflow);
+    byId('workflow-filters').addEventListener('submit', function (event) { event.preventDefault(); });
+    byId('workflow-filters').addEventListener('input', function () { workflowPage = 0; renderWorkflowTasks(); });
+    byId('workflow-prev').addEventListener('click', function () { workflowPage--; renderWorkflowTasks(); });
+    byId('workflow-next').addEventListener('click', function () { workflowPage++; renderWorkflowTasks(); });
+  }
+
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
     var countryNames = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
@@ -1352,6 +1449,7 @@
   }
   (async function () {
     try {
+      if (byId('workflow-tasks')) { await loadWorkflow(); return; }
       if (overviewList) { await loadOverview(); return; }
       var session = await api('session');
       byId('account-email').textContent = session.user.email;
