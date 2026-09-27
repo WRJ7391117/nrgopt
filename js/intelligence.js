@@ -1784,84 +1784,104 @@
       finally { extractButton.disabled = false; }
     });
   }
-  var directionData, editingDirection, directionResults = [], directionResultId = null;
+  var directionData, editingDirection, directionResults = [], directionResultId = null, directionDirty = false, directionSaving = false;
   function directionText(parent, tag, text, className) {
     var node = document.createElement(tag); node.textContent = text;
     if (className) node.className = className;
     parent.appendChild(node); return node;
   }
+  function directionView(view) {
+    byId('direction-home').hidden = view !== 'home';
+    byId('direction-editor').hidden = view !== 'edit';
+    byId('direction-results-panel').hidden = view !== 'results';
+  }
+  function returnToDirections(id) {
+    directionResultId = null; editingDirection = null; directionDirty = false;
+    directionView('home');
+    var button = Array.from(document.querySelectorAll('[data-direction-edit]')).find(function(n){return n.dataset.directionEdit === id;});
+    (button && !button.disabled ? button : Array.from(document.querySelectorAll('[data-direction-results]')).find(function(n){return n.dataset.directionResults===id;}) || byId('direction-new')).focus();
+  }
   function renderDirections() {
     var list = byId('direction-list'); list.replaceChildren();
     byId('direction-new').disabled = !directionData.writable;
     var priority = { high: '高', normal: '普通', low: '低' };
+    var active = directionData.effective.filter(function(d){return d.config.enabled;}).length;
+    byId('direction-count').textContent = '共 ' + directionData.directions.length + ' 个方向 · 今天已启用 ' + active + ' 个。启用不代表今天已完成搜索。';
     directionData.directions.forEach(function (d) {
-      var card = directionText(list, 'article', '', 'intel-panel');
-      directionText(card, 'h3', d.config.name);
+      var card = directionText(list, 'article', '', 'intel-panel intel-direction-card');
+      var heading = directionText(card, 'div', '', 'intel-section-heading');
+      directionText(heading, 'h3', d.config.name);
       var effective = directionData.effective.find(function (v) { return v.id === d.id; });
-      directionText(card, 'p', '当前生效：' + (effective ? (effective.config.enabled ? '已启用' : '已暂停') : '尚未生效') + (d.effective_on > directionData.day ? ' · 已保存' + (d.config.enabled ? '启用' : '暂停') + '，将于 ' + d.effective_on + ' 北京时间生效' : ''), 'intel-source-meta');
-      directionText(card, 'p', d.config.why);
-      directionText(card, 'p', '关注对象：' + d.config.industries);
-      directionText(card, 'p', '地区：' + d.config.countries.map(function (c) { return regionNames[c]; }).join('、'), 'intel-muted');
-      directionText(card, 'p', '希望找到：' + d.config.targets.map(function (t) { return ({signal:'值得留意的变化', investment:'投资动向', procurement:'采购机会'})[t]; }).join('、') + ' · 优先级：' + priority[d.config.priority], 'intel-muted');
-      if (d.config.exclude) directionText(card, 'p', '排除：' + d.config.exclude, 'intel-muted');
+      directionText(heading, 'span', effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效', 'intel-badge');
+      if (d.effective_on > directionData.day) directionText(card, 'p', '以下为已保存设置，' + d.effective_on + ' 北京时间起' + (d.config.enabled ? '启用' : '暂停') + '；今天的任务不受本次修改影响。', 'intel-direction-pending');
+      directionText(card, 'p', d.config.why, 'intel-direction-purpose');
+      directionText(card, 'p', '关注对象：' + d.config.industries, 'intel-muted');
+      directionText(card, 'p', '范围：' + d.config.countries.length + ' 个地区 · 希望找到：' + d.config.targets.map(function(t){return ({signal:'变化线索',investment:'投资动向',procurement:'采购机会'})[t];}).join('、'), 'intel-muted');
+      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
+      var edit = directionText(actions, 'button', '修改搜集要求', 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable; edit.dataset.directionEdit = d.id;
+      edit.addEventListener('click',function(){ openDirection(d); });
+      var results = directionText(actions, 'button', '查看搜集结果', 'intel-button'); results.type='button'; results.dataset.directionResults=d.id;
+      results.addEventListener('click',function(){ loadDirectionResults(d); });
+      var toggle = directionText(actions, 'button', d.config.enabled ? '暂停搜集' : '恢复搜集', 'intel-button intel-button-quiet'); toggle.type='button'; toggle.disabled=!directionData.writable;
+      toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
       var task = directionData.tasks.find(function (t) { return t.checkpoint.direction.id === d.id; });
       var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
-      directionText(card, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无按此方向执行的搜索记录；等待生效和地区轮转。', 'intel-source-meta');
+      directionText(card, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
       if (task?.error_code) directionText(card, 'p', '本次搜索未完成，可在“采集流程与当天任务”查看原因。', 'intel-muted');
-      directionText(card, 'p', '最近保存：' + dateLabel(d.updated_at), 'intel-muted');
       var details = document.createElement('details'); card.appendChild(details);
-      directionText(details, 'summary', '查看搜索网站与生效设置');
-      directionText(details, 'p', '这些是允许搜索的发布者网站，不表示今天均已采集成功。包含政府、项目业主、企业及机构；一篇原文也不等于独立交叉核验。', 'intel-muted');
+      directionText(details, 'summary', '查看完整设置、来源网站与修改记录');
+      directionText(details, 'p', '已保存的地区：' + d.config.countries.map(function(c){return regionNames[c];}).join('、'));
+      directionText(details, 'p', '优先级：' + priority[d.config.priority] + ' · 排除：' + (d.config.exclude || '未设置'));
+      directionText(details, 'p', '最近保存：' + dateLabel(d.updated_at), 'intel-muted');
+      if (effective) {
+        directionText(details, 'h4', '今天生效的设置 · 版本 ' + effective.revision);
+        directionText(details, 'p', effective.config.name + '；' + effective.config.why + '；对象：' + effective.config.industries + '；地区：' + effective.config.countries.map(function(c){return regionNames[c];}).join('、'));
+      }
+      directionText(details, 'h4', '允许搜索的发布者网站');
+      directionText(details, 'p', '这是可搜索的网站范围，不表示今天均已采集成功；一篇原文也不等于独立交叉核验。', 'intel-muted');
       d.config.countries.forEach(function (country) {
         var row = directionText(details, 'p', regionNames[country] + '：');
         (directionData.websites[country] || []).forEach(function (host) {
-          var a = directionText(row, 'a', host + ' '); a.href = 'https://' + host; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          var link = directionText(row, 'a', host + ' '); link.href = 'https://' + host; link.target = '_blank'; link.rel = 'noopener noreferrer';
         });
       });
-      if (effective) {
-        directionText(details, 'h4', '当前任务可使用的设置 · 版本 ' + effective.revision);
-        directionText(details, 'p', effective.config.name + '；' + effective.config.why + '；对象：' + effective.config.industries + '；地区：' + effective.config.countries.map(function(c){return regionNames[c];}).join('、'));
-      }
-      var history = directionData.versions.filter(function (v) { return v.direction_id === d.id; });
       directionText(details, 'h4', '最近保存记录');
-      history.slice(0,5).forEach(function(v){ directionText(details,'p',dateLabel(v.recorded_at)+' · '+(v.config.enabled?'启用':'暂停')+' · '+v.config.name+' · '+v.effective_on+' 北京时间生效'); });
-      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
-      var edit = directionText(actions, 'button', '编辑方向', 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable;
-      edit.addEventListener('click',function(){ openDirection(d); });
-      var toggle = directionText(actions, 'button', d.config.enabled ? '暂停搜集' : '恢复搜集', 'intel-button intel-button-quiet'); toggle.type='button'; toggle.disabled=!directionData.writable;
-      toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
-      var results = directionText(actions, 'button', '查看搜集结果', 'intel-button intel-button-quiet'); results.type='button';
-      results.addEventListener('click',function(){ loadDirectionResults(d); });
+      directionData.versions.filter(function(v){return v.direction_id===d.id;}).slice(0,5).forEach(function(v){ directionText(details,'p',dateLabel(v.recorded_at)+' · '+(v.config.enabled?'启用':'暂停')+' · '+v.config.name+' · '+v.effective_on+' 北京时间生效'); });
     });
-    if (!directionData.directions.length) directionText(list, 'p', '还没有搜集方向，请新增。');
+    if (!directionData.directions.length) directionText(list, 'p', '还没有搜集方向。点击“新增搜集方向”，告诉系统你希望找到什么。');
   }
   function openDirection(direction, enabled) {
-    if (editingDirection && byId('direction-editor').hidden === false) {
-      status('direction-save-status','请先保存或放弃当前编辑，再打开另一个方向。','error');
-      byId('direction-editor').scrollIntoView({block:'start'}); return;
-    }
     editingDirection = direction || { id:null, revision:0, config:{name:'',why:'',industries:'',exclude:'',countries:[],targets:['signal','investment','procurement'],priority:'normal',enabled:true} };
-    var config = editingDirection.config;
+    var config = editingDirection.config, toggle = enabled !== undefined;
+    directionDirty = toggle; directionResultId = null;
     ['name','why','industries','exclude','priority'].forEach(function(k){byId('direction-'+k).value=config[k];});
     document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=config.countries.includes(n.value);});
     document.querySelectorAll('[name="direction-target"]').forEach(function(n){n.checked=config.targets.includes(n.value);});
-    byId('direction-enabled').checked = enabled === undefined ? config.enabled : enabled;
-    byId('direction-editor-title').textContent=direction ? '编辑：'+config.name : '新增搜集方向';
-    byId('direction-editor').hidden=false;
-    byId('direction-cancel').textContent='放弃修改';
-    status('direction-save-status',enabled === undefined ? '保存后次日生效。' : '请确认启用状态后点击“保存搜集方向”。暂停仅影响次日起此方向的新搜索，不删除已有情报和跟踪。');
+    byId('direction-enabled').checked = toggle ? enabled : config.enabled;
+    byId('direction-config-fields').hidden = toggle;
+    byId('direction-save').disabled=false;
+    byId('direction-editor-title').textContent = toggle ? (enabled ? '恢复搜集：' : '暂停搜集：') + config.name : direction ? '修改：' + config.name : '新增搜集方向';
+    byId('direction-editor-note').textContent = toggle ? '只调整这个方向的启用状态，原搜集要求保持不变。已有情报和“我的跟踪”中的事项保留。' : '按下面三步填写，最后保存。返回列表前可以放弃修改，已有设置不会被删除。';
+    byId('direction-save').textContent = toggle ? (enabled ? '确认恢复搜集' : '确认暂停搜集') : '保存搜集方向';
+    byId('direction-saved-results').hidden = true;
+    byId('direction-cancel').textContent = toggle ? '取消，返回列表' : '返回方向列表';
+    status('direction-save-status',toggle ? '确认后次日北京时间 00:00 起生效，今天已开始的任务保持原设置。' : '尚未保存。保存后次日生效。');
+    directionView('edit');
+    byId('direction-editor-title').focus();
     byId('direction-editor').scrollIntoView({block:'start'});
   }
   async function loadDirections() {
     directionData=await api('directions'); renderDirections();
-    status('page-status','设置与执行状态读取于 '+dateLabel(new Date().toISOString())+'。'+(!directionData.writable?' 当前为只读模式。':''));
+    status('page-status','读取于 '+dateLabel(new Date().toISOString())+'。'+(!directionData.writable?' 当前为只读模式。':''));
   }
   async function loadDirectionResults(direction) {
-    directionResultId=direction.id;
-    byId('direction-results-panel').hidden=false;
+    directionResultId=direction.id; directionResults=[];
+    directionView('results');
+    byId('direction-period').value='30';
     byId('direction-results-title').textContent=direction.config.name+' · 搜集结果';
     byId('direction-results').replaceChildren();
     byId('direction-results-status').textContent='正在读取实际搜索记录…';
+    byId('direction-results-title').focus();
     byId('direction-results-panel').scrollIntoView({block:'start'});
     try {
       var result=await api('direction-results',undefined,direction.id);
@@ -1893,28 +1913,50 @@
   if(byId('direction-form')) {
     byId('direction-new').addEventListener('click',function(){openDirection(null);});
     byId('direction-period').addEventListener('change',renderDirectionResults);
+    byId('direction-results-back').addEventListener('click',function(){returnToDirections(directionResultId);});
+    byId('direction-saved-results').addEventListener('click',function(){loadDirectionResults(editingDirection);});
+    byId('direction-editor-back').addEventListener('click',function(){byId('direction-cancel').click();});
     byId('direction-cancel').addEventListener('click',function(){
-      if(this.textContent!=='确认放弃修改' && this.textContent!=='关闭编辑'){this.textContent='确认放弃修改';status('direction-save-status','再次点击将放弃本次未保存的编辑，已有设置保持不变。');return;}
-      editingDirection=null;byId('direction-editor').hidden=true;
+      if(directionSaving)return;
+      if(directionDirty && !byId('direction-config-fields').hidden && this.textContent!=='确认放弃修改'){
+        this.textContent='确认放弃修改';status('direction-save-status','有未保存的修改。再次点击将放弃这些修改并返回列表，已有设置保持不变。');byId('direction-save-status').scrollIntoView({block:'center'});return;
+      }
+      returnToDirections(editingDirection?.id);
     });
-    byId('direction-form').addEventListener('input',function(){byId('direction-cancel').textContent='放弃修改';});
+    function markDirectionDirty(){
+      directionDirty=true;byId('direction-save').disabled=false;byId('direction-cancel').textContent='放弃修改，返回列表';
+      byId('direction-save').textContent='保存搜集方向';byId('direction-saved-results').hidden=true;
+      status('direction-save-status','有未保存的修改。保存后次日生效。');
+    }
+    byId('direction-form').addEventListener('input',markDirectionDirty);
+    byId('direction-form').addEventListener('invalid',function(){status('direction-save-status','尚未保存，请补全表单中提示的必填项。','error');},true);
+    document.querySelectorAll('[data-countries]').forEach(function(button){button.addEventListener('click',function(){
+      document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=button.dataset.countries==='all';});markDirectionDirty();
+    });});
     byId('direction-form').addEventListener('submit',async function(event){
-      event.preventDefault();if(!editingDirection)return;
+      event.preventDefault();if(!editingDirection||directionSaving)return;
       var config={};['name','why','industries','exclude','priority'].forEach(function(k){config[k]=byId('direction-'+k).value;});
       config.countries=Array.from(document.querySelectorAll('[name="direction-country"]:checked')).map(function(n){return n.value;});
       config.targets=Array.from(document.querySelectorAll('[name="direction-target"]:checked')).map(function(n){return n.value;});
       config.enabled=byId('direction-enabled').checked;
-      if(!config.countries.length||!config.targets.length){status('direction-save-status','请至少选择一个地区和一种希望找到的内容。','error');return;}
-      var buttons=this.querySelectorAll('button');buttons.forEach(function(b){b.disabled=true;});
+      if(!config.countries.length||!config.targets.length){status('direction-save-status','请至少选择一个地区和一种希望找到的信息。','error');return;}
+      directionSaving=true;
+      var fields=this.querySelectorAll('button,input,select,textarea');fields.forEach(function(n){n.disabled=true;});
       status('direction-save-status','正在保存…');
       try {
         var result=await api('save-direction',{id:editingDirection.id,revision:editingDirection.revision,config});
-        editingDirection=result.direction;
-        status('direction-save-status','已保存。将于 '+result.direction.effective_on+' 北京时间 00:00 起生效，当天任务继续使用原设置。','success');
-        byId('direction-cancel').textContent='关闭编辑';
-        await loadDirections();
-      } catch(error){status('direction-save-status',error.message,'error');}
-      finally{buttons.forEach(function(b){b.disabled=false;});}
+        editingDirection=result.direction;directionDirty=false;
+        var savedIndex=directionData.directions.findIndex(function(d){return d.id===result.direction.id;});
+        if(savedIndex<0)directionData.directions.push(result.direction);else directionData.directions[savedIndex]=result.direction;
+        renderDirections();
+        var message='已保存「'+result.direction.config.name+'」。将于 '+result.direction.effective_on+' 北京时间 00:00 起'+(config.enabled?'启用':'暂停')+'，今天的任务继续使用原设置。';
+        status('direction-save-status',message,'success');
+        byId('direction-save').textContent='已保存';byId('direction-cancel').textContent='完成，返回方向列表';
+        byId('direction-saved-results').hidden=false;
+        try {await loadDirections();}
+        catch(error){status('direction-save-status',message+' 列表暂未刷新，无需重复保存。请稍后刷新页面。','success');status('page-status','本次保存已确认；其他执行状态暂未刷新，请稍后刷新页面。','error');}
+      } catch(error){directionDirty=true;status('direction-save-status',error.message+' 未保存的内容已保留。','error');}
+      finally{directionSaving=false;fields.forEach(function(n){n.disabled=false;});byId('direction-save').disabled=!directionDirty;}
     });
   }
   (async function () {

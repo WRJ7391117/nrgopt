@@ -369,3 +369,37 @@
 #direction-editor, #direction-results-panel { margin-top: 24px; scroll-margin-top: 24px; }
 #direction-results li { display: grid; gap: 10px; }
 #direction-results a { overflow-wrap: anywhere; }
+.intel-direction-list { margin-top: 24px; }
+.intel-direction-card .intel-section-heading { align-items: flex-start; }
+.intel-direction-card .intel-section-heading h3 { margin: 0; font-size: 1.05rem; line-height: 1.6; }
+.intel-direction-card p { margin: 10px 0; line-height: 1.7; }
+.intel-direction-card .intel-direction-purpose { margin-top: 16px; }
+.intel-direction-pending { padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--form-bg); font-size: .82rem; }
+.intel-direction-card details { padding-top: 12px; margin-bottom: 0; border-top: 1px solid var(--border); color: var(--text-dim); font-size: .82rem; }
+.intel-direction-card details h4 { margin-top: 20px; color: var(--text); }
+.intel-direction-help { margin: 28px 0; color: var(--text-dim); font-size: .85rem; line-height: 1.8; }
+.intel-direction-help summary { cursor: pointer; }
+.intel-direction-help p { margin-top: 12px; }
+.intel-direction-workspace > h2 { font-size: 1.3rem; margin-top: 16px; overflow-wrap: anywhere; }
+#direction-config-fields { display: grid; gap: 24px; }
+.intel-direction-form fieldset { display: grid; gap: 20px; padding: 24px; }
+.intel-direction-form legend { padding: 0 8px; font-weight: 600; }
+.intel-direction-form textarea { min-height: 96px; }
+#direction-editor-back { margin-bottom: 16px; }
+.intel-direction-form fieldset > label { display: grid; gap: 8px; margin: 0; }
+.intel-direction-form fieldset > .intel-direction-enable { display: flex; align-items: center; }
+.intel-direction-form .intel-field-label { margin: 0 0 12px; font-size: .9rem; font-weight: 600; }
+.intel-direction-form input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; flex-shrink: 0; }
+.intel-direction-form .intel-direction-choices { gap: 8px 20px; }
+.intel-direction-form .intel-direction-choices label { min-height: 40px; margin: 0; font-weight: 400; }
+.intel-direction-country-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.intel-direction-country-group { padding-top: 16px; }
+.intel-direction-country-group h3 { margin: 0 0 8px; font-size: .85rem; color: var(--text-dim); }
+.intel-direction-form > .intel-direction-buttons { padding-top: 16px; border-top: 1px solid var(--border); margin-top: 0; }
+#direction-save-status:not(:empty) { padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; line-height: 1.7; }
+#direction-results-panel > label { display: grid; gap: 8px; max-width: 280px; margin: 24px 0; }
+@media (max-width: 640px) {
+  .intel-direction-workspace { padding: 20px 16px; }
+  .intel-direction-form fieldset { padding: 20px 12px; }
+  .intel-direction-buttons .intel-button { flex: 1; }
+}
