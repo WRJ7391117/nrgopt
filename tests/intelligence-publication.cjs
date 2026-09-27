@@ -160,3 +160,14 @@ test('MENA publisher datelines are scoped to the article and preserve date-only 
   assert.equal(parse(card(22,8) + card(11,11), 'https://www.sonelgaz.dz/fr/11/article').publication_date, '2026-08-11');
   assert.equal(parse(card(22,8), 'https://www.sonelgaz.dz/fr/11/article').publication_date, null);
 });
+
+test('EEHC uses the labelled news date, not a body event or footer date', () => {
+  const url = 'https://www.eehc.gov.eg/CMSEehc/' + encodeURIComponent('الاخبار') + '/grid/';
+  const fields = date => `<div class="col-7"><div class="row"><div class="col-2"><h5>تاريخ الخبر</h5></div><div class="col-10">${date}</div><div class="col-2">تفاصيل الخبر</div><div class="col-10">Meeting 20/09/2026</div></div></div><footer>27/09/2026</footer>`;
+  assert.equal(parse(fields('21/09/2026'), url).publication_date, '2026-09-21');
+  assert.equal(parse(fields('21/09/2026'), url).published_at, null);
+  assert.equal(parse(fields('31/09/2026'), url).publication_date, null);
+  assert.equal(parse(fields(''), url).publication_date, null);
+  assert.equal(parse(fields('21/09/2026'), 'https://www.eehc.gov.eg/CMSeehc/').publication_date, null);
+  assert.equal(parse('<meta property="article:published_time" content="2026-09-22">' + fields('21/09/2026'), url).publication_method, 'conflicting_metadata');
+});
