@@ -214,7 +214,7 @@ test('login accepts the current Vercel preview origin without weakening cross-or
     headers: { origin: 'https://attacker.example' } })).code, 403);
 });
 
-test('MiniMax discovers official source links without requiring the user to know a URL', async () => {
+test('MiniMax discovers public source links beyond fixed publishers', async () => {
   let options;
   let input;
   const { request } = setup({
@@ -227,28 +227,28 @@ test('MiniMax discovers official source links without requiring the user to know
   });
   const response = await request('discover', { method: 'POST', body: { country: 'SA' } });
   assert.equal(response.code, 200);
-  assert.equal(response.body.sources.length, 1);
+  assert.equal(response.body.sources.length, 2);
   assert.equal(response.body.sources[0].url, 'https://www.spa.gov.sa/en/N1');
-  assert.equal(response.body.sources[0].source_level, 'primary');
+  assert.equal(response.body.sources[0].source_level, 'unverified');
   assert.equal(options.apiKey, 'test-minimax-key');
   assert.equal(options.provider, 'minimax');
   assert.equal(options.model, 'coding-plan-search');
   assert.match(input.query, /Saudi Arabia/);
-  assert.match(input.query, /site:spa\.gov\.sa/);
+  assert.ok(!input.query.includes('site:'));
   assert.ok(!input.query.includes('Return original publications'));
   assert.equal((await request('discover', { method: 'POST', body: { country: 'US' } })).code, 400);
 });
 
-test('a successful search without official sources is distinct from a provider failure', async () => {
+test('a successful empty search is not retried as a provider failure', async () => {
   const { request } = setup({ discoveryFactory: () => async () => ({ results: [
-    { title: 'Secondary report', url: 'https://news.example/project' }
+    { title: 'Unsafe link', url: 'http://127.0.0.1/project' }
   ] }) });
   const response = await request('discover', { method: 'POST', body: { country: 'SA' } });
-  assert.equal(response.code, 502);
-  assert.equal(response.body.error, 'discovery_no_primary_sources');
+  assert.equal(response.code, 200);
+  assert.deepEqual(response.body.sources, []);
 });
 
-test('scheduled Kuwait retry searches the project developer and still rejects secondary reports', async () => {
+test('scheduled Kuwait retry allows media without relaxing URL safety', async () => {
   let input;
   const { request } = setup({ environment: { ...env, CRON_SECRET: 'cron-test-secret', NRGOPT_SCHEDULER_ENABLED: '1' },
     overrides: {
@@ -256,13 +256,13 @@ test('scheduled Kuwait retry searches the project developer and still rejects se
       jobRun: async () => ({ run: { status: 'running' }, items: [] })
     }, discoveryFactory: () => async value => { input = value; return { results: [
       { title: 'Developer announcement', url: 'https://www.acwapower.com/en/news/kuwait-project' },
-      { title: 'Unverified repost', url: 'https://acwapower.com.attacker.example/news' }
+      { title: 'Unverified repost', url: 'http://127.0.0.1/news' }
     ] }; }
   });
   const result = await request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer cron-test-secret' } });
   assert.equal(result.code, 200);
   assert.match(input.query, /^Kuwait \(regulation OR security OR industry/);
-  assert.match(input.query, /site:acwapower\.com$/);
+  assert.ok(!input.query.includes('site:'));
   assert.equal(result.body.result.resultCount, 1);
 });
 

@@ -19,7 +19,7 @@ const valid = {
   numeric_facts: [], commercial_events: [],
   summary_zh: '全球可再生能源新增装机在2023年明显增长。',
   why_it_matters_zh: '这是宏观市场背景，不能单独证明海合会存在具体项目或采购。',
-  known_facts: [{ claim_zh: '2023年全球新增可再生能源装机达到510吉瓦。', evidence_quote: 'The world added 510 gigawatts of renewable capacity in 2023.' }],
+  known_facts: [{ statement_type: 'report', attribution_zh: '来源报道；原始发布方未明确', claim_zh: '2023年全球新增可再生能源装机达到510吉瓦。', evidence_quote: 'The world added 510 gigawatts of renewable capacity in 2023.' }],
   unknowns_zh: ['没有披露海合会具体项目。'],
   hypotheses: [{ hypothesis_zh: '增长趋势可能带动后续电网灵活性需求。', counter_evidence_zh: '若没有区域项目或采购文件，则不能形成具体机会判断。' }],
   next_signals_zh: ['观察海合会可研、融资、招标和授标文件。'],
@@ -385,4 +385,40 @@ test('MENA accepts the product 24 regions, keeps occurrence separate and require
   input.classification.topics = [];
   input.classification.countries[0].code = 'US';
   assert.throws(() => validateExtraction(input, sourceText), { code: 'extraction_invalid_country_evidence' });
+});
+
+
+test('statement attribution survives storage validation and rejects ungrounded project upgrades', () => {
+  const reported = validateExtraction(valid, sourceText);
+  assert.equal(reported.known_facts[0].statement_type, 'report');
+  const opinion = structuredClone(valid);
+  opinion.known_facts[0].statement_type = 'opinion';
+  opinion.known_facts[0].attribution_zh = '作者预测';
+  opinion.classification.project = { name_zh: '预测项目', stage_zh: '采购', evidence_fact_number: 1 };
+  assert.throws(() => validateExtraction(opinion, sourceText), { code: 'extraction_invalid_attribution' });
+  opinion.classification.project = null;
+  opinion.classification.disposition = 'candidate';
+  assert.throws(() => validateExtraction(opinion, sourceText), { code: 'extraction_invalid_attribution' });
+  opinion.classification.disposition = 'source_only';
+  opinion.known_facts[0].attribution_zh = '';
+  assert.throws(() => validateExtraction(opinion, sourceText), { code: 'extraction_invalid_attribution' });
+  const legacy = structuredClone(valid);
+  delete legacy.known_facts[0].statement_type; delete legacy.known_facts[0].attribution_zh;
+  assert.equal(validateExtraction(legacy, sourceText).known_facts[0].statement_type, undefined);
+});
+
+test('new model responses must distinguish statements even though legacy stored analyses remain readable', async () => {
+  const legacy = structuredClone(valid); delete legacy.known_facts[0].statement_type;
+  const extract = createDeepSeekExtractor({apiKey:'test', fetchImpl:async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(legacy)}}]}))});
+  await assert.rejects(extract({sourceText, title:'Example', url:'https://example.com/a'}), {code:'extraction_invalid_attribution'});
+});
+
+test('open discovery preserves media, companies and authors as unverified leads with a bounded safe URL set', async () => {
+  const {discoverCountry, discoverySources}=require('../lib/intelligence/discovery.cjs');
+  const urls=['https://company.example/press/project','https://local-news.example/news/outage','https://author.example/posts/resilience','https://x.com/analyst/status/123'];
+  const result=await discoverCountry('QA',{},()=>async()=>({results:[...urls.map(url=>({url,source_level:'primary'})),{url:urls[0]+'#part'},{url:'http://127.0.0.1/a'},{url:'https://127.0.0.1/a'},{url:'https://user:pass@example.com/a'}]}));
+  assert.deepEqual(result.sources.map(s=>s.url),urls);
+  assert.ok(result.sources.every(s=>s.source_level==='unverified'));
+  assert.equal(discoverySources(Array.from({length:30},(_,i)=>({url:`https://author.example/${i}`}))).length,12);
+  assert.deepEqual((await discoverCountry('QA',{},()=>async()=>({results:[]}))).sources,[]);
 });

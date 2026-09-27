@@ -523,15 +523,14 @@ test('unchanged raw HTML queues re-extraction when old evidence came from an exc
 });
 
 test('supported MENA countries do not silently enable searches and extra searches remain bounded', () => {
-  const { primaryHosts, discoveryQuery, primarySource } = require('../lib/intelligence/discovery.cjs');
+  const { primaryHosts, discoveryQuery } = require('../lib/intelligence/discovery.cjs');
   assert.equal(COUNTRIES.length, 24);
-  assert.match(discoveryQuery('EH'), /Western Sahara.*Laayoune.*site:ustda.gov/);
-  assert.match(discoveryQuery('EH', 2), /Laayoune.*site:ustda.gov/);
+  assert.match(discoveryQuery('EH'), /Western Sahara.*Laayoune/);
+  assert.match(discoveryQuery('EH', 2), /Laayoune/);
   assert.deepEqual(dailySearchCountries('2026-09-27').slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);
   assert.ok(dailySearchCountries('2026-09-27').length <= 8);
-  assert.equal(primarySource('https://example.org/', 'IR'), false);
   assert.equal(Object.keys(primaryHosts).length, 24);
-  assert.match(discoveryQuery('SY'), /Syria.*site:uccholding.com/);
+  assert.match(discoveryQuery('SY'), /Syria/);
   assert.throws(() => discoveryQuery('XX'), { code: 'discovery_country_not_enabled' });
   const saved = { ...primaryHosts };
   for (const code of ['EG', 'TR', 'MA']) primaryHosts[code] = ['fixture.invalid'];
@@ -540,7 +539,7 @@ test('supported MENA countries do not silently enable searches and extra searche
     assert.equal(first.length, 8);
     assert.deepEqual(first.slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);
     assert.notDeepEqual(first, dailySearchCountries('2026-09-28'));
-    assert.match(discoveryQuery('TR', 3), /site:fixture.invalid/);
+    assert.ok(!discoveryQuery('TR', 3).includes('site:'));
   } finally { for (const code of ['EG', 'TR', 'MA']) { if (saved[code]) primaryHosts[code] = saved[code]; else delete primaryHosts[code]; } }
 });
 

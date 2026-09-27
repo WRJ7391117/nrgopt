@@ -239,6 +239,8 @@
       var quote = document.createElement('blockquote');
       quote.textContent = '原文证据：“' + fact.evidence_quote + '”';
       item.append(claim, quote);
+      var statementNames = { disclosure: '发布方披露', report: '报道或转述', opinion: '观点或预测', unknown: '归属待核实' };
+      paragraph(item, (statementNames[fact.statement_type] || '历史分析 · 尚未区分披露、报道与观点') + (fact.attribution_zh ? ' · ' + fact.attribution_zh : ''), 'intel-muted');
       facts.append(item);
     });
     var relatedList = byId('extraction-related-sources');
@@ -251,7 +253,7 @@
       setSourceLink(link, related.source_id);
       var note = document.createElement('p');
       note.textContent = related.independence === 'same_publisher'
-        ? '这是同一官方发布方的更正、延期或取消后重新邀请；用于更新项目状态，不计为独立确认。'
+        ? '这是同一发布方的更正、延期或取消后重新邀请；用于更新项目状态，不计为独立确认。'
         : related.shared_quote_count
           ? related.shared_quote_count + ' 组引文相同，可能同源；不能累计为独立确认。'
           : '来源独立性尚未确认；内容一致不等于独立确认。';
@@ -440,7 +442,7 @@
       link.textContent = source.title || new URL(source.url).hostname;
       var label = document.createElement('span');
       label.className = 'intel-source-level';
-      label.textContent = source.source_level === 'primary' ? '官方/项目方一手来源' : '二手来源';
+      label.textContent = '搜索线索 · 原文及发布者待核验';
       var save = document.createElement('button');
       save.className = 'intel-button';
       save.type = 'button';
@@ -800,7 +802,7 @@
   function taskDescription(item) {
     var countries = regionNames;
     var stage = item.item_key.split(':')[0];
-    return item.title || item.object_zh || item.name || (stage === 'discover' ? (countries[item.country || item.item_key.split(':')[1]] || '') + '官方来源搜索' : item.url || '来源资料处理');
+    return item.title || item.object_zh || item.name || (stage === 'discover' ? (countries[item.country || item.item_key.split(':')[1]] || '') + '公开来源搜索' : item.url || '来源资料处理');
   }
   function taskError(item) {
     if (!item.error_code) return '';
@@ -1837,8 +1839,8 @@
         directionText(details, 'h4', '今天生效的设置 · 版本 ' + effective.revision);
         directionText(details, 'p', effective.config.name + '；' + effective.config.why + '；对象：' + effective.config.industries + '；地区：' + effective.config.countries.map(function(c){return regionNames[c];}).join('、'));
       }
-      directionText(details, 'h4', '允许搜索的发布者网站');
-      directionText(details, 'p', '这是可搜索的网站范围，不表示今天均已采集成功；一篇原文也不等于独立交叉核验。', 'intel-muted');
+      directionText(details, 'h4', '既有发布者入口参考');
+      directionText(details, 'p', '按方向搜索也会发现这些网站以外的政府、企业、媒体和公开作者文章。下列入口不代表已采集成功或独立核实。', 'intel-muted');
       d.config.countries.forEach(function (country) {
         var row = directionText(details, 'p', regionNames[country] + '：');
         (directionData.websites[country] || []).forEach(function (host) {

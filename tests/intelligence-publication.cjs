@@ -218,3 +218,14 @@ test('Enlight news page dates require matching identity and World Bank conflicts
   assert.match(result.publication_evidence, /2025-06-25/);
   assert.match(result.publication_evidence, /2026-03-26/);
 });
+
+test('expert blog uses its own body and byline date, excluding recommendation panels and modified dates', () => {
+  const {extractDocument}=require('../lib/intelligence/source.cjs');
+  const url='https://www.energypolicy.columbia.edu/example/';
+  const html='<meta property="article:modified_time" content="2026-09-27T00:00:00Z"><main>Unrelated recommendation</main><div class="hero-content-holder"><h1>Energy resilience</h1>Blog by An Analyst • April 16, 2026</div><div class="article-single-layout"><main><p>This is the actual original article.</p></main><aside>Unrelated investment</aside></div>';
+  const doc=extractDocument(Buffer.from(html),'text/html',12000,url);
+  assert.equal(doc.title,'Energy resilience');assert.match(doc.excerpt,/Blog by An Analyst/);assert.match(doc.excerpt,/actual original article/);assert.doesNotMatch(doc.excerpt,/Unrelated/);
+  assert.equal(parse(html,url).publication_date,'2026-04-16');
+  assert.equal(parse(html.replace('April 16, 2026','unknown'),url).publication_date,null);
+  assert.throws(()=>extractDocument(Buffer.from('<main>Recommended articles</main>'),'text/html',12000,url),{code:'source_empty_document'});
+});

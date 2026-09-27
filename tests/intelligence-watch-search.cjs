@@ -36,7 +36,7 @@ test('search plan pairs support and counterevidence, caps 10 fixed slots and rot
     assert.equal(plan[i + 1].checkpoint.intent, 'counter');
     assert.deepEqual(plan[i].checkpoint.hypothesis_ids, plan[i + 1].checkpoint.hypothesis_ids);
     assert.match(plan[i + 1].checkpoint.query, /cancelled/);
-    assert.match(plan[i].checkpoint.query, /site:gov.sa/);
+    assert.ok(!plan[i].checkpoint.query.includes('site:'));
   }
   const later = watchSearchPlan(targets, '2026-09-25');
   assert.equal(new Set([...plan, ...later].map(p => p.checkpoint.source_id)).size, 9);
@@ -68,16 +68,16 @@ test('same URL versions produce one group, query contains no user annotation or 
   assert.match(plan[0].checkpoint.query, /Cedar solar project financing/);
 });
 
-test('discovery keeps only allowed official hosts and accepts an empty result', async () => {
+test('evidence search admits public media and rejects unsafe links', async () => {
   let query;
   const factory = () => async input => { query = input.query; return { results: [
-    { url: 'https://www.spa.gov.sa/a' }, { url: 'https://spa.gov.sa.attacker.test/a' }, { url: 'not a URL' }
+    { url: 'https://www.spa.gov.sa/a' }, { url: 'https://local-news.example/a' }, { url: 'http://127.0.0.1/a' }, { url: 'not a URL' }
   ], provider: 'test' }; };
   const plan = watchSearchPlan([target()], '2026-09-24')[1].checkpoint;
   const result = await discoverWatch(plan, {}, factory);
   assert.equal(query, plan.query);
-  assert.equal(result.sources.length, 1);
-  assert.equal(result.sources[0].source_level, 'primary');
+  assert.equal(result.sources.length, 2);
+  assert.equal(result.sources[0].source_level, 'unverified');
   assert.deepEqual((await discoverWatch(plan, {}, () => async () => ({ results: [] }))).sources, []);
 });
 
