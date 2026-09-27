@@ -137,3 +137,10 @@ test('Turkish article identity keeps its id query and added MENA entry batches s
   const next = registryPlan(links, first, entry.maxNew);
   assert.equal(next.urls.length, 2); assert.equal(next.fresh_count, 1); assert.equal(next.pending_count, 0);
 });
+
+test('NOC registry accepts article cards and excludes navigation pages', () => {
+  const entry = registry.find(item => item.id === 'noc-news');
+  const urls = registryLinks(entry, { finalUrl: entry.url, bytes: Buffer.from('<a href="/en/about/">About</a><div class="el-item"><a class="uk-card" href="/en/reports/">Reports</a><a class="uk-card" href="/en/pipeline-reopens/"><span class="el-meta">Sep 26, 2026</span>Pipeline reopens</a></div>') });
+  assert.deepEqual(urls, ['https://noc.ly/en/pipeline-reopens/']);
+  assert.equal(registryPlan(urls, {}, entry.maxNew).fresh_count, 1);
+});
