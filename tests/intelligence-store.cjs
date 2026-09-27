@@ -1237,11 +1237,57 @@ test('follow-up list paginates owner-scoped records without dropping the next pa
       assert.equal(url.searchParams.get('limit'), '26');
       return new Response(JSON.stringify(Array.from({ length: 26 }, (_, n) => ({ id: 'watch-' + n, candidate_id: 'candidate-' + n }))));
     }
+    if (url.pathname.endsWith('intelligence_hypotheses') || url.pathname.endsWith('intelligence_sources')) return Response.json([]);
     assert.ok(url.searchParams.get('id').includes('candidate-24'));
     assert.ok(!url.searchParams.get('id').includes('candidate-25'));
-    return new Response(JSON.stringify([{ id: 'candidate-0', source_id: 'source', title_zh: '标题' }]));
+    return Response.json(Array.from({length:25}, (_, n) => ({id:'candidate-'+n,source_id:'source',title_zh:'标题'})));
   });
   const result = await store.followups('owner-a', 'completed', 25);
   assert.equal(result.items.length, 25); assert.equal(result.more, true);
-  assert.equal(result.items[0].candidate.source_id, 'source'); assert.equal(calls.length, 2);
+  assert.equal(result.items[0].candidate.source_id, 'source'); assert.equal(calls.length, 4);
+});
+
+test('workbench uses Beijing first-recorded day and excludes stale, conflicting, handled and invalid evidence', async () => {
+  const ids = ['fresh','old','future','unknown','conflict','hash','handled','duplicate','boundary'];
+  const sources = ids.map(id => ({id,final_url:id === 'duplicate' ? 'fresh' : id,publication_date:'2026-09-27',extraction_status:'extracted',content_sha256:'a',extraction_source_sha256:'a'}));
+  sources[1].publication_date='2026-08-28'; sources[2].publication_date='2026-09-28'; sources[3].publication_date=null;
+  sources[4].publication_method='conflicting_metadata';sources[5].extraction_source_sha256='b';
+  sources[8].publication_date='2026-08-28';sources[8].published_at='2026-08-28T17:00:00Z';
+  const store=createStore(CONFIG,async input=>{
+    const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
+    if(u.pathname.endsWith('intelligence_candidates')) {
+      assert.equal(u.searchParams.get('created_at'),'gte.2026-09-26T16:00:00.000Z');
+      assert.deepEqual(u.searchParams.getAll('created_at'),['gte.2026-09-26T16:00:00.000Z','lt.2026-09-27T16:00:00.000Z']);
+      return Response.json(ids.map(id=>({id,source_id:id,created_at:'2026-09-27T00:00:00Z'})));
+    }
+    if(u.pathname.endsWith('intelligence_watch_targets'))return Response.json([{candidate_id:'handled',status:'expired'}]);
+    if(u.pathname.endsWith('intelligence_sources'))return Response.json(sources);
+    throw Error('unexpected');
+  });
+  const result=await store.workbench('owner-a','2026-09-27');
+  assert.deepEqual(result.discoveries.map(x=>x.id),['fresh','boundary']);
+  assert.deepEqual(result.due,[]);assert.deepEqual(result.updates,[]);
+});
+
+test('active followups are globally prioritized, per-watch changes exclude unchanged, and all assessment pages are read', async()=>{
+  const watches=Array.from({length:27},(_,n)=>({id:'w'+n,candidate_id:'c'+n,status:'active',updated_at:n===1?'2026-09-26T02:00:00Z':'2026-09-26T00:00:00Z',followup:{review_on:'2099-01-01'}}));
+  watches[26].followup.review_on='2000-01-01';
+  const pages=[];
+  const store=createStore(CONFIG,async input=>{
+    const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
+    if(u.pathname.endsWith('intelligence_watch_targets'))return Response.json(watches);
+    if(u.pathname.endsWith('intelligence_candidates'))return Response.json(watches.map(w=>({id:w.candidate_id,source_id:w.id,evidence_status:w.id==='w25'?'conflict':'sourced'})));
+    if(u.pathname.endsWith('intelligence_sources'))return Response.json([]);
+    if(u.pathname.endsWith('intelligence_hypotheses'))return Response.json([{id:'h0',candidate_id:'c0'},{id:'h1',candidate_id:'c1'}]);
+    if(u.pathname.endsWith('intelligence_hypothesis_assessments')){
+      assert.equal(u.searchParams.get('recommendation'),'neq.unchanged');
+      const offset=Number(u.searchParams.get('offset'));pages.push(offset);
+      return Response.json(offset===0?Array.from({length:500},(_,n)=>({id:'a'+n,hypothesis_id:'h1',created_at:'2026-09-26T01:00:00Z'})):[{id:'a500',hypothesis_id:'h0',created_at:'2026-09-26T03:00:00Z'}]);
+    }throw Error('unexpected');
+  });
+  const result=await store.followups('owner-a');
+  assert.deepEqual(pages,[0,500]);assert.equal(result.more,true);
+  assert.deepEqual(result.items.slice(0,3).map(x=>x.id),['w26','w25','w0']);
+  assert.equal(result.items.find(x=>x.id==='w1').change_count,0);
+  assert.equal(result.items[2].change_count,1);
 });

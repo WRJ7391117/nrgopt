@@ -49,7 +49,7 @@
     element.dataset.tone = tone || '';
   }
   function safeReturnTo(value) {
-    if (typeof value === 'string' && value.startsWith('/intelligence/overview?')) {
+    if (typeof value === 'string' && /^\/intelligence\/(overview|discover)\?/.test(value)) {
       var params = new URLSearchParams(value.slice(value.indexOf('?') + 1)), retained = new URLSearchParams();
       if (regions.countries.some(function (item) { return item.code === params.get('country'); })) retained.set('country', params.get('country'));
       if (Object.hasOwn(regions.groups, params.get('group') || '')) retained.set('group', params.get('group'));
@@ -58,12 +58,12 @@
       if (!view && ['trigger', 'demand', 'project'].includes(params.get('radar'))) view = params.get('radar') === 'trigger' ? 'signal' : params.get('radar');
       if (['signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
-      return '/intelligence/overview' + (retained.size ? '?' + retained : '');
+      return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/overview' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
-    return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (location.pathname === '/intelligence/overview' ? location.search : '')));
+    return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (['/intelligence/overview', '/intelligence/discover'].includes(location.pathname) ? location.search : '')));
   }
   async function api(action, body, id) {
     var url = '/api/intelligence?action=' + action + (id ? '&id=' + encodeURIComponent(id) : '');
@@ -161,7 +161,7 @@
     var button = byId('extract-button');
     var languageNote = byId('source-language-note');
     button.textContent = extraction ? '重新生成初析' : '生成中文初析';
-    if (languageNote) languageNote.textContent = extraction ? '原文语言：英语 · 中文情报已生成，引文已与原文自动比对' : '原文语言：英语 · 中文初析尚未生成';
+    if (languageNote) languageNote.textContent = extraction ? '中文情报已生成，引文保留来源原文语言' : '中文初析尚未生成';
     byId('extraction-content').hidden = !extraction;
     if (!extraction) {
       status('extraction-status', source.extraction_status === 'extraction_failed' ? '上次结果未通过证据校验，可重新生成。' : '尚未生成模型初析。');
@@ -461,6 +461,62 @@
       list.append(item);
     });
   }
+  var navigationPath = location.pathname;
+  var navigationTarget = navigationPath === '/intelligence/overview' && !location.search || navigationPath === '/intelligence' ? '/intelligence/overview'
+    : navigationPath === '/intelligence/followups' ? navigationPath
+      : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
+  document.querySelectorAll('.intel-nav a').forEach(function (link) { if (link.getAttribute('href') === navigationTarget) link.setAttribute('aria-current', 'page'); });
+  function emptyWorkList(list, message) {
+    var item = document.createElement('li'); item.className = 'intel-muted'; item.textContent = message; list.append(item);
+  }
+  function watchCard(watch) {
+    var item = document.createElement('li'), f = watch.followup;
+    var heading = document.createElement('h3'), link = document.createElement('a');
+    link.href = '/intelligence/sources/' + encodeURIComponent(watch.candidate.source_id) + '#followup-section';
+    link.textContent = watch.candidate.title_zh; heading.append(link); item.append(heading);
+    paragraph(item, '跟踪理由：' + f.reason);
+    if ((watch.changes || []).length) {
+      paragraph(item, '最新证据判断：' + watch.changes[0].reason_zh);
+      paragraph(item, '判断记录：' + dateLabel(watch.changes[0].created_at) + ' · 共 ' + watch.change_count + ' 条新判断，需核对原文', 'intel-source-meta');
+    } else paragraph(item, '暂无新的支持、削弱或反证判断；不代表市场没有变化。', 'intel-muted');
+    if (watch.source_timing?.error_code || watch.source_timing?.extraction_error_code) paragraph(item, '来源抓取或分析有失败，请核对采集状态；不能据此判断没有价值。', 'intel-caution');
+    if (watch.candidate.evidence_status === 'conflict') paragraph(item, '存在原文冲突，请先核对适用范围与时间。', 'intel-caution');
+    paragraph(item, '下一步：' + f.next_action);
+    paragraph(item, '复核日期：' + f.review_on + '（北京时间） · 优先级：' + (priorityLabels[f.priority] || f.priority) + ' · 原文发布：' + publicationLabel(watch.source_timing), 'intel-source-meta');
+    if (f.outcome) paragraph(item, '上次记录的实际结果：' + f.outcome);
+    if (watch.status !== 'active') paragraph(item, '暂缓 / 退出原因：' + f.exit_reason);
+    var action = document.createElement('a'); action.className = 'intel-evidence-link'; action.href = link.href; action.textContent = '复核证据、记录结果或调整计划 →'; item.append(action);
+    return item;
+  }
+  async function loadWorkbench() {
+    var button = byId('workbench-refresh'); button.disabled = true;
+    status('page-status', '正在核对今天的情报与跟踪…');
+    try {
+      var data = await api('workbench');
+      byId('workbench-period').textContent = data.day + ' · 北京时间 UTC+8 · 数据读取于 ' + dateLabel(data.captured_at);
+      var fresh = byId('workbench-new'); fresh.replaceChildren();
+      data.discoveries.forEach(function (candidate) {
+        var item = document.createElement('li'), heading = document.createElement('h3'), link = document.createElement('a');
+        setSourceLink(link, candidate.source_id); link.textContent = candidate.title_zh; heading.append(link); item.append(heading);
+        paragraph(item, candidate.summary_zh);
+        paragraph(item, '值得关注：' + (candidate.why_it_matters_zh || '影响尚待进一步判断。'));
+        paragraph(item, '下一步核实：' + (candidate.next_signals_zh[0] || '先核对原文是否支持当前判断。'));
+        paragraph(item, '原文发布：' + publicationLabel(candidate.source_timing) + ' · 首次收录：' + dateLabel(candidate.created_at), 'intel-source-meta');
+        var action = document.createElement('a'); action.href = link.href; action.className = 'intel-evidence-link'; action.textContent = '查看判断，决定是否跟踪 →'; item.append(action); fresh.append(item);
+      });
+      if (!data.discoveries.length) emptyWorkList(fresh, '今天暂无符合上述条件的新情报。可浏览全部情报，或继续处理已有跟踪。');
+      if (data.discovery_more) emptyWorkList(fresh, '此处展示部分新发现；更多内容请进入“发现情报”。');
+      [['updates', '跟踪事项暂未出现新的证据判断。'], ['due', '当前没有到期或存在原文冲突的活跃跟踪。']].forEach(function (entry) {
+        var list = byId('workbench-' + entry[0]); list.replaceChildren();
+        data[entry[0]].forEach(function (watch) { list.append(watchCard(watch)); });
+        if (!data[entry[0]].length) emptyWorkList(list, entry[1]);
+        if (data[entry[0] + '_more']) emptyWorkList(list, '更多事项请进入“我的跟踪”。');
+      });
+      status('page-status', '');
+    } catch (error) { status('page-status', error.message + ' 当前无法判断是否有新情报；已显示内容保留，请稍后刷新。', 'error'); }
+    finally { button.disabled = false; }
+  }
+  if (byId('workbench-refresh')) byId('workbench-refresh').addEventListener('click', loadWorkbench);
   var overviewCandidates = [], overviewOpportunities = [], overviewLoaded = false;
   function renderOverviewHeading() {
     var filters = byId('candidate-filters'), period = filters.elements.period.value, view = filters.elements.view.value || 'overview';
@@ -475,13 +531,13 @@
     }
     byId('overview-period').textContent = range;
     var viewCopy = {
-      overview: ['能源变化', '先看重要变化，再进入早期信号、需求、项目或机会。所有判断都可以回到来源和原文证据。', '决策摘要', '重点变化'],
+      overview: ['能源变化', '寻找值得跟进的变化。按地区、类型和原文日期筛选，再从详情决定下一步。', '发现 → 判断 → 跟踪', '全部变化'],
       signal: ['区域变化与能源韧性早期信号', '查看监管、安全、产业、公共服务、气候灾害和基础设施变化如何传导到能源需求，并沿验证证据继续跟踪。', '从区域变化到能源响应', '早期信号'],
       demand: ['能源需求', '查看哪些业主或设施已出现新增负荷、可靠性、并网、成本或减碳需求。', '谁需要解决什么问题', '需求'],
       project: ['能源项目', '查看已经出现项目级证据的公告、可研、融资、招标、授标、建设和投运进展。', '项目进展到哪一步', '项目'],
       opportunity: ['商业机会', '查看由原文事实支持的早期参与方向、设备包和服务包，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
     }[view];
-    byId('overview-title').textContent = view === 'overview' ? (period === 'all' ? '全部能源情报' : period === 'unknown' ? '日期待核验的能源情报' : prefix + '的能源变化') : prefix + ' · ' + viewCopy[0];
+    byId('overview-title').textContent = '发现情报 · ' + (view === 'overview' ? prefix : prefix + ' · ' + viewCopy[0]);
     byId('overview-intro').textContent = viewCopy[1];
     byId('candidate-kicker').textContent = viewCopy[2];
     byId('candidate-heading').textContent = prefix + ' · ' + viewCopy[3];
@@ -530,8 +586,8 @@
       return (importanceOrder[left.importance] ?? 9) - (importanceOrder[right.importance] ?? 9)
         || Date.parse(right.updated_at || 0) - Date.parse(left.updated_at || 0);
     });
-    var displayed = view === 'overview' ? filtered.slice(0, 8) : filtered;
-    if (view === 'overview') byId('candidate-filter-status').textContent += '；先显示其中 ' + displayed.length + ' 条重点，其他内容可从上方分类进入';
+    var displayed = filtered;
+
     displayed.forEach(function (candidate) {
       var item = document.createElement('li');
       var row = document.createElement('div');
@@ -598,7 +654,11 @@
       evidenceLink.className = 'intel-evidence-link';
       evidenceLink.textContent = '打开情报详情与原文证据 →';
       setSourceLink(evidenceLink, candidate.source_id);
-      item.append(evidenceLink);
+      var trackLink = document.createElement('a');
+      trackLink.className = 'intel-evidence-link';
+      trackLink.href = '/intelligence/sources/' + encodeURIComponent(candidate.source_id) + '#followup-section';
+      trackLink.textContent = '确认跟踪计划 →';
+      item.append(evidenceLink, trackLink);
       (candidate.related_sources || []).forEach(function (related, index) {
         var relatedLink = document.createElement('a');
         relatedLink.className = 'intel-evidence-link';
@@ -752,7 +812,7 @@
     try {
       var data = await api('workflow'); workflowData = data;
       byId('account-email').textContent = data.user.email;
-      document.querySelector('.intel-nav a[href="/intelligence/workflow"]').setAttribute('aria-current', 'page');
+      document.querySelector('.intel-nav a[href="/intelligence/settings"]').setAttribute('aria-current', 'page');
       byId('workflow-date').textContent = data.day + ' · 当天任务';
       var counts = data.items.reduce(function (all, item) { all[item.status] = (all[item.status] || 0) + 1; return all; }, {});
       var unfinished = data.items.some(function (item) { return !['succeeded', 'failed'].includes(item.status); });
@@ -1167,7 +1227,7 @@
   }
   var followupForm = byId('followup-form');
   var followupRevision = 0;
-  var followupCandidate = null;
+  var followupCandidate = null, followupSource = null, followupWatch = null;
   var followupLabels = { active: '正在跟踪', expired: '暂缓', completed: '已退出' };
   var priorityLabels = { high: '高', normal: '普通', low: '低' };
   function paragraph(parent, text, className) {
@@ -1201,14 +1261,20 @@
   }
   function renderFollowup(data) {
     var watch = data.watch, fields = followupForm.elements;
+    followupWatch = watch;
+    ['decision-track', 'decision-defer'].forEach(function (id) { byId(id).disabled = !data.eligible || data.writable === false; });
+    byId('decision-track').textContent = watch ? '复核与记录结果' : '加入跟踪';
+    byId('decision-defer').hidden = !!watch;
+    byId('decision-saved').textContent = watch ? '已保存：' + followupLabels[watch.status] + ' · 复核 ' + watch.followup.review_on + '（北京时间）' : '当前尚未保存跟踪计划。';
     followupRevision = watch?.revision || 0;
     followupForm.hidden = !data.eligible;
     byId('followup-editor').hidden = !data.eligible;
     byId('followup-editor-label').textContent = watch ? '更新计划、记录结果或调整状态' : '加入持续跟踪';
-    if (location.hash === '#followup-section') byId('followup-editor').open = true;
+    if (['#followup-section', '#defer'].includes(location.hash)) byId('followup-editor').open = true;
     Array.from(fields).forEach(function (field) { field.disabled = data.writable === false; });
     if (!data.eligible) { status('followup-status', '这条来源尚未形成可跟踪的业务情报，请先查看或生成中文分析。'); return; }
-    var value = watch?.followup || { reason: '', next_action: '', exit_condition: '', outcome: '', exit_reason: '', priority: 'normal', review_on: new Date((beijingToday() + 7) * 86400000).toISOString().slice(0, 10) };
+    var draft = followupSource?.extraction_status === 'extracted' && followupSource.content_sha256 === followupSource.extraction_source_sha256 ? followupSource.extraction_zh || {} : {};
+    var value = watch?.followup || { reason: (draft.why_it_matters_zh || '').slice(0, 600), next_action: (draft.next_signals_zh?.[0] || draft.unknowns_zh?.[0] || '核对原文依据和当前进展，再决定是否继续跟进。').slice(0, 240), exit_condition: '出现可靠反证，或确认该事项与我的业务无关时，复核后退出。', outcome: '', exit_reason: '', priority: 'normal', review_on: new Date((beijingToday() + 7) * 86400000).toISOString().slice(0, 10) };
     Object.keys(value).forEach(function (key) { if (fields.namedItem(key)) fields.namedItem(key).value = value[key]; });
     fields.namedItem('status').value = watch?.status || 'active';
     fields.namedItem('exit_reason').required = watch?.status !== 'active' && !!watch;
@@ -1227,10 +1293,42 @@
     });
     byId('followup-history').hidden = !history.children.length;
     followupEvidence(watch);
-    status('followup-status', data.writable === false ? '当前环境只读。' : watch ? '已读取保存的跟踪计划。' : '填写后保存，即可加入“我的跟踪”。');
+    if (!watch && location.hash === '#defer') { fields.namedItem('status').value = 'expired'; fields.namedItem('exit_reason').required = true; }
+    status('followup-status', data.writable === false ? '当前环境只读。' : watch ? '已读取保存的跟踪计划。' : '以下是可编辑草稿，尚未保存；请确认理由、下一步和复核日期。');
+  }
+  function renderDecision(source, candidate) {
+    followupSource = source;
+    byId('detail-title').textContent = candidate?.title_zh || source.title || '情报详情';
+    var extraction = source.extraction_status === 'extracted' && source.content_sha256 === source.extraction_source_sha256 ? source.extraction_zh : null;
+    byId('decision-brief').hidden = !extraction;
+    if (!extraction) { byId('detail-evidence').open = true; return; }
+    byId('decision-change').textContent = extraction.summary_zh || '尚待分析。';
+    byId('decision-impact').textContent = extraction.why_it_matters_zh || '能源影响尚待确认。';
+    byId('decision-confidence').textContent = candidate?.disposition === 'source_only' ? '目前仅作为背景资料，尚不足以形成业务线索。'
+      : ({ sourced: '已有原文支持，尚不等于独立证实。', checked: '已比对多份原文；仍需核对是否为独立来源。', conflict: '原文存在冲突，先核对差异再作决定。', corrected: '判断已依据新证据更正，请查看历史。' }[candidate?.evidence_status] || '现有判断仍待复核。');
+    var unknowns = byId('decision-unknowns'); unknowns.replaceChildren();
+    (extraction.unknowns_zh || []).slice(0, 3).forEach(function (text) { var li = document.createElement('li'); li.textContent = '尚待确认：' + text; unknowns.append(li); });
+    byId('decision-next').textContent = extraction.next_signals_zh?.[0] || '先核对原文，再确定需要验证的问题。';
+    var deadline = extraction.classification?.procurement?.deadline_text;
+    byId('decision-deadline').textContent = deadline ? '来源披露的截止信息：' + deadline + '。参与前请核对原公告及后续更正。' : '当前没有已确认的采购截止信息。复核日期由你另行设定。';
+    var age = publicationAge(source);
+    byId('decision-recency').hidden = age !== null && age < 30;
+    byId('decision-recency').textContent = age === null ? '发布日期待核验，暂不能判断时效；以下是来源当时的分析。' : '历史资料：以下判断反映原文发布时的情况，跟进前须取得近期证据。';
   }
   async function loadFollowup(id) { renderFollowup(await api('followup', undefined, id)); }
   if (followupForm) {
+    ['decision-track', 'decision-defer'].forEach(function (id) {
+      byId(id).addEventListener('click', function () {
+        byId('followup-editor').open = true;
+        if (!followupWatch) {
+          followupForm.elements.namedItem('status').value = id === 'decision-defer' ? 'expired' : 'active';
+          followupForm.elements.namedItem('exit_reason').required = id === 'decision-defer';
+        }
+        byId('followup-section').scrollIntoView({ block: 'start' });
+        followupForm.elements.namedItem(id === 'decision-defer' ? 'exit_reason' : followupWatch ? 'outcome' : 'reason').focus();
+        status('followup-status', id === 'decision-defer' ? '请填写暂不关注的原因，再保存。记录会保留，可从“我的跟踪 → 暂缓”恢复。' : '确认计划或填写实际结果后保存；草稿不会自动执行。');
+      });
+    });
     followupForm.elements.namedItem('status').addEventListener('change', function () { followupForm.elements.namedItem('exit_reason').required = this.value !== 'active'; });
     followupForm.elements.namedItem('priority').addEventListener('change', function () {
       followupForm.elements.namedItem('review_on').value = new Date((beijingToday() + ({ high: 1, normal: 7, low: 30 }[this.value])) * 86400000).toISOString().slice(0, 10);
@@ -1262,16 +1360,7 @@
     try {
       var result = await api('followups&state=' + scope.value + '&offset=' + followupsOffset);
       var list = byId('followups-list'); list.replaceChildren();
-      result.items.forEach(function (watch) {
-        var item = document.createElement('li'), link = document.createElement('a'), f = watch.followup;
-        link.href = '/intelligence/sources/' + encodeURIComponent(watch.candidate.source_id) + '#followup-section';
-        link.textContent = watch.candidate.title_zh; item.append(link);
-        paragraph(item, '优先级：' + priorityLabels[f.priority] + ' · 复核：' + f.review_on + '（北京时间）' + (watch.status === 'active' && f.review_on <= new Date(beijingToday() * 86400000).toISOString().slice(0, 10) ? ' · 待复核' : ''), 'intel-source-meta');
-        paragraph(item, '下一步：' + f.next_action + '\n理由：' + f.reason);
-        if (watch.status !== 'active') paragraph(item, '原因：' + f.exit_reason);
-        paragraph(item, '最近人工记录：' + dateLabel(watch.updated_at), 'intel-source-meta');
-        list.append(item);
-      });
+      result.items.forEach(function (watch) { list.append(watchCard(watch)); });
       if (!result.items.length) paragraph(list, scope.value === 'active' ? '尚无主动跟踪事项。从情报详情填写跟踪计划即可加入。' : '此范围暂无记录。', 'intel-muted');
       previous.disabled = followupsOffset === 0; next.disabled = !result.more;
       byId('followups-page').textContent = '第 ' + (followupsOffset / 25 + 1) + ' 页';
@@ -1306,6 +1395,7 @@
       byId('annotation-count').textContent = Array.from(byId('annotation-note').value).length + ' / 2000';
       byId('annotation-time').textContent = source.annotation_updated_at ? '更新于 ' + dateLabel(source.annotation_updated_at) : '尚未填写';
       renderExtraction(source, result.candidate);
+      renderDecision(source, result.candidate);
       renderSourceHistory(result.history || [], id);
       renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
@@ -1597,6 +1687,9 @@
         var result = await api('extract', {}, match[1]);
         sourceStatus(byId('source-status'), result.source);
         renderExtraction(result.source, result.candidate);
+        renderDecision(result.source, result.candidate);
+        followupCandidate = result.candidate;
+        await loadFollowup(match[1]);
         renderSourceHistory(result.history || [], match[1]);
         renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
@@ -1608,6 +1701,7 @@
   }
   (async function () {
     try {
+      if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
       if (overviewList) { loadCoverage(); await loadOverview(); return; }
