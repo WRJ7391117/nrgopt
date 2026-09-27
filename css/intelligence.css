@@ -281,6 +281,10 @@
 .intel-decision-steps section { min-width: 0; padding: 0; background: none; overflow-wrap: anywhere; }
 .intel-decision-steps section + section { padding-top: 1.5rem; border-top: 1px solid var(--border); }
 .intel-decision-steps h2 { font-size: 1.15rem; }
+.intel-decision-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.intel-decision-actions .intel-button { min-width: 112px; }
+#decision-saved { margin: 12px 0 16px; font-size: .85rem; line-height: 1.6; }
+.intel-decision-evidence { display: inline-flex; align-items: center; min-height: 44px; font-size: .9rem; }
 #detail-evidence > summary { margin-bottom: 1rem; font-weight: 600; cursor: pointer; }
 #followup-section, #detail-evidence, [id^="workbench-"] { scroll-margin-top: 6rem; }
 .intel-management-links { margin: 1rem 0 2rem; }
