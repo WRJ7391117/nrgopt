@@ -1208,3 +1208,19 @@ test('daily tasks distinguishes no plan from a plan that changed while reading',
   }).dailyTasks('owner-a', '2026-09-27');
   assert.equal(changed.changed_during_read, true);
 });
+
+test('coverage reads only owner-scoped entry jobs for the requested day', async () => {
+  let queries = [];
+  const result = await createStore(CONFIG, async input => {
+    const url = new URL(input); queries.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    if (url.pathname.endsWith('intelligence_job_runs')) {
+      assert.equal(url.searchParams.get('schedule_key'), 'eq.2026-09-27');
+      return Response.json([{id:'run-a',status:'partial'}]);
+    }
+    assert.equal(url.searchParams.get('job_run_id'), 'eq.run-a');
+    assert.equal(url.searchParams.get('or'), '(item_key.like.discover:*,item_key.like.registry:*)');
+    return Response.json([{item_key:'registry:tr-energy-news',status:'succeeded',pending:14}]);
+  }).dailyEntryStatus('owner-a','2026-09-27');
+  assert.equal(queries.length,2);assert.equal(result.items[0].pending,14);
+});

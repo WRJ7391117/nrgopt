@@ -1,3 +1,4 @@
+const regions = require('../lib/intelligence/regions.json');
 const { createHash } = require('node:crypto');
 const { settings, createStore, failure } = require('../lib/intelligence/store.cjs');
 const { fetchSource } = require('../lib/intelligence/source.cjs');
@@ -41,6 +42,7 @@ const messages = {
   discovery_auth_failed: '来源发现服务密钥无效或无权使用联网搜索。', discovery_unavailable: '暂时没有取得可用的官方来源，请稍后重试。',
   discovery_balance_insufficient: '来源发现服务商返回余额不足，已暂停调用。请核对所用密钥、套餐权限和接口配置；这不是系统估算的费用。',
   discovery_plan_unavailable: '来源发现服务商返回套餐额度或权限不足，已暂停调用。请核对 Coding Plan 的搜索权限和剩余额度。',
+  discovery_country_not_enabled: '该地区尚未接入自动搜索，请查看采集覆盖状态。',
   discovery_no_primary_sources: '搜索已完成，但本次没有找到符合官方来源要求的页面。',
   provider_call_not_started: '配置已变化或该调用已启动，未重复调用；请刷新配置后重试。',
   provider_call_record_pending: '调用完成状态未保存，请先核查调用记录，避免重复扣费。',
@@ -57,7 +59,7 @@ const messages = {
   feishu_send_rejected: '飞书拒绝了卡片发送，请检查机器人消息权限和目标成员状态。',
   delivery_failed: '飞书未接受本次通知，已保留待重试记录。', delivery_unknown: '飞书响应结果不明，已停止自动重发。'
 };
-const { countries, discoverCountry } = require('../lib/intelligence/discovery.cjs');
+const { countries, primaryHosts, discoverCountry } = require('../lib/intelligence/discovery.cjs');
 const { discoverWatch } = require('../lib/intelligence/watch-search.cjs');
 const cookieName = env => (env.NRGOPT_APP_ORIGIN || '').startsWith('https://') ? '__Host-nrgopt_session' : 'nrgopt_session';
 const archiveNode = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(value) ? value : null;
@@ -83,7 +85,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
       const post = ['login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'reset-password-page', 'page', 'overview-page', 'workflow-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'workflow', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const get = ['login-page', 'reset-password-page', 'page', 'overview-page', 'workflow-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -237,6 +239,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null }));
       if (action === 'overview-page') return html(overviewPage());
+      if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(primaryHosts), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
       if (action === 'workflow-page') return html(workflowPage());
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });
       if (action === 'settings-page') return html(settingsPage());
@@ -295,6 +298,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'discover') {
         if (!config.writes) throw failure('writes_disabled', 403);
         if (!countries[body.country]) throw failure('invalid_request', 400);
+        if (!primaryHosts[body.country]?.length) throw failure('discovery_country_not_enabled', 400);
         const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
           budgetKey: discoveryProvider.budgetKey, budgetLimitMicro: discoveryProvider.budgetLimitMicro,
@@ -346,7 +350,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (action === 'overview-page') {
           const params = new URLSearchParams();
-          if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(req.query.country)) params.set('country', req.query.country);
+          if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);
+          if (Object.hasOwn(regions.groups, req.query.group || '')) params.set('group', req.query.group);
+          if (Object.hasOwn(regions.topics, req.query.topic || '')) params.set('topic', req.query.topic);
           const view = ['signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
             : ['trigger', 'demand', 'project'].includes(req.query.radar) ? (req.query.radar === 'trigger' ? 'signal' : req.query.radar) : null;
           if (view) params.set('view', view);

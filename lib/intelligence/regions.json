@@ -1,0 +1,162 @@
+{
+  "countries": [
+    {
+      "code": "SA",
+      "name": "沙特",
+      "english": "Saudi Arabia",
+      "group": "gcc"
+    },
+    {
+      "code": "AE",
+      "name": "阿联酋",
+      "english": "United Arab Emirates",
+      "group": "gcc"
+    },
+    {
+      "code": "QA",
+      "name": "卡塔尔",
+      "english": "Qatar",
+      "group": "gcc"
+    },
+    {
+      "code": "KW",
+      "name": "科威特",
+      "english": "Kuwait",
+      "group": "gcc"
+    },
+    {
+      "code": "OM",
+      "name": "阿曼",
+      "english": "Oman",
+      "group": "gcc"
+    },
+    {
+      "code": "BH",
+      "name": "巴林",
+      "english": "Bahrain",
+      "group": "gcc"
+    },
+    {
+      "code": "YE",
+      "name": "也门",
+      "english": "Yemen",
+      "group": "middle-east"
+    },
+    {
+      "code": "IQ",
+      "name": "伊拉克",
+      "english": "Iraq",
+      "group": "middle-east"
+    },
+    {
+      "code": "IR",
+      "name": "伊朗",
+      "english": "Iran",
+      "group": "middle-east"
+    },
+    {
+      "code": "JO",
+      "name": "约旦",
+      "english": "Jordan",
+      "group": "middle-east"
+    },
+    {
+      "code": "LB",
+      "name": "黎巴嫩",
+      "english": "Lebanon",
+      "group": "middle-east"
+    },
+    {
+      "code": "SY",
+      "name": "叙利亚",
+      "english": "Syria",
+      "group": "middle-east"
+    },
+    {
+      "code": "IL",
+      "name": "以色列",
+      "english": "Israel",
+      "group": "middle-east"
+    },
+    {
+      "code": "PS",
+      "name": "巴勒斯坦",
+      "english": "Palestine",
+      "group": "middle-east"
+    },
+    {
+      "code": "TR",
+      "name": "土耳其",
+      "english": "Türkiye",
+      "group": "middle-east"
+    },
+    {
+      "code": "CY",
+      "name": "塞浦路斯",
+      "english": "Cyprus",
+      "group": "middle-east"
+    },
+    {
+      "code": "EG",
+      "name": "埃及",
+      "english": "Egypt",
+      "group": "north-africa"
+    },
+    {
+      "code": "DZ",
+      "name": "阿尔及利亚",
+      "english": "Algeria",
+      "group": "north-africa"
+    },
+    {
+      "code": "LY",
+      "name": "利比亚",
+      "english": "Libya",
+      "group": "north-africa"
+    },
+    {
+      "code": "MA",
+      "name": "摩洛哥",
+      "english": "Morocco",
+      "group": "north-africa"
+    },
+    {
+      "code": "TN",
+      "name": "突尼斯",
+      "english": "Tunisia",
+      "group": "north-africa"
+    },
+    {
+      "code": "SD",
+      "name": "苏丹",
+      "english": "Sudan",
+      "group": "north-africa"
+    },
+    {
+      "code": "EH",
+      "name": "西撒哈拉（地位有争议）",
+      "english": "Western Sahara",
+      "group": "north-africa"
+    },
+    {
+      "code": "MR",
+      "name": "毛里塔尼亚",
+      "english": "Mauritania",
+      "group": "north-africa"
+    }
+  ],
+  "groups": {
+    "gcc": "海合会",
+    "middle-east": "中东其他地区",
+    "north-africa": "北非"
+  },
+  "topics": {
+    "red-sea": "红海",
+    "hormuz": "霍尔木兹海峡",
+    "bab-el-mandeb": "曼德海峡",
+    "suez": "苏伊士运河",
+    "east-mediterranean": "东地中海",
+    "mediterranean-interconnection": "地中海能源互联",
+    "trans-saharan-gas": "跨撒哈拉天然气管道"
+  }
+}

@@ -146,3 +146,17 @@ test('Principal Buyer article date comes only from its own banner', () => {
   assert.equal(parse(article, 'https://www.pb.com.sa.evil.example/media-center/news/four-bess-agreements/').publication_date, null);
   assert.equal(parse(article.replace('20 Aug', '31 Feb'), url).publication_date, null);
 });
+
+test('MENA publisher datelines are scoped to the article and preserve date-only precision', () => {
+  const tr = '<div class="page-wrapper"><div class="d-flex"><span class="text-warning">12.05.2026</span></div></div>';
+  const result = parse(tr, 'https://enerji.gov.tr/news-detail?id=31825');
+  assert.equal(result.publication_date, '2026-05-12'); assert.equal(result.published_at, null);
+  assert.match(result.publication_evidence, /12\.05\.2026/);
+  assert.equal(parse(tr, 'https://enerji.gov.tr/media-news').publication_date, null);
+  const ma = '<div class="detail-actualite-header"><p class="date">23 juillet 2026</p></div><time datetime="2026-09-27">Other story</time>';
+  assert.equal(parse(ma, 'https://www.masen.ma/fr/actualites-masen/test').publication_date, '2026-07-23');
+  assert.equal(parse(ma, 'https://www.masen.ma/').publication_date, null);
+  const card = (id, day) => `<div class="post-slide"><h3 class="post-title-s"><a href="/fr/${id}/article">Article</a></h3><div class="post-date-s"><span class="date-s">${day}</span><span class="month-s">août</span><span class="year-s">2026</span></div></div>`;
+  assert.equal(parse(card(22,8) + card(11,11), 'https://www.sonelgaz.dz/fr/11/article').publication_date, '2026-08-11');
+  assert.equal(parse(card(22,8), 'https://www.sonelgaz.dz/fr/11/article').publication_date, null);
+});

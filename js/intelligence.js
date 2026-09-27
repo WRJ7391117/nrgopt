@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  var regions = JSON.parse(byId('intelligence-regions').textContent);
+  var regionNames = Object.fromEntries(regions.countries.map(function (item) { return [item.code, item.name]; }));
   var uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
   var detailPath = new RegExp('^/intelligence/sources/(' + uuid + ')$', 'i');
   var statusLabels = {
@@ -49,7 +51,9 @@
   function safeReturnTo(value) {
     if (typeof value === 'string' && value.startsWith('/intelligence/overview?')) {
       var params = new URLSearchParams(value.slice(value.indexOf('?') + 1)), retained = new URLSearchParams();
-      if (['SA', 'AE', 'QA', 'KW', 'OM', 'BH'].includes(params.get('country'))) retained.set('country', params.get('country'));
+      if (regions.countries.some(function (item) { return item.code === params.get('country'); })) retained.set('country', params.get('country'));
+      if (Object.hasOwn(regions.groups, params.get('group') || '')) retained.set('group', params.get('group'));
+      if (Object.hasOwn(regions.topics, params.get('topic') || '')) retained.set('topic', params.get('topic'));
       var view = params.get('view');
       if (!view && ['trigger', 'demand', 'project'].includes(params.get('radar'))) view = params.get('radar') === 'trigger' ? 'signal' : params.get('radar');
       if (['signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
@@ -173,7 +177,7 @@
     byId('extraction-relevance').textContent = extraction.gcc_relevance_zh;
     var classification = extraction.classification;
     var radarLabels = { trigger: '早期信号', demand: '需求', project: '项目' };
-    var countryLabels = { SA: '沙特阿拉伯', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var countryLabels = regionNames;
     var importanceLabels = { low: '低', medium: '中', high: '高', critical: '重大' };
     var evidenceLabels = { unverified: '单一来源，未交叉验证', sourced: '引文已绑定', checked: '跨来源内容已比对', conflict: '有冲突', corrected: '已更正' };
     var maturityLabels = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
@@ -192,7 +196,9 @@
       if (classification.disposition === 'candidate') {
         [
           ['业务分类', (classification.radars || []).map(function (item) { return radarLabels[item] || item; }).join(' / ') || '未分类'],
-          ['发生国家', occurred.join('、') || '尚未明确'],
+          ['发生国家/地区', occurred.join('、') || '尚未明确'],
+          ['受影响地区（关联判断）', (classification.countries || []).filter(function (item) { return item.relation === 'relevance'; }).map(function (item) { return countryLabels[item.code] || item.code; }).join('、') || '未单列'],
+          ['跨境专题', (classification.topics || []).map(function (item) { return regions.topics[item.code] || item.code; }).join('、') || '未单列'],
           ['重要性', importanceLabels[classification.importance]],
           ['证据状态', evidenceLabels[evidenceStatus] + (relatedCount ? '（另有 ' + relatedCount + ' 份关联原文）' : '')],
           ['成熟度', maturityLabels[extraction.maturity]],
@@ -484,10 +490,12 @@
     renderOverviewHeading();
     var filters = byId('candidate-filters');
     var period = filters.elements.period.value;
-    var periodOpportunities = overviewOpportunities.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
+    var group = filters.elements.group.value, topic = filters.elements.topic.value, selectedCountry = filters.elements.country.value;
+    function inGroup(item) { return (!selectedCountry || (item.occurrence_countries || []).includes(selectedCountry)) && (!group || (item.occurrence_countries || []).some(function (code) { return regions.countries.some(function (region) { return region.code === code && region.group === group; }); })); }
+    var periodOpportunities = overviewOpportunities.filter(function (item) { return inPublicationPeriod(item.source_timing, period) && inGroup(item) && (!topic || (item.topic_codes || []).includes(topic)); });
     var allActive = candidates.filter(function (item) { return item.disposition === 'candidate' && item.review_status !== 'rejected'; });
     byId('recency-status').textContent = '按原文发布日期筛选，采集或重新分析不刷新日期。当前载入的情报中，' + allActive.filter(function (item) { var age = publicationAge(item.source_timing); return age !== null && age >= 30; }).length + ' 条不在近30天内，' + allActive.filter(function (item) { return publicationAge(item.source_timing) === null; }).length + ' 条日期待核验；可切换时间范围查阅。';
-    var periodCandidates = candidates.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
+    var periodCandidates = candidates.filter(function (item) { return inPublicationPeriod(item.source_timing, period) && inGroup(item) && (!topic || (item.topic_codes || []).includes(topic)); });
     var groupedCandidates = periodCandidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
     ['trigger', 'demand', 'project'].forEach(function (radar) {
@@ -500,37 +508,22 @@
     var country = filters.elements.country.value, view = filters.elements.view.value || 'overview';
     var radar = { signal: 'trigger', demand: 'demand', project: 'project' }[view];
     var viewLabel = { overview: '情报', signal: '早期信号', demand: '需求', project: '项目', opportunity: '机会' }[view];
-    document.querySelectorAll('.intel-country-card').forEach(function (card) {
-      var countryItems = active.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
-      var countryOpportunities = periodOpportunities.filter(function (item) { return (item.occurrence_countries || []).includes(card.dataset.country); });
-      var count = view === 'opportunity' ? countryOpportunities.length : countryItems.filter(function (item) {
-        return !radar || (item.radars || []).includes(radar);
-      }).length;
-      card.querySelector('.intel-country-count').textContent = count;
-      card.querySelector('.intel-country-unit').textContent = ' 条' + viewLabel;
-      card.querySelector('.intel-country-breakdown').textContent = ['trigger', 'demand', 'project'].map(function (type) {
-        var label = { trigger: '早期信号', demand: '需求', project: '项目' }[type];
-        return label + ' ' + countryItems.filter(function (item) { return (item.radars || []).includes(type); }).length;
-      }).join(' · ');
-      card.querySelector('.intel-country-opportunities').textContent = '关联机会 ' + countryOpportunities.length + ' 条（单独计数）';
-      card.querySelector('.intel-country-state').textContent = count ? '点击查看该国' + viewLabel : '当前没有该国' + viewLabel + '条目';
-      card.dataset.active = count ? 'true' : 'false';
-    });
     var filtered = active.filter(function (item) {
       return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
     });
     document.querySelectorAll('.intel-nav [data-view], .intel-radar-summary a').forEach(function (link) {
       var target = new URL(link.href, location.origin);
       target.searchParams.set('period', period);
+      ['group', 'country', 'topic'].forEach(function (name) { var value = filters.elements[name].value; if (value) target.searchParams.set(name, value); else target.searchParams.delete(name); });
       link.href = target.pathname + target.search;
     });
     document.querySelectorAll('.intel-nav [data-view]').forEach(function (link) {
       if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
-    document.querySelectorAll('.intel-country-card').forEach(function (card) { card.setAttribute('aria-pressed', card.dataset.country === country ? 'true' : 'false'); });
+    document.querySelectorAll('[data-region]').forEach(function (button) { button.setAttribute('aria-pressed', button.dataset.region === group ? 'true' : 'false'); });
     var visibleOpportunities = periodOpportunities.filter(function (item) { return !country || (item.occurrence_countries || []).includes(country); });
-    byId('candidate-filter-status').textContent = filters.elements.country.selectedOptions[0].textContent + ' · ' + filters.elements.view.selectedOptions[0].textContent + ' · ' + filters.elements.period.selectedOptions[0].textContent + ' · '
+    byId('candidate-filter-status').textContent = filters.elements.group.selectedOptions[0].textContent + ' · ' + filters.elements.country.selectedOptions[0].textContent + ' · ' + filters.elements.view.selectedOptions[0].textContent + ' · ' + filters.elements.period.selectedOptions[0].textContent + ' · '
       + (view === 'opportunity' ? visibleOpportunities.length + ' 条有原文依据的机会' : filtered.length + ' 条情报');
     var importanceOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     filtered.sort(function (left, right) {
@@ -560,7 +553,7 @@
       var importanceNames = { low: '低', medium: '中', high: '高', critical: '重大' };
       var evidenceNames = { unverified: '单一来源待复核', sourced: '原文引文已核对', checked: '多份原文已比对', conflict: '原文之间有冲突', corrected: '已根据新原文更正' };
       var maturityNames = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
-      var countryNames = { SA: '沙特阿拉伯', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+      var countryNames = regionNames;
       meta.textContent = (candidate.occurrence_countries || []).map(function (value) { return countryNames[value] || value; }).join('、') +
         ' · ' + (candidate.radars || []).map(function (value) { return radarNames[value] || value; }).join(' / ') +
         ' · 重要性 ' + (importanceNames[candidate.importance] || candidate.importance) + ' · ' + (maturityNames[candidate.maturity] || candidate.maturity) +
@@ -627,7 +620,7 @@
     list.hidden = opportunityView;
     byId('candidate-explainer').hidden = opportunityView;
     byId('candidate-empty').hidden = opportunityView || filtered.length !== 0;
-    byId('candidate-empty').textContent = country || radar ? '当前筛选没有匹配的情报；不代表当地没有市场变化。可返回六国全景查看其他内容。'
+    byId('candidate-empty').textContent = country || radar ? '当前筛选没有匹配的情报；不代表当地没有市场变化。可返回区域全景查看其他内容。'
       : '当前没有符合条件的情报。背景资料会保留在来源层，不会为填满页面自动创建项目或机会。';
     byId('opportunities-section').hidden = !opportunityView;
     renderOverviewOpportunities(periodOpportunities, country);
@@ -669,12 +662,34 @@
     });
     byId('overview-opportunities-empty').hidden = visible.length !== 0;
   }
+  async function loadCoverage() {
+    try {
+      var data = await api('coverage');
+      var list = byId('region-coverage'); list.replaceChildren();
+      regions.countries.forEach(function (region) {
+        var entries = data.fixed_sources.filter(function (entry) { return entry.country === region.code; });
+        var search = data.search_countries.includes(region.code);
+        var tasks = data.items.filter(function (item) { return item.item_key === 'discover:' + region.code || entries.some(function (entry) { return item.item_key === 'registry:' + entry.id; }); });
+        var label = !search && !entries.length ? '待接入' : !data.run ? '已启用 · 等待当天计划' : !tasks.length ? '已启用 · 待轮转采集'
+          : tasks.some(function (item) { return ['failed', 'retry', 'budget_paused', 'manual_paused'].includes(item.status); }) ? '入口有失败或暂停 · 存在缺口'
+          : ['budget_paused', 'manual_paused'].includes(data.run.status) ? '当天计划已暂停 · 存在缺口'
+          : tasks.some(function (item) { return item.status !== 'succeeded'; }) ? '入口任务尚未完成' : '当天入口已处理 · 不代表全市场覆盖';
+        var row = document.createElement('li'), name = document.createElement('strong'), value = document.createElement('span');
+        var pending = tasks.reduce(function (sum, item) { return sum + (Number(item.pending) || 0); }, 0);
+        name.textContent = region.name; value.textContent = label + (pending ? ' · 当前入口待补收 ' + pending + ' 条链接' : ''); row.append(name, value); list.append(row);
+        var option = byId('candidate-filters').elements.country.querySelector('option[value="' + region.code + '"]');
+        if (option) option.textContent = region.name + (!search && !entries.length ? ' · 待接入' : '');
+      });
+      byId('coverage-status').textContent = data.day + '（北京时间）· 仅反映搜索与固定入口任务；正文与分析的失败请查看采集流程。';
+    } catch (error) { byId('coverage-status').textContent = '覆盖状态读取失败，请刷新重试；不能据此判断各地区没有情报。'; }
+  }
+
   var workflowData, workflowPage = 0;
   var taskStates = { running: '执行中', queued: '排队', retry: '待重试', failed: '失败', budget_paused: '预算暂停', manual_paused: '人工暂停', succeeded: '成功' };
-  var taskStages = { discover: '六国搜索', registry: '固定公告入口', watchsearch: '主动证据搜索', source: '原文抓取', watchsource: '关注来源抓取', extract: '情报分析', cross: '跨来源核对', hypothesis: '假设与反证判断' };
+  var taskStages = { discover: '区域搜索', registry: '固定公告入口', watchsearch: '主动证据搜索', source: '原文抓取', watchsource: '关注来源抓取', extract: '情报分析', cross: '跨来源核对', hypothesis: '假设与反证判断' };
   var taskErrors = { source_tls_error: '来源站点证书校验失败', source_listing_page: '这是目录页，未作为正文分析', source_empty_document: '没有可读取的正文，未调用模型', source_failed: '原文获取失败', source_not_found: '原公告已下线或网址失效', source_access_denied: '来源拒绝自动访问', source_dns_error: '来源域名无法解析', source_timeout: '原文获取超时', source_rate_limited: '来源站点限流', discovery_no_primary_sources: '没有找到符合要求的官方页面', discovery_failed: '来源搜索失败', model_timeout: '模型请求超时', model_rate_limited: '模型服务限流', extraction_failed: '情报提取或证据校验失败', cross_check_failed: '跨来源核对失败', hypothesis_failed: '假设判断失败', watch_search_failed: '主动证据搜索失败', budget_exhausted: '调用预算不足', budget_not_configured: '尚未配置调用预算', billing_sync_pending: '等待账单同步', source_paused: '此发布方已暂停自动采集', lease_exhausted: '多次执行超时，已停止自动重试', registry_no_links: '没有读到公告链接，需要核查入口', upstream_unavailable: '数据服务暂时不可用', storage_failed: '原文保存失败' };
   function taskDescription(item) {
-    var countries = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var countries = regionNames;
     var stage = item.item_key.split(':')[0];
     return item.title || item.object_zh || item.name || (stage === 'discover' ? (countries[item.country || item.item_key.split(':')[1]] || '') + '官方来源搜索' : item.url || '来源资料处理');
   }
@@ -768,11 +783,11 @@
 
   function renderOperations(result) {
     byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
-    var countryNames = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var countryNames = regionNames;
     var fixedCountries = result.fixed_source_countries || [];
     var missingCountries = Object.keys(countryNames).filter(function (code) { return !fixedCountries.includes(code); });
     byId('fixed-source-coverage').textContent = '已登记固定公告入口：' + (fixedCountries.map(function (code) { return countryNames[code]; }).filter(Boolean).join('、') || '暂无')
-      + '。' + (missingCountries.length ? missingCountries.map(function (code) { return countryNames[code]; }).join('、') + '暂无固定入口，仍安排基础搜索；' : '六国均有固定入口；')
+      + '。' + (missingCountries.length ? missingCountries.map(function (code) { return countryNames[code]; }).join('、') + '暂无固定入口；未接入地区不自动安排搜索；' : '已登记范围均有固定入口；')
       + '入口实际抓取结果以任务记录为准。';
     var archiveStates = { disabled: '尚未启用云端归档入口，待归档原件继续保留在云端。',
       missing_token: '归档凭据尚未配置，节点暂时无法连接。', read_only: '当前部署只读，不能领取或确认归档任务。',
@@ -799,7 +814,7 @@
       ? '最近记录：已接受 ' + (notificationCounts.accepted || 0) + '，待发/重试 ' + ((notificationCounts.pending || 0) + (notificationCounts.retry || 0)) + '，结果不明/失败 ' + ((notificationCounts.unknown || 0) + (notificationCounts.failed || 0))
       : '尚无待发记录；真实群机器人未配置时不会发送';
     var labels = { queued: '排队', running: '执行中', succeeded: '成功', partial: '部分成功', retry: '待重试', failed: '失败', budget_paused: '预算暂停', manual_paused: '人工暂停' };
-    var countries = { SA: '沙特', AE: '阿联酋', QA: '卡塔尔', KW: '科威特', OM: '阿曼', BH: '巴林' };
+    var countries = regionNames;
     var list = byId('job-list');
     list.replaceChildren();
     result.runs.forEach(function (run) {
@@ -1267,7 +1282,7 @@
     var filterParams = new URLSearchParams(location.search);
     var legacyRadar = filterParams.get('radar');
     if (!filterParams.get('view') && legacyRadar) filterParams.set('view', legacyRadar === 'trigger' ? 'signal' : legacyRadar);
-    ['country', 'view', 'period'].forEach(function (name) {
+    ['group', 'country', 'topic', 'view', 'period'].forEach(function (name) {
       var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
       if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
     });
@@ -1275,7 +1290,7 @@
     function applyCandidateFilters() {
       var url = new URL(location.href);
       url.searchParams.delete('radar');
-      ['country', 'view', 'period'].forEach(function (name) {
+      ['group', 'country', 'topic', 'view', 'period'].forEach(function (name) {
         var value = candidateFilters.elements[name].value;
         if (value && !(name === 'view' && value === 'overview')) url.searchParams.set(name, value); else url.searchParams.delete(name);
       });
@@ -1283,20 +1298,23 @@
       if (overviewLoaded) renderOverview(overviewCandidates);
       else renderOverviewHeading();
     }
-    candidateFilters.addEventListener('change', applyCandidateFilters);
+    candidateFilters.addEventListener('change', function (event) {
+      var country = regions.countries.find(function (item) { return item.code === candidateFilters.elements.country.value; });
+      if (country && candidateFilters.elements.group.value && country.group !== candidateFilters.elements.group.value) {
+        if (event.target.name === 'group') candidateFilters.elements.country.value = ''; else candidateFilters.elements.group.value = country.group;
+      }
+      applyCandidateFilters();
+    });
+    document.querySelectorAll('[data-region]').forEach(function (button) { button.addEventListener('click', function () {
+      candidateFilters.elements.group.value = button.dataset.region; candidateFilters.elements.country.value = ''; applyCandidateFilters();
+    }); });
     candidateFilters.addEventListener('submit', function (event) { event.preventDefault(); });
     candidateFilters.addEventListener('reset', function (event) {
       event.preventDefault();
-      candidateFilters.elements.country.value = ''; candidateFilters.elements.view.value = 'overview'; candidateFilters.elements.period.value = '30';
+      candidateFilters.elements.group.value = ''; candidateFilters.elements.topic.value = ''; candidateFilters.elements.country.value = ''; candidateFilters.elements.view.value = 'overview'; candidateFilters.elements.period.value = '30';
       applyCandidateFilters();
     });
-    document.querySelectorAll('.intel-country-card').forEach(function (card) {
-      card.addEventListener('click', function () {
-        candidateFilters.elements.country.value = candidateFilters.elements.country.value === card.dataset.country ? '' : card.dataset.country;
-        applyCandidateFilters();
-        byId('candidate-heading').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
+
   }
   var providerForms = document.querySelectorAll('.intel-provider-form');
   var notificationForm = byId('notification-settings-form');
@@ -1450,7 +1468,7 @@
   (async function () {
     try {
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
-      if (overviewList) { await loadOverview(); return; }
+      if (overviewList) { loadCoverage(); await loadOverview(); return; }
       var session = await api('session');
       byId('account-email').textContent = session.user.email;
       var match = location.pathname.match(detailPath);
