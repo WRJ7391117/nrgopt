@@ -151,3 +151,17 @@ test('EEHC follows encoded Arabic article paths and keeps the one-new-article ca
   assert.deepEqual(links, [new URL('/CMSEehc/الاخبار/خبر-الشبكة/', entry.url).href]);
   assert.equal(registryPlan(links, {}, entry.maxNew).fresh_count, 1);
 });
+
+test('regional energy registries exclude unrelated navigation and keep bounded intake', () => {
+  const fixtures = [
+    ['anme-news', '<a href="/fr/news/navigation">Outside list</a><div class="views-view-responsive-grid__item"><a href="/fr/news/chems">Solar</a><a href="/fr/news">Index</a></div>', 'https://anme.tn/fr/news/chems'],
+    ['mauritania-energy-news', '<a href="/ar/node/2535">Minister biography</a><div class="views-field-title"><a href="/ar/node/2724">Hydrogen</a></div>', 'https://energies.gov.mr/ar/node/2724'],
+    ['presstv-energy', '<a href="/Detail/2026/09/24/99/other">Other section</a><div class="section-data"><a href="/Detail/2026/09/23/776847/gas">Gas</a><a href="/Section/10103">Energy</a></div>', 'https://www.presstv.co.uk/Detail/2026/09/23/776847/gas']
+  ];
+  for (const [id, html, expected] of fixtures) {
+    const entry = registry.find(item => item.id === id);
+    const links = registryLinks(entry, { finalUrl: entry.url, bytes: Buffer.from(html) });
+    assert.deepEqual(links, [expected]);
+    assert.equal(entry.maxNew, 1);
+  }
+});
