@@ -97,7 +97,11 @@ function backend() {
       }
       const select = url.searchParams.get('select') || '*';
       const projected = matches.slice(0, Number(url.searchParams.get('limit') || matches.length)).map(row =>
-        select === '*' ? { ...row } : Object.fromEntries(select.split(',').map(key => [key, row[key] ?? null])));
+        select === '*' ? { ...row } : Object.fromEntries(select.split(',').map(field => {
+          const [alias, path = alias] = field.split(':');
+          const value = path.split('->').reduce((value, key) => value?.[key], row);
+          return [alias, value ?? null];
+        })));
       return json(projected);
     }
     if (url.pathname === '/rest/v1/intelligence_candidates') {
@@ -1135,16 +1139,30 @@ test('overview reuses source reads within one request and refreshes evidence bin
   const state = backend();
   for (const id of ['left', 'right']) {
     state.records.push({ id, owner_id: 'owner-a', final_url: `https://${id}.example/news`, content_sha256: id,
-      fetched_at: '2026-09-24T00:00:00Z', extracted_at: '2026-09-24T01:00:00Z' });
+      fetched_at: '2026-09-24T00:00:00Z', extracted_at: '2026-09-24T01:00:00Z',
+      extraction_status: 'extracted', extraction_source_sha256: id,
+      extraction_zh: { why_it_matters_zh: '供能影响', unknowns_zh: ['采购未知'], next_signals_zh: ['等待公告'],
+        known_facts: [{ claim_zh: '原文事实', evidence_quote: 'Shared original quote' }],
+        classification: { resilience_signal: { driver_zh: '供能中断' } }, hypotheses: [{ hypothesis_zh: '详情专用假设' }] } });
     state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', evidence_status: 'checked' });
   }
   state.relations.push({ owner_id: 'owner-a', candidate_id: 'left', related_candidate_id: 'right', relation: 'supports', same_scope: false,
+    matching_facts_zh: [{ left_fact_number: 1, right_fact_number: 1 }],
     left_source_sha256: 'left', right_source_sha256: 'right', left_extracted_at: '2026-09-24T01:00:00Z', right_extracted_at: '2026-09-24T01:00:00Z' });
   const first = await state.store.candidates('owner-a');
   assert.equal(first[0].evidence_status, 'checked');
+  assert.equal(first[0].related_sources[0].shared_quote_count, 1);
+  assert.equal(first[0].why_it_matters_zh, '供能影响');
+  assert.deepEqual(first[0].unknowns_zh, ['采购未知']);
+  assert.deepEqual(first[0].next_signals_zh, ['等待公告']);
+  assert.deepEqual(first[0].resilience_signal, { driver_zh: '供能中断' });
   assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/intelligence_sources').length, 1);
   state.records[1].extracted_at = '2026-09-25T01:00:00Z';
   const refreshed = await state.store.candidates('owner-a');
   assert.equal(refreshed[0].evidence_status, 'sourced', 'new analysis invalidates an older evidence relation');
   assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/intelligence_sources').length, 2);
+  state.records[0].content_sha256 = 'changed-original';
+  const changed = await state.store.candidates('owner-a');
+  assert.equal(changed[0].why_it_matters_zh, null, 'stale analysis must not enrich a changed original');
+  assert.equal(changed[0].resilience_signal, null);
 });
