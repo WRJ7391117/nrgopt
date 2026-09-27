@@ -22,6 +22,15 @@ test('system card identifies an operational issue without presenting it as marke
   assert.match(serialized, /不代表市场发生变化/);
 });
 
+test('production connection verification is explicit and links to the production overview', () => {
+  const card = buildCard({ notification: { notification_type: 'system', payload: {
+    health: 'connected', run_status: '正式环境已启用', schedule_key: '2026-09-27', issue_zh: '群聊与本人私聊接通验证。'
+  } }, baseUrl: 'https://www.nrgopt.com' });
+  assert.equal(card.card.header.title.content, '飞书推送已接通');
+  assert.match(JSON.stringify(card), /不代表市场发生变化或系统故障/);
+  assert.equal(card.card.elements[1].actions[0].url, 'https://www.nrgopt.com/intelligence/overview');
+});
+
 test('Feishu sender accepts only official webhook hosts and classifies lost responses as unknown', async () => {
   assert.throws(() => createFeishuSender({ webhookUrl: 'https://attacker.example/open-apis/bot/v2/hook/value123' }), { code: 'feishu_not_configured' });
   const input = { notification: { notification_type: 'daily', payload: { schedule_key: '2026-09-22', items: [] } }, baseUrl: 'https://nrgopt.example' };
