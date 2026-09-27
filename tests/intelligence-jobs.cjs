@@ -14,6 +14,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   const calls = [];
   const source = { id: sourceId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/plain', content_sha256: 'a'.repeat(64) };
   const methods = {
+    snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
     sourcePaused: async () => false,
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
@@ -551,4 +552,25 @@ test('a mid-day region release keeps the first persisted country search selectio
   const entries = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
   assert.deepEqual(entries.filter(item => item.item_key.startsWith('discover:')).map(item => item.item_key), selected.map(code => 'discover:' + code));
   assert.ok(entries.some(item => item.item_key === 'registry:noc-news'));
+});
+
+test('a frozen direction is attached to the same eight daily country slots', async()=>{
+  const direction={id:'d',revision:1,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
+  const store=fakeStore();store.snapshotDirections=async()=>[direction];
+  await enqueueDailyScan({store,owner:'owner-a',now:new Date('2026-09-28T00:00:00Z')});
+  const items=store.calls.find(c=>c[0]==='enqueueJobItems')[3];
+  const searches=items.filter(i=>i.item_key.startsWith('discover:'));
+  assert.equal(searches.length,8);assert.ok(searches.every(i=>i.checkpoint.direction.id==='d'));
+  assert.ok(items.filter(i=>i.item_key.startsWith('registry:')).every(i=>!i.checkpoint.direction));
+});
+test('no applicable enabled direction finishes without paying and retry retains the original direction',async()=>{
+  const direction={id:'d',revision:1,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
+  for(const chosen of [null,direction]) {
+    const checkpoint={direction_plan_applied:true,direction:chosen};
+    const store=fakeStore({item:{id:'item-1',item_key:'discover:SA',attempts:1,checkpoint}});
+    const result=await runDailyJobItem({...dependencies,store,owner:'owner-a',jobId:'job-1',env:{NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO:'10000000',NRGOPT_DISCOVERY_BILLING_MODE:'included'},discover:async(_c,_p,_a,context)=>{assert.deepEqual(context,direction);throw Error('provider failure');}});
+    assert.equal(result.status,chosen?'retry':'succeeded');
+    assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),!!chosen);
+    assert.deepEqual(store.calls.find(c=>c[0]==='finishJobItem')[4].direction,chosen);
+  }
 });

@@ -15,6 +15,7 @@ function target(n = 0) {
 function workStore(item) {
   const calls = [];
   const store = { sourcePaused: async () => false, calls, claimJobItem: async () => ({ id: 'work', job_run_id: 'job', attempts: 1, ...item }),
+    bindDirectionSource: async () => {},
     hypothesis: async () => target(), providerConfigs: async () => [],
     startProviderCall: async () => true, finishProviderCall: async () => true,
     reserveBudget: async (...args) => { calls.push(['reserve', ...args]); return 'reservation'; },
@@ -82,7 +83,7 @@ test('discovery keeps only allowed official hosts and accepts an empty result', 
 
 test('repeated daily triggers keep the first watch plan despite changes in the candidate pool', async () => {
   const items = new Map(); let reads = 0;
-  const store = { enqueueJob: async () => 'job', reviewTracking: async () => ({}), watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
+  const store = { snapshotDirections: async () => null, enqueueJob: async () => 'job', reviewTracking: async () => ({}), watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
     watchSearchTargets: async () => { reads++; return [target()]; },
     enqueueJobItems: async (_owner, _job, values) => { values.forEach(v => { if (!items.has(v.item_key)) items.set(v.item_key, v); }); } };
   await enqueueDailyScan({ store, owner: 'owner', now });
@@ -160,12 +161,13 @@ test('watch target reads are owner-scoped and exclude inactive watches and unsav
     let data;
     if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('status'), 'in.(open,strengthened,weakened)'); assert.ok(url.searchParams.get('review_due_at').startsWith('gt.')); data = [{ ...h, candidate_id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_candidates')) { assert.equal(url.searchParams.get('disposition'), 'eq.candidate'); data = [{ ...h.candidate, id: 'candidate' }]; }
+    else if (url.pathname.endsWith('intelligence_direction_sources')) data = [];
     else if (url.pathname.endsWith('intelligence_watch_targets')) { assert.equal(url.searchParams.get('status'), null); data = [{ candidate_id: 'candidate', status: 'active', signal_zh: '关注进展' }]; }
     else { assert.equal(url.searchParams.get('status'), 'eq.pending_extraction'); data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Cedar solar project financing', extraction_zh: { hypotheses: [{ hypothesis_zh: h.claim_zh, counter_evidence_zh: h.counter_evidence_zh }] } }]; }
     return new Response(JSON.stringify(data));
   });
   const result = await store.watchSearchTargets('owner', now);
-  assert.equal(result.length, 1); assert.equal(result[0].candidate.source_id, sourceId); assert.equal(calls.length, 4);
+  assert.equal(result.length, 1); assert.equal(result[0].candidate.source_id, sourceId); assert.equal(calls.length, 5);
 });
 
 test('renewed review dates keep an older hypothesis in the search rotation', () => {
@@ -192,6 +194,7 @@ test('a manual exit overrides older AI watches in source search selection', asyn
     const url = new URL(input); let data;
     if (url.pathname.endsWith('intelligence_hypotheses')) data = [{ ...h, candidate_id: 'candidate' }];
     else if (url.pathname.endsWith('intelligence_candidates')) data = [{ ...h.candidate, id: 'candidate' }];
+    else if (url.pathname.endsWith('intelligence_direction_sources')) data = [];
     else if (url.pathname.endsWith('intelligence_watch_targets')) data = [{ candidate_id: 'candidate', status: 'active' }, { candidate_id: 'candidate', status: 'completed', followup: { priority: 'high' } }];
     else data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Project', extraction_zh: { hypotheses: [{ hypothesis_zh: h.claim_zh, counter_evidence_zh: h.counter_evidence_zh }] } }];
     return new Response(JSON.stringify(data));
