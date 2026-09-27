@@ -1245,7 +1245,7 @@
       try {
         await api('login', { email: byId('email').value.trim(), password: byId('password').value });
         byId('password').value = '';
-        location.replace(safeReturnTo(new URLSearchParams(location.search).get('returnTo')));
+        location.replace('/intelligence/overview');
       } catch (error) { status('login-status', error.message, 'error'); }
       finally { button.disabled = false; }
     });
