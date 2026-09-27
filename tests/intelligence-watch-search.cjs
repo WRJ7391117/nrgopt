@@ -160,7 +160,7 @@ test('watch target reads are owner-scoped and exclude inactive watches and unsav
     let data;
     if (url.pathname.endsWith('intelligence_hypotheses')) { assert.equal(url.searchParams.get('status'), 'in.(open,strengthened,weakened)'); assert.ok(url.searchParams.get('review_due_at').startsWith('gt.')); data = [{ ...h, candidate_id: 'candidate' }]; }
     else if (url.pathname.endsWith('intelligence_candidates')) { assert.equal(url.searchParams.get('disposition'), 'eq.candidate'); data = [{ ...h.candidate, id: 'candidate' }]; }
-    else if (url.pathname.endsWith('intelligence_watch_targets')) { assert.equal(url.searchParams.get('status'), 'eq.active'); data = [{ candidate_id: 'candidate', signal_zh: '关注进展' }]; }
+    else if (url.pathname.endsWith('intelligence_watch_targets')) { assert.equal(url.searchParams.get('status'), null); data = [{ candidate_id: 'candidate', status: 'active', signal_zh: '关注进展' }]; }
     else { assert.equal(url.searchParams.get('status'), 'eq.pending_extraction'); data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Cedar solar project financing', extraction_zh: { hypotheses: [{ hypothesis_zh: h.claim_zh, counter_evidence_zh: h.counter_evidence_zh }] } }]; }
     return new Response(JSON.stringify(data));
   });
@@ -172,4 +172,45 @@ test('renewed review dates keep an older hypothesis in the search rotation', () 
   const h = { ...target(), created_at: '2026-01-01T00:00:00Z', review_due_at: '2026-10-01T00:00:00Z' };
   assert.equal(watchSearchPlan([h], '2026-09-24').length, 2);
   assert.equal(watchSearchPlan([h], '2026-10-01').length, 0);
+});
+
+test('user exit suppresses even persisted search plans and cadence respects Beijing review dates', async () => {
+  const { followupDue } = require('../lib/intelligence/followup.cjs');
+  const watch = { status: 'active', updated_at: '2026-09-26T16:30:00Z', followup: { priority: 'normal', review_on: '2026-10-10' } };
+  assert.equal(followupDue(watch, '2026-09-27'), true);
+  assert.equal(followupDue(watch, '2026-09-28'), false);
+  assert.equal(followupDue(watch, '2026-10-04'), true);
+  assert.equal(followupDue(watch, '2026-10-10'), true);
+  assert.equal(followupDue({ ...watch, status: 'completed' }, '2026-10-10'), false);
+  assert.equal(followupDue({ ...watch, followup: { ...watch.followup, priority: 'high' } }, '2026-09-28'), true);
+  assert.equal(watchSearchPlan([{ ...target(), followup_active: false }], '2026-09-27').length, 0);
+});
+
+test('a manual exit overrides older AI watches in source search selection', async () => {
+  const h = target();
+  const store = createStore({ url: 'https://db.test', serviceKey: 'test' }, async input => {
+    const url = new URL(input); let data;
+    if (url.pathname.endsWith('intelligence_hypotheses')) data = [{ ...h, candidate_id: 'candidate' }];
+    else if (url.pathname.endsWith('intelligence_candidates')) data = [{ ...h.candidate, id: 'candidate' }];
+    else if (url.pathname.endsWith('intelligence_watch_targets')) data = [{ candidate_id: 'candidate', status: 'active' }, { candidate_id: 'candidate', status: 'completed', followup: { priority: 'high' } }];
+    else data = [{ id: sourceId, final_url: 'https://official.example/a', title: 'Project', extraction_zh: { hypotheses: [{ hypothesis_zh: h.claim_zh, counter_evidence_zh: h.counter_evidence_zh }] } }];
+    return new Response(JSON.stringify(data));
+  });
+  assert.deepEqual(await store.watchSearchTargets('owner', now), []);
+});
+
+test('priority changes selection order without raising daily search limits', () => {
+  const targets = Array.from({ length: 8 }, (_, i) => ({ ...target(i), followup_priority: i === 7 ? 'high' : 'low' }));
+  const plan = watchSearchPlan(targets, '2026-09-27');
+  assert.equal(plan.length, 10);
+  assert.equal(plan[0].checkpoint.source_id, targets[7].candidate.source_id);
+});
+
+test('user exit stops a search that was already queued before the decision', async () => {
+  const plan = watchSearchPlan([target()], '2026-09-24')[0];
+  const store = workStore(plan);
+  store.hypothesis = async () => ({ ...target(), followup_active: false });
+  const result = await runDailyJobItem({ ...args, store, watchDiscover: async () => { throw Error('must not search'); } });
+  assert.equal(result.resultCount, 0);
+  assert.equal(store.calls.some(call => call[0] === 'reserve'), false);
 });

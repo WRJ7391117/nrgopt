@@ -8,7 +8,7 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
-const { loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage } = require('../lib/intelligence/pages.cjs');
+const { loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
@@ -17,6 +17,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
+  followup_conflict: '跟踪已在另一页面更新，请重新读取后再保存，当前输入尚未覆盖。',
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
     archive_queue_failed: '原件已保存，但归档任务登记失败；请重试保存这条来源。',
@@ -84,8 +85,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['login-page', 'reset-password-page', 'page', 'overview-page', 'workflow-page', 'settings-page', 'detail-page', 'session', 'sources', 'source', 'overview', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['login-page', 'reset-password-page', 'page', 'overview-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -236,12 +237,25 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       const user = await store.user(token);
       if (!user || user.id !== config.adminId) throw failure('forbidden', 403);
-      if (['detail-page', 'source', 'evidence', 'annotate', 'extract'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
+      if (['detail-page', 'source', 'evidence', 'annotate', 'extract', 'followup', 'save-followup'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
       if (action === 'overview-page') return html(overviewPage(user.email));
       if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(primaryHosts), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
       if (action === 'workflow-page') return html(workflowPage(user.email));
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });
+      if (action === 'followups-page') return html(followupsPage(user.email));
+      if (action === 'followup') return res.status(200).json({ ...(await store.followup(req.query.id, user.id)), writable: config.writes });
+      if (action === 'followups') {
+        const state = req.query.state || 'active';
+        const offset = Number(req.query.offset || 0);
+        if (!['active', 'expired', 'completed'].includes(state) || !Number.isInteger(offset) || offset < 0 || offset > 100000) throw failure('invalid_request', 400);
+        return res.status(200).json(await store.followups(user.id, state, offset));
+      }
+      if (action === 'save-followup') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const value = require('../lib/intelligence/followup.cjs').validateFollowup(body);
+        return res.status(200).json({ watch: await store.saveFollowup(req.query.id, user.id, value) });
+      }
       if (action === 'settings-page') return html(settingsPage(user.email));
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
@@ -345,9 +359,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['page', 'overview-page', 'workflow-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['page', 'overview-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (action === 'overview-page') {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);

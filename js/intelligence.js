@@ -1165,6 +1165,128 @@
     });
     byId('source-history-section').hidden = !versions.length;
   }
+  var followupForm = byId('followup-form');
+  var followupRevision = 0;
+  var followupCandidate = null;
+  var followupLabels = { active: '正在跟踪', expired: '暂缓', completed: '已退出' };
+  var priorityLabels = { high: '高', normal: '普通', low: '低' };
+  function paragraph(parent, text, className) {
+    var p = document.createElement('p'); p.textContent = text;
+    if (className) p.className = className;
+    parent.append(p); return p;
+  }
+  function followupEvidence(watch) {
+    var section = byId('followup-evidence');
+    var list = byId('followup-evidence-list');
+    list.replaceChildren();
+    section.hidden = !watch;
+    if (!watch) return;
+    var since = Date.parse(watch.updated_at);
+    var changes = [];
+    (followupCandidate?.tracking?.hypotheses || []).forEach(function (h) {
+      (h.assessments || []).filter(function (a) { return Date.parse(a.created_at) > since; }).forEach(function (a) { changes.push({ hypothesis: h, assessment: a }); });
+    });
+    changes.sort(function (a, b) { return Date.parse(b.assessment.created_at) - Date.parse(a.assessment.created_at); });
+    byId('followup-evidence-note').textContent = '比较起点：' + dateLabel(watch.updated_at) + '。' + (changes.length ? '以下是随后记录的 AI 判断，请据原文决定下一行动。' : '尚无新的判断记录；不代表来源没有变化或情报没有价值。可在下方查看全部判断与原文。');
+    changes.forEach(function (entry) {
+      var a = entry.assessment, item = document.createElement('li');
+      paragraph(item, entry.hypothesis.claim_zh);
+      paragraph(item, dateLabel(a.created_at) + ' · ' + ({ strengthened: '新增支持', weakened: '新增削弱证据', rejected: '反证建议否定', unchanged: '未形成实质变化' }[a.recommendation] || '待复核') + ' · ' + (a.applied ? '已更新假设状态' : '仅记录建议，未更新假设状态'), 'intel-source-meta');
+      paragraph(item, a.reason_zh);
+      (a.evidence_facts || []).forEach(function (fact) { var quote = document.createElement('blockquote'); quote.textContent = fact.claim_zh + '；原文：“' + fact.evidence_quote + '”'; item.append(quote); });
+      var link = document.createElement('a'); link.href = '/intelligence/sources/' + encodeURIComponent(a.source_id); link.textContent = '核对证据来源'; item.append(link);
+      paragraph(item, ['weakened', 'rejected'].includes(a.recommendation) ? '建议：先核对反证适用的项目、环节与时间，再决定暂缓或退出；尚未执行。' : '建议：核对是否回答了你的下一验证问题，再记录结论与后续动作；尚未执行。', 'intel-muted');
+      list.append(item);
+    });
+  }
+  function renderFollowup(data) {
+    var watch = data.watch, fields = followupForm.elements;
+    followupRevision = watch?.revision || 0;
+    followupForm.hidden = !data.eligible;
+    byId('followup-editor').hidden = !data.eligible;
+    byId('followup-editor-label').textContent = watch ? '更新计划、记录结果或调整状态' : '加入持续跟踪';
+    if (location.hash === '#followup-section') byId('followup-editor').open = true;
+    Array.from(fields).forEach(function (field) { field.disabled = data.writable === false; });
+    if (!data.eligible) { status('followup-status', '这条来源尚未形成可跟踪的业务情报，请先查看或生成中文分析。'); return; }
+    var value = watch?.followup || { reason: '', next_action: '', exit_condition: '', outcome: '', exit_reason: '', priority: 'normal', review_on: new Date((beijingToday() + 7) * 86400000).toISOString().slice(0, 10) };
+    Object.keys(value).forEach(function (key) { if (fields.namedItem(key)) fields.namedItem(key).value = value[key]; });
+    fields.namedItem('status').value = watch?.status || 'active';
+    fields.namedItem('exit_reason').required = watch?.status !== 'active' && !!watch;
+    byId('followup-summary').hidden = !watch;
+    if (watch) byId('followup-summary').textContent = followupLabels[watch.status] + ' · 复核日期：' + value.review_on + '（北京时间）'
+      + (watch.status === 'active' && value.review_on <= new Date(beijingToday() * 86400000).toISOString().slice(0, 10) ? ' · 已到期，请复核；未自动退出' : '')
+      + ' · 最近人工记录：' + dateLabel(watch.updated_at);
+    var history = byId('followup-history-list'); history.replaceChildren();
+    (data.history || []).forEach(function (entry) {
+      var item = document.createElement('li'), after = entry.after_state, before = entry.before_state;
+      paragraph(item, dateLabel(entry.recorded_at) + ' · ' + (before ? followupLabels[before.status] + ' → ' : '进入跟踪 → ') + followupLabels[after.status], 'intel-source-meta');
+      paragraph(item, '理由：' + after.followup.reason + '\n下一步：' + after.followup.next_action + '\n复核：' + after.followup.review_on + '（北京时间） · 优先级：' + priorityLabels[after.followup.priority] + '\n退出条件：' + after.followup.exit_condition);
+      if (after.followup.outcome) paragraph(item, '当时记录的实际结果：' + after.followup.outcome);
+      if (after.followup.exit_reason) paragraph(item, '暂缓 / 退出 / 恢复原因：' + after.followup.exit_reason);
+      history.append(item);
+    });
+    byId('followup-history').hidden = !history.children.length;
+    followupEvidence(watch);
+    status('followup-status', data.writable === false ? '当前环境只读。' : watch ? '已读取保存的跟踪计划。' : '填写后保存，即可加入“我的跟踪”。');
+  }
+  async function loadFollowup(id) { renderFollowup(await api('followup', undefined, id)); }
+  if (followupForm) {
+    followupForm.elements.namedItem('status').addEventListener('change', function () { followupForm.elements.namedItem('exit_reason').required = this.value !== 'active'; });
+    followupForm.elements.namedItem('priority').addEventListener('change', function () {
+      followupForm.elements.namedItem('review_on').value = new Date((beijingToday() + ({ high: 1, normal: 7, low: 30 }[this.value])) * 86400000).toISOString().slice(0, 10);
+    });
+    byId('followup-reload').addEventListener('click', async function () {
+      if (!window.confirm('重新读取会替换表单里尚未保存的内容。继续吗？')) return;
+      try { await loadFollowup(location.pathname.match(detailPath)[1]); }
+      catch (error) { status('followup-status', error.message, 'error'); }
+    });
+    followupForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var body = Object.fromEntries(new FormData(followupForm)); body.revision = followupRevision;
+      Array.from(followupForm.elements).forEach(function (field) { field.disabled = true; });
+      status('followup-status', '正在保存跟踪计划…');
+      try {
+        var id = location.pathname.match(detailPath)[1];
+        var saved = await api('save-followup', body, id);
+        followupRevision = saved.watch.revision;
+        try { await loadFollowup(id); status('followup-status', saved.watch.status === 'active' ? '跟踪已保存。建议仍需你实际执行并记录结果。' : '已移出活跃跟踪，原因与历史保留，可随时恢复。', 'success'); }
+        catch { status('followup-status', '已保存，但历史读取暂时失败。请重新读取已保存记录。', 'success'); }
+      } catch (error) { status('followup-status', error.message + ' 表单内容已保留。', 'error'); }
+      finally { Array.from(followupForm.elements).forEach(function (field) { field.disabled = false; }); }
+    });
+  }
+  var followupsOffset = 0;
+  async function loadFollowups() {
+    var scope = byId('followups-state'), previous = byId('followups-prev'), next = byId('followups-next');
+    scope.disabled = previous.disabled = next.disabled = byId('followups-refresh').disabled = true;
+    try {
+      var result = await api('followups&state=' + scope.value + '&offset=' + followupsOffset);
+      var list = byId('followups-list'); list.replaceChildren();
+      result.items.forEach(function (watch) {
+        var item = document.createElement('li'), link = document.createElement('a'), f = watch.followup;
+        link.href = '/intelligence/sources/' + encodeURIComponent(watch.candidate.source_id) + '#followup-section';
+        link.textContent = watch.candidate.title_zh; item.append(link);
+        paragraph(item, '优先级：' + priorityLabels[f.priority] + ' · 复核：' + f.review_on + '（北京时间）' + (watch.status === 'active' && f.review_on <= new Date(beijingToday() * 86400000).toISOString().slice(0, 10) ? ' · 待复核' : ''), 'intel-source-meta');
+        paragraph(item, '下一步：' + f.next_action + '\n理由：' + f.reason);
+        if (watch.status !== 'active') paragraph(item, '原因：' + f.exit_reason);
+        paragraph(item, '最近人工记录：' + dateLabel(watch.updated_at), 'intel-source-meta');
+        list.append(item);
+      });
+      if (!result.items.length) paragraph(list, scope.value === 'active' ? '尚无主动跟踪事项。从情报详情填写跟踪计划即可加入。' : '此范围暂无记录。', 'intel-muted');
+      previous.disabled = followupsOffset === 0; next.disabled = !result.more;
+      byId('followups-page').textContent = '第 ' + (followupsOffset / 25 + 1) + ' 页';
+      status('page-status', '');
+    } catch (error) { status('page-status', error.message + ' 已显示的列表保留，可能不是最新状态。', 'error'); }
+    finally { scope.disabled = byId('followups-refresh').disabled = false; }
+  }
+  if (byId('followups-list')) {
+    document.querySelector('.intel-nav a[href="/intelligence/followups"]').setAttribute('aria-current', 'page');
+    byId('followups-state').addEventListener('change', function () { followupsOffset = 0; loadFollowups(); });
+    byId('followups-refresh').addEventListener('click', loadFollowups);
+    byId('followups-prev').addEventListener('click', function () { followupsOffset = Math.max(0, followupsOffset - 25); loadFollowups(); });
+    byId('followups-next').addEventListener('click', function () { followupsOffset += 25; loadFollowups(); });
+  }
+
   async function loadDetail(id) {
     try {
       var result = await api('source', undefined, id);
@@ -1199,6 +1321,8 @@
         download.hidden = false;
       }
       byId('source-detail').hidden = false;
+      followupCandidate = result.candidate;
+      loadFollowup(id).catch(function (error) { status('followup-status', error.message, 'error'); });
       status('page-status', '');
     } catch (error) {
       byId('source-title').textContent = '来源未能读取';
@@ -1484,6 +1608,7 @@
   }
   (async function () {
     try {
+      if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
       if (overviewList) { loadCoverage(); await loadOverview(); return; }
       var session = await api('session');
