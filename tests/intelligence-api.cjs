@@ -784,3 +784,20 @@ test('MENA manual discovery lists enabled regions and rejects pending regions be
   assert.equal(result.body.error, 'discovery_country_not_enabled');
   assert.equal(calls.filter(item => /reserve|provider/i.test(item.name)).length, 0);
 });
+
+test('every authenticated HTML page includes its verified account before loading business data', async () => {
+  const { request } = setup();
+  for (const action of ['overview-page', 'workflow-page', 'settings-page', 'page', 'detail-page']) {
+    const response = await request(action, { query: { id } });
+    assert.equal(response.code, 200);
+    assert.match(response.body, /id="account-email" class="intel-account">local@example\.test<\/span>/);
+    assert.equal(response.headers['cache-control'], 'private, no-store');
+  }
+  const unsafe = setup({ overrides: { user: async () => ({ id: admin, email: '<img src=x onerror=alert(1)>@example.test' }) } });
+  const response = await unsafe.request('overview-page');
+  assert.match(response.body, /&lt;img src=x onerror=alert\(1\)&gt;@example.test/);
+  assert.doesNotMatch(response.body, /<img src=x/);
+  const anonymous = await request('overview-page', { loggedIn: false });
+  assert.equal(anonymous.code, 303);
+  assert.ok(!String(anonymous.body).includes('local@example.test'));
+});

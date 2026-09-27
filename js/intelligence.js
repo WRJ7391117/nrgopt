@@ -485,6 +485,16 @@
     byId('overview-intro').textContent = viewCopy[1];
     byId('candidate-kicker').textContent = viewCopy[2];
     byId('candidate-heading').textContent = prefix + ' · ' + viewCopy[3];
+    document.querySelectorAll('.intel-nav [data-view], .intel-radar-summary a').forEach(function (link) {
+      var target = new URL(link.href, location.origin);
+      target.searchParams.set('period', period);
+      ['group', 'country', 'topic'].forEach(function (name) { var value = filters.elements[name].value; if (value) target.searchParams.set(name, value); else target.searchParams.delete(name); });
+      link.href = target.pathname + target.search;
+    });
+    document.querySelectorAll('.intel-nav [data-view]').forEach(function (link) {
+      if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
   }
   function renderOverview(candidates) {
     renderOverviewHeading();
@@ -510,16 +520,6 @@
     var viewLabel = { overview: '情报', signal: '早期信号', demand: '需求', project: '项目', opportunity: '机会' }[view];
     var filtered = active.filter(function (item) {
       return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
-    });
-    document.querySelectorAll('.intel-nav [data-view], .intel-radar-summary a').forEach(function (link) {
-      var target = new URL(link.href, location.origin);
-      target.searchParams.set('period', period);
-      ['group', 'country', 'topic'].forEach(function (name) { var value = filters.elements[name].value; if (value) target.searchParams.set(name, value); else target.searchParams.delete(name); });
-      link.href = target.pathname + target.search;
-    });
-    document.querySelectorAll('.intel-nav [data-view]').forEach(function (link) {
-      if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
     });
     document.querySelectorAll('[data-region]').forEach(function (button) { button.setAttribute('aria-pressed', button.dataset.region === group ? 'true' : 'false'); });
     var visibleOpportunities = periodOpportunities.filter(function (item) { return !country || (item.occurrence_countries || []).includes(country); });
@@ -954,7 +954,7 @@
     status('page-status', '正在读取情报…');
     try {
       var result = await api('overview');
-      byId('account-email').textContent = result.user?.email || '';
+      if (result.user?.email) byId('account-email').textContent = result.user.email;
       overviewLoaded = true;
       overviewCandidates = result.candidates;
       overviewOpportunities = result.opportunities || [];
@@ -1279,25 +1279,42 @@
   var overviewList = byId('candidate-list');
   if (overviewList) {
     var candidateFilters = byId('candidate-filters');
-    var filterParams = new URLSearchParams(location.search);
-    var legacyRadar = filterParams.get('radar');
-    if (!filterParams.get('view') && legacyRadar) filterParams.set('view', legacyRadar === 'trigger' ? 'signal' : legacyRadar);
-    ['group', 'country', 'topic', 'view', 'period'].forEach(function (name) {
-      var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
-      if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
-    });
+    function readCandidateFilters() {
+      var filterParams = new URLSearchParams(location.search);
+      var legacyRadar = filterParams.get('radar');
+      if (!filterParams.get('view') && legacyRadar) filterParams.set('view', legacyRadar === 'trigger' ? 'signal' : legacyRadar);
+      ['group', 'country', 'topic', 'view', 'period'].forEach(function (name) {
+        var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
+        control.value = name === 'period' ? '30' : name === 'view' ? 'overview' : '';
+        if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
+      });
+    }
+    readCandidateFilters();
     renderOverviewHeading();
-    function applyCandidateFilters() {
+    function applyCandidateFilters(pushHistory) {
       var url = new URL(location.href);
       url.searchParams.delete('radar');
       ['group', 'country', 'topic', 'view', 'period'].forEach(function (name) {
         var value = candidateFilters.elements[name].value;
         if (value && !(name === 'view' && value === 'overview')) url.searchParams.set(name, value); else url.searchParams.delete(name);
       });
-      history.replaceState(null, '', url.pathname + url.search + url.hash);
+      if (url.href !== location.href) history[pushHistory ? 'pushState' : 'replaceState'](null, '', url.pathname + url.search + url.hash);
       if (overviewLoaded) renderOverview(overviewCandidates);
       else renderOverviewHeading();
     }
+    document.querySelectorAll('.intel-nav [data-view], .intel-radar-summary a').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        candidateFilters.elements.view.value = link.dataset.view || new URL(link.href).searchParams.get('view') || 'overview';
+        applyCandidateFilters(true);
+      });
+    });
+    window.addEventListener('popstate', function () {
+      readCandidateFilters();
+      if (overviewLoaded) renderOverview(overviewCandidates);
+      else renderOverviewHeading();
+    });
     candidateFilters.addEventListener('change', function (event) {
       var country = regions.countries.find(function (item) { return item.code === candidateFilters.elements.country.value; });
       if (country && candidateFilters.elements.group.value && country.group !== candidateFilters.elements.group.value) {
