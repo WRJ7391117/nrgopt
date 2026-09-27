@@ -20,12 +20,12 @@ test('weighted rotation visits all enabled directions without expanding the coun
   assert.equal(selectDirection([{...d,config:{...d.config,enabled:false}}],'SA','2026-09-27'),null);
   assert.equal(selectDirection([{...d,config:{...d.config,countries:['QA']}}],'SA','2026-09-27'),null);
 });
-test('direction queries retain approved domains on first attempt and retries, sanitizing user operators',()=>{
+test('direction queries broaden websites while preserving positive intent and sanitizing operators',()=>{
   const changed={...d,config:{...d.config,name:'关注储能 site:evil.test " OR ',targets:['procurement'],exclude:'一般评论'}};
   for(const attempt of [1,2,3]) {
     const q=discoveryQuery('QA',attempt,changed);
-    assert.match(q,/关注储能/);assert.match(q,/采购机会/);assert.match(q,/一般评论/);
-    assert.ok(!q.includes('site:evil.test'));assert.match(q,/site:(gov.qa|qna.org.qa|qatarenergy.qa)/);
+    assert.match(q,/关注储能/);assert.match(q,/采购机会/);assert.ok(!q.includes('一般评论'));
+    assert.ok(!q.includes('site:evil.test'));assert.ok(!q.includes('site:'));
   }
 });
 test('direction relevance requires the frozen revision and an existing validated fact',()=>{
