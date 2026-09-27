@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/intelligence.js": { "maxDuration": 240 }
+    "api/intelligence.js": { "maxDuration": 240, "regions": ["syd1"] }
   },
   "headers": [
     {

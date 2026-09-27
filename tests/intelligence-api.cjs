@@ -400,7 +400,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA', 'KW'], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
-  assert.match(overviewPage.body, /本期值得关注的能源变化/);
+  assert.match(overviewPage.body, /近30天的能源变化/);
   assert.match(overviewPage.body, />总览</);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
@@ -724,7 +724,7 @@ test('entry routes open overview while source tools and deep links keep their lo
   const { rewrites } = require('../vercel.json');
   const entry = rewrites.find(route => route.source === '/intelligence');
   const action = new URL(entry.destination, 'https://preview.example').searchParams.get('action');
-  assert.match((await request(action)).body, /本期值得关注的能源变化/);
+  assert.match((await request(action)).body, /近30天的能源变化/);
   const redirect = await request(action, { loggedIn: false });
   assert.equal(new URL(redirect.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
   assert.equal(rewrites.find(route => route.source === '/intelligence/sources').destination, '/api/intelligence?action=page');

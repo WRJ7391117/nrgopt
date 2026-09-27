@@ -16,18 +16,26 @@
     if (source.publication_method === 'conflicting_metadata') return '日期字段有冲突，待核验';
     var value = source.publication_date || (source.published_at || '').slice(0, 10);
     if (!value) return '未知（原文未提供可核验的发布时间）';
-    var age = (Date.now() - Date.parse(value + 'T00:00:00Z')) / 86400000;
+    var day = publicationDay(source), age = beijingToday() - day;
+    if (!Number.isFinite(day)) return '日期无效，待核验';
     var label = source.published_at ? dateLabel(source.published_at) : dateLabel(value);
-    return label + (age >= 30 ? ' · 历史公告（超过30天）' : age < -1 ? ' · 未来日期，待核验' : '');
+    return label + (age >= 30 ? ' · 历史公告（不在近30天内）' : age < 0 ? ' · 未来日期，待核验' : '');
   }
-  function publicationAge(source) {
+  function beijingToday() { return Math.floor((Date.now() + 8 * 3600000) / 86400000); }
+  function publicationDay(source) {
     source = source || {};
-    if (source.publication_method === 'conflicting_metadata') return null;
+    if (source.publication_method === 'conflicting_metadata') return NaN;
+    if (/(Z|[+-]\d{2}:?\d{2})$/i.test(source.published_at || '')) {
+      return Math.floor((Date.parse(source.published_at) + 8 * 3600000) / 86400000);
+    }
     var value = source.publication_date || (source.published_at || '').slice(0, 10);
     var date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? Date.parse(value + 'T00:00:00Z') : NaN;
-    if (!Number.isFinite(date)) return null;
-    var age = Math.floor(Date.now() / 86400000) - Math.floor(date / 86400000);
-    return age < 0 ? null : age;
+    if (!Number.isFinite(date) || new Date(date).toISOString().slice(0, 10) !== value) return NaN;
+    return Math.floor(date / 86400000);
+  }
+  function publicationAge(source) {
+    var age = beijingToday() - publicationDay(source);
+    return !Number.isFinite(age) || age < 0 ? null : age;
   }
   function inPublicationPeriod(source, period) {
     var age = publicationAge(source);
@@ -448,12 +456,37 @@
     });
   }
   var overviewCandidates = [], overviewOpportunities = [], overviewLoaded = false;
+  function renderOverviewHeading() {
+    var filters = byId('candidate-filters'), period = filters.elements.period.value, view = filters.elements.view.value || 'overview';
+    var prefix = period === 'all' ? '全部记录' : period === 'unknown' ? '日期待核验' : '近' + period + '天';
+    var range;
+    if (period === 'all') range = '原文发布时间不限，包含历史资料和日期待核验条目；不代表近期变化。';
+    else if (period === 'unknown') range = '仅展示日期缺失、冲突、无效或未来日期的条目；核验前不计入近期情报。';
+    else {
+      var end = beijingToday(), start = end - Number(period) + 1;
+      range = '原文发布日期：' + new Date(start * 86400000).toISOString().slice(0, 10) + ' 至 ' + new Date(end * 86400000).toISOString().slice(0, 10)
+        + '（含今天，共' + period + '天；北京时间 UTC+8）。';
+    }
+    byId('overview-period').textContent = range;
+    var viewCopy = {
+      overview: ['能源变化', '先看重要变化，再进入早期信号、需求、项目或机会。所有判断都可以回到来源和原文证据。', '决策摘要', '重点变化'],
+      signal: ['区域变化与能源韧性早期信号', '查看监管、安全、产业、公共服务、气候灾害和基础设施变化如何传导到能源需求，并沿验证证据继续跟踪。', '从区域变化到能源响应', '早期信号'],
+      demand: ['能源需求', '查看哪些业主或设施已出现新增负荷、可靠性、并网、成本或减碳需求。', '谁需要解决什么问题', '需求'],
+      project: ['能源项目', '查看已经出现项目级证据的公告、可研、融资、招标、授标、建设和投运进展。', '项目进展到哪一步', '项目'],
+      opportunity: ['商业机会', '查看由原文事实支持的早期参与方向、设备包和服务包，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
+    }[view];
+    byId('overview-title').textContent = view === 'overview' ? (period === 'all' ? '全部能源情报' : period === 'unknown' ? '日期待核验的能源情报' : prefix + '的能源变化') : prefix + ' · ' + viewCopy[0];
+    byId('overview-intro').textContent = viewCopy[1];
+    byId('candidate-kicker').textContent = viewCopy[2];
+    byId('candidate-heading').textContent = prefix + ' · ' + viewCopy[3];
+  }
   function renderOverview(candidates) {
+    renderOverviewHeading();
     var filters = byId('candidate-filters');
     var period = filters.elements.period.value;
     var periodOpportunities = overviewOpportunities.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
     var allActive = candidates.filter(function (item) { return item.disposition === 'candidate' && item.review_status !== 'rejected'; });
-    byId('recency-status').textContent = '按原文发布日期筛选，采集或重新分析不刷新日期。当前载入的情报中，' + allActive.filter(function (item) { var age = publicationAge(item.source_timing); return age !== null && age >= 30; }).length + ' 条超过30天，' + allActive.filter(function (item) { return publicationAge(item.source_timing) === null; }).length + ' 条日期待核验；可切换时间范围查阅。';
+    byId('recency-status').textContent = '按原文发布日期筛选，采集或重新分析不刷新日期。当前载入的情报中，' + allActive.filter(function (item) { var age = publicationAge(item.source_timing); return age !== null && age >= 30; }).length + ' 条不在近30天内，' + allActive.filter(function (item) { return publicationAge(item.source_timing) === null; }).length + ' 条日期待核验；可切换时间范围查阅。';
     var periodCandidates = candidates.filter(function (item) { return inPublicationPeriod(item.source_timing, period); });
     var groupedCandidates = periodCandidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
@@ -491,17 +524,6 @@
       target.searchParams.set('period', period);
       link.href = target.pathname + target.search;
     });
-    var viewCopy = {
-      overview: ['本期值得关注的能源变化', '先看重要变化，再进入早期信号、需求、项目或机会。所有判断都可以回到来源和原文证据。', '决策摘要', '本期重点变化'],
-      signal: ['区域变化与能源韧性早期信号', '查看监管、安全、产业、公共服务、气候灾害和基础设施变化如何传导到能源需求，并沿验证证据继续跟踪。', '从区域变化到能源响应', '早期信号'],
-      demand: ['能源需求', '查看哪些业主或设施已出现新增负荷、可靠性、并网、成本或减碳需求。', '谁需要解决什么问题', '需求'],
-      project: ['能源项目', '查看已经出现项目级证据的公告、可研、融资、招标、授标、建设和投运进展。', '项目进展到哪一步', '项目'],
-      opportunity: ['商业机会', '查看由原文事实支持的早期参与方向、设备包和服务包，并区分待验证、采购开放和已授标。', '哪些环节可能参与', '机会']
-    }[view];
-    byId('overview-title').textContent = viewCopy[0];
-    byId('overview-intro').textContent = viewCopy[1];
-    byId('candidate-kicker').textContent = viewCopy[2];
-    byId('candidate-heading').textContent = viewCopy[3];
     document.querySelectorAll('.intel-nav [data-view]').forEach(function (link) {
       if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -828,7 +850,7 @@
       var visibleCount = result.candidates.filter(function (item) {
         return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
-      status('page-status', '已载入 ' + visibleCount + ' 条情报记录（含历史）。默认仅展示原文近30天发布的条目；历史资料保留供追溯。');
+      status('page-status', '已载入 ' + visibleCount + ' 条情报记录（含历史及日期待核验条目）；下方统计与列表按所选原文发布时间筛选。');
     } catch (error) {
       status('page-status', error.message, 'error');
       status('candidate-filter-status', '情报读取失败，请刷新重试。', 'error');
@@ -1152,6 +1174,7 @@
       var control = candidateFilters.elements[name], value = filterParams.get(name) || '';
       if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
     });
+    renderOverviewHeading();
     function applyCandidateFilters() {
       var url = new URL(location.href);
       url.searchParams.delete('radar');
@@ -1161,6 +1184,7 @@
       });
       history.replaceState(null, '', url.pathname + url.search + url.hash);
       if (overviewLoaded) renderOverview(overviewCandidates);
+      else renderOverviewHeading();
     }
     candidateFilters.addEventListener('change', applyCandidateFilters);
     candidateFilters.addEventListener('submit', function (event) { event.preventDefault(); });
