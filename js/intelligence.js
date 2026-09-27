@@ -447,7 +447,7 @@
       list.append(item);
     });
   }
-  var overviewCandidates = [], overviewOpportunities = [];
+  var overviewCandidates = [], overviewOpportunities = [], overviewLoaded = false;
   function renderOverview(candidates) {
     var filters = byId('candidate-filters');
     var period = filters.elements.period.value;
@@ -820,6 +820,8 @@
     status('page-status', '正在读取情报…');
     try {
       var result = await api('overview');
+      byId('account-email').textContent = result.user?.email || '';
+      overviewLoaded = true;
       overviewCandidates = result.candidates;
       overviewOpportunities = result.opportunities || [];
       renderOverview(result.candidates);
@@ -827,7 +829,12 @@
         return item.disposition === 'candidate' && item.review_status !== 'rejected';
       }).length;
       status('page-status', '已载入 ' + visibleCount + ' 条情报记录（含历史）。默认仅展示原文近30天发布的条目；历史资料保留供追溯。');
-    } catch (error) { status('page-status', error.message, 'error'); }
+    } catch (error) {
+      status('page-status', error.message, 'error');
+      status('candidate-filter-status', '情报读取失败，请刷新重试。', 'error');
+      byId('source-only-count').textContent = '背景资料尚未读取';
+      document.querySelectorAll('.intel-country-state').forEach(function (item) { item.textContent = '尚未取得数据'; });
+    }
   }
   async function loadOperations() {
     try { renderOperations(await api('operations')); }
@@ -1153,7 +1160,7 @@
         if (value && !(name === 'view' && value === 'overview')) url.searchParams.set(name, value); else url.searchParams.delete(name);
       });
       history.replaceState(null, '', url.pathname + url.search + url.hash);
-      renderOverview(overviewCandidates);
+      if (overviewLoaded) renderOverview(overviewCandidates);
     }
     candidateFilters.addEventListener('change', applyCandidateFilters);
     candidateFilters.addEventListener('submit', function (event) { event.preventDefault(); });
@@ -1321,12 +1328,12 @@
   }
   (async function () {
     try {
+      if (overviewList) { await loadOverview(); return; }
       var session = await api('session');
       byId('account-email').textContent = session.user.email;
       var match = location.pathname.match(detailPath);
       if (match) await loadDetail(match[1]);
       else if (importForm) await loadSources();
-      else if (overviewList) await loadOverview();
       else if (providerForms.length) await Promise.all([loadProviderSettings(), loadOperations()]);
     } catch (error) { status('page-status', error.message, 'error'); }
   })();

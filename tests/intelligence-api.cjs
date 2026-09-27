@@ -393,7 +393,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'get').args, [id, admin]);
   assert.deepEqual(calls.find(call => call.name === 'candidateBySource').args, [id, admin]);
   assert.deepEqual(calls.find(call => call.name === 'sourceHistory').args, [id, admin]);
-  await request('overview');
+  assert.deepEqual((await request('overview')).body.user, { email: 'local@example.test' });
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   assert.deepEqual(calls.find(call => call.name === 'currentOpportunities').args, [admin, []]);
   const operations = await request('operations');
