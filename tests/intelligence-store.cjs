@@ -1129,3 +1129,22 @@ test('reimport refreshes parsed metadata while preserving original identity and 
   assert.equal(saved.annotation_zh, '保留用户备注');
   assert.equal(state.records.length, 1);
 });
+
+
+test('overview reuses source reads within one request and refreshes evidence bindings on the next', async () => {
+  const state = backend();
+  for (const id of ['left', 'right']) {
+    state.records.push({ id, owner_id: 'owner-a', final_url: `https://${id}.example/news`, content_sha256: id,
+      fetched_at: '2026-09-24T00:00:00Z', extracted_at: '2026-09-24T01:00:00Z' });
+    state.candidates.push({ id, source_id: id, owner_id: 'owner-a', disposition: 'candidate', evidence_status: 'checked' });
+  }
+  state.relations.push({ owner_id: 'owner-a', candidate_id: 'left', related_candidate_id: 'right', relation: 'supports', same_scope: false,
+    left_source_sha256: 'left', right_source_sha256: 'right', left_extracted_at: '2026-09-24T01:00:00Z', right_extracted_at: '2026-09-24T01:00:00Z' });
+  const first = await state.store.candidates('owner-a');
+  assert.equal(first[0].evidence_status, 'checked');
+  assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/intelligence_sources').length, 1);
+  state.records[1].extracted_at = '2026-09-25T01:00:00Z';
+  const refreshed = await state.store.candidates('owner-a');
+  assert.equal(refreshed[0].evidence_status, 'sourced', 'new analysis invalidates an older evidence relation');
+  assert.equal(state.calls.filter(call => call.url.pathname === '/rest/v1/intelligence_sources').length, 2);
+});
