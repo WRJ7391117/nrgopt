@@ -63,6 +63,23 @@ async function main() {
   assert.ok(!longExcerpt.includes('Site navigation.'));
   const eehc = extractDocument(Buffer.from('<title>EEHC</title><header>Other news</header><div class="col-7"><div class="row"><div class="col-2">الخبر</div><div class="col-10">Egypt grid and storage</div><div class="col-2">تاريخ الخبر</div><div class="col-10">21/09/2026</div><div class="col-2">تفاصيل الخبر</div><div class="col-10"><p>Grid expansion and battery storage reviewed.</p></div></div></div><footer>Unrelated project</footer>'), 'text/html', 2000, 'https://www.eehc.gov.eg/CMSEehc/' + encodeURIComponent('الاخبار') + '/grid/');
   assert.deepEqual(eehc, { title: 'Egypt grid and storage', excerpt: 'Grid expansion and battery storage reviewed.' });
+  const ucc = extractDocument(Buffer.from('<title>UCC Holding</title><div class="section-header"><h1>Syria power plant</h1></div><div class="project-details_inner"><div class="post_content"><div class="post-header"><span class="comment-date">02.Dec.2025</span></div><div class="fulltext"><p>Only verified source text.</p></div></div></div><div class="fulltext">Other news</div>'), 'text/html', 12000, 'https://uccholding.com/media/read/power-plant');
+  assert.deepEqual(ucc, { title: 'Syria power plant', excerpt: 'Only verified source text.' });
+  const agencyBodies = [
+    ['https://totalenergies.com/newsroom/iraq/', '<div class="single-totalenergies"><div class="entry-content"><p>Only verified source text.</p></div></div><div class="entry-content">Related projects</div>'],
+    ['https://enlightenergy.com/news-api/solar/', '<div class="text-md my-3">Modal</div><main><div class="text-md my-3"><p>Only verified source text.</p></div></main>'],
+    ['https://pilot.eac.com.cy/en/review/', '<article class="post-article"><div class="post-article__content"><p>Only verified source text.</p></div></article><aside>Other article</aside>'],
+    ['https://lcec.org.lb/index.php/node/12931', '<section class="newspage-container"><div class="col-md-4">Upcoming event</div><div class="col-md-8"><div class="text-justify"><p>Only verified source text.</p></div></div></section>'],
+    ['https://ustda.gov/solar-project/', '<main><article class="post"><div class="entry-content"><p>Only verified source text.</p></div></article></main><div class="entry-content">Unrelated project</div>'],
+    ['https://anme.tn/fr/news/chems', '<div id="block-anme-content"><article data-history-node-id="2680"><footer>06/08/2026</footer><div><p>Only verified source text.</p></div></article></div>'],
+    ['https://petra.gov.jo/en/news/solar', '<main id="news-inner"><div class="news-inner-content"><p>Only verified source text.</p></div><p>Other project</p></main>'],
+    ['https://english.wafa.ps/Pages/Details/174514', '<div class="blog-wrap"><div class="content"><p>Only verified source text.</p></div><div>Related project</div></div>'],
+    ['https://www.presstv.co.uk/Detail/2026/09/23/776847/gas', '<div class="news-body-container"><div class="col-md-9"><p>Only verified source text.</p></div></div><div>Other project</div>'],
+    ['https://energies.gov.mr/ar/node/2724', '<article class="node-detail"><div class="field--name-body"><p>Only verified source text.</p></div></article><div class="field--name-body">Ministry boilerplate</div>'],
+    ['https://www.suna.sd/posts/energy', '<div class="post_details_block"><p>Only verified source text.</p></div><div class="post-body">Related news</div>'],
+    ['https://www.sabanew.net/story/en/141229', '<div class="newsheader"><h5>Title</h5></div><div class="col-md-12">[22/01/2026 07:40]</div><div class="row">Image</div><div class="col-md-12">Only verified source text.</div><div class="newsheader col-md-12"><h2>Keywords</h2>Other project</div>']
+  ];
+  for (const [url, body] of agencyBodies) assert.equal(extractDocument(Buffer.from('<title>Official source</title>' + body), 'text/html', 12000, url).excerpt, 'Only verified source text.', url);
   const noc = extractDocument(Buffer.from('<title>Pipeline reopens</title><main><div>Other companies and latest headlines</div><div class="el-content uk-panel"><p>Valve 7 reopened and crude flow resumed.</p></div></main>'), 'text/html', 2000, 'https://noc.ly/en/pipeline-reopens/');
   assert.deepEqual(noc, { title: 'Pipeline reopens', excerpt: 'Valve 7 reopened and crude flow resumed.' });
   const nama = extractDocument(Buffer.from('<title>News - Nama Power &amp; Water Procurement</title><main><h1>News</h1><div class="news-dt-body"><h3>Adam Solar qualification</h3><p>Qualification opens in Oman.</p></div><section><h3>Latest News</h3><p>Unrelated Duqm project signed.</p></section></main>'), 'text/html');

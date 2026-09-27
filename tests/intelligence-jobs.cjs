@@ -524,10 +524,14 @@ test('unchanged raw HTML queues re-extraction when old evidence came from an exc
 test('supported MENA countries do not silently enable searches and extra searches remain bounded', () => {
   const { primaryHosts, discoveryQuery, primarySource } = require('../lib/intelligence/discovery.cjs');
   assert.equal(COUNTRIES.length, 24);
+  assert.match(discoveryQuery('EH'), /Western Sahara.*Laayoune.*site:ustda.gov/);
+  assert.match(discoveryQuery('EH', 2), /Laayoune.*site:ustda.gov/);
   assert.deepEqual(dailySearchCountries('2026-09-27').slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);
   assert.ok(dailySearchCountries('2026-09-27').length <= 8);
   assert.equal(primarySource('https://example.org/', 'IR'), false);
-  assert.throws(() => discoveryQuery('IR'), { code: 'discovery_country_not_enabled' });
+  assert.equal(Object.keys(primaryHosts).length, 24);
+  assert.match(discoveryQuery('SY'), /Syria.*site:uccholding.com/);
+  assert.throws(() => discoveryQuery('XX'), { code: 'discovery_country_not_enabled' });
   const saved = { ...primaryHosts };
   for (const code of ['EG', 'TR', 'MA']) primaryHosts[code] = ['fixture.invalid'];
   try {

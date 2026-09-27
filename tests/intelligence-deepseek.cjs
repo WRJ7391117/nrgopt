@@ -242,6 +242,11 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.deepEqual(request.body.thinking, { type: 'disabled' });
   assert.equal(request.body.max_tokens, 6000);
   assert.ok(request.body.messages.some(message => message.content.includes('<source>')));
+  const scope = request.body.messages.find(message => message.content.startsWith('本产品地区范围以以下完整名单为准')).content;
+  for (const region of require('../lib/intelligence/regions.json').countries) assert.ok(scope.includes(`${region.code}=${region.name} (${region.english})`));
+  assert.match(scope, /不要求与GCC另有联系/);
+  assert.match(scope, /Laayoune\/El Aaiún.*EH发生地/);
+  assert.match(scope, /引文忠实保留/);
   assert.ok(request.body.messages.some(message => message.content.includes('classification 内另输出 resilience_signal')));
   assert.ok(request.body.messages.some(message => message.content.includes('classification.project 或 classification.procurement 非 null，classification.early_opportunities')));
   assert.ok(request.body.messages.some(message => message.content.includes('重大停电、供能中断、安全或资源事件、监管变化')));

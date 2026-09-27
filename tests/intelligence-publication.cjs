@@ -171,3 +171,50 @@ test('EEHC uses the labelled news date, not a body event or footer date', () => 
   assert.equal(parse(fields('21/09/2026'), 'https://www.eehc.gov.eg/CMSeehc/').publication_date, null);
   assert.equal(parse('<meta property="article:published_time" content="2026-09-22">' + fields('21/09/2026'), url).publication_method, 'conflicting_metadata');
 });
+
+test('regional official datelines ignore unrelated updates and retain actual precision', () => {
+  const cases = [
+    ['https://uccholding.com/media/read/power-plant', '<div class="project-details_inner"><div class="post_content"><div class="post-header"><span class="comment-date">02.Dec.2025</span></div></div></div>', '2025-12-02', null],
+    ['https://ustda.gov/solar-project/', '<main><article class="post"><span class="posted-date">July 28, 2026</span></article></main>', '2026-07-28', null],
+    ['https://anme.tn/fr/news/chems', '<div id="block-anme-content"><article data-history-node-id="2680"><footer><article></article><div>06/08/2026</div></footer><div>Event date 01/08/2026</div></article></div>', '2026-08-06', null],
+    ['https://petra.gov.jo/en/news/solar', '<main id="news-inner"><div class="news-inner-title"><h3 class="card-date-news">09/09/2026 <span>|</span> 15:02:23</h3></div></main>', '2026-09-09', null],
+    ['https://english.wafa.ps/Pages/Details/174514', '<div class="blog-wrap"><div class="meta"><span class="meta-itemin date">07/September/2026 03:03 PM</span></div></div>', '2026-09-07', null],
+    ['https://www.sabanew.net/story/en/141229', '<div class="newsheader"><h5>Solar plants</h5></div><div class="col-md-12">[22/01/2026 07:40]</div>', '2026-01-22', null],
+    ['https://www.presstv.co.uk/Detail/2026/09/23/776847/gas', '<div class="detail-container-left"><time class="news-modifydate-container" datetime="Wednesday, 23 September 2026 8:20 AM">23 September <strong>Last Update: 24 September 2026</strong></time></div>', '2026-09-23', null],
+    ['https://energies.gov.mr/ar/node/2724', '<article class="node-detail"><div class="field--name-published-at"><time datetime="2025-07-08T12:14:04+00:00"></time></div></article>', '2025-07-08', '2025-07-08T12:14:04.000Z'],
+    ['https://www.suna.sd/posts/energy', '<div class="post_details_block"><p>الخرطوم 16-9-2026(سونا)- Electricity minister statement.</p></div>', '2026-09-16', null]
+  ];
+  for (const [url, html, date, instant] of cases) {
+    const result = parse(html + '<footer><time datetime="2026-09-27">Latest news</time></footer>', url);
+    assert.equal(result.publication_date, date, url);
+    assert.equal(result.published_at, instant, url);
+    assert.equal(parse(html, 'https://unrelated.example/article').publication_date, null);
+    assert.equal(parse('<p>Meeting 16-9-2026</p><time datetime="2026-09-27">Updated</time>', url).publication_date, null);
+    assert.equal(parse(html + '<meta property="article:published_time" content="2026-09-28">', url).publication_method, 'conflicting_metadata');
+  }
+  assert.equal(parse('<div class="post_details_block"><p>A meeting on 16-9-2026 (سونا) is planned.</p></div>', 'https://www.suna.sd/posts/energy').publication_date, null);
+});
+
+
+test('LCEC dates only the card linking to the current article', () => {
+  const card = (id, date) => `<div class="footer-news"><h2><a href="/index.php/node/${id}">News</a></h2><p>${date}</p></div>`;
+  const url = 'https://lcec.org.lb/index.php/node/12931';
+  assert.equal(parse(card(12931, '31 Dec 2025') + card(13000, '17 Dec 2025'), url).publication_date, '2025-12-31');
+  assert.equal(parse(card(13000, '17 Dec 2025'), url).publication_date, null);
+  assert.equal(parse(card(12931, '31 Feb 2025'), url).publication_date, null);
+  assert.equal(parse(card(12931, '31 Dec 2025') + card(12931, '01 Jan 2026'), url).publication_method, 'conflicting_metadata');
+});
+
+test('Enlight news page dates require matching identity and World Bank conflicts stay unknown', () => {
+  const url = 'https://enlightenergy.com/news-api/project/';
+  const schema = address => `<script type="application/ld+json">${JSON.stringify({'@graph':[{'@type':'WebPage',url:address,datePublished:'2025-03-28T10:00:20+00:00',dateModified:'2026-09-27T00:00:00Z'}]})}</script>`;
+  assert.equal(parse(schema(url), url).publication_date, '2025-03-28');
+  assert.equal(parse(schema('https://enlightenergy.com/'), url).publication_date, null);
+  assert.equal(parse(schema('https://other.example/article'), 'https://other.example/article').publication_date, null);
+  const wb = '<meta name="content_date" content="2025-06-25T10:00:00.000-04:00"><script type="application/ld+json">{"@type":"NewsArticle","datePublished":"2026-03-26T11:12:22Z"}</script>';
+  const result = parse(wb, 'https://www.worldbank.org/en/news/press-release/syria');
+  assert.equal(result.publication_method, 'conflicting_metadata');
+  assert.equal(result.publication_date, null);
+  assert.match(result.publication_evidence, /2025-06-25/);
+  assert.match(result.publication_evidence, /2026-03-26/);
+});
