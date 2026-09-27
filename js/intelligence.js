@@ -474,14 +474,14 @@
     var heading = document.createElement('h3'), link = document.createElement('a');
     link.href = '/intelligence/sources/' + encodeURIComponent(watch.candidate.source_id) + '#followup-section';
     link.textContent = watch.candidate.title_zh; heading.append(link); item.append(heading);
-    paragraph(item, '跟踪理由：' + f.reason);
+    paragraph(item, '跟踪理由：' + f.reason, 'intel-watch-reason');
     if ((watch.changes || []).length) {
       paragraph(item, '最新证据判断：' + watch.changes[0].reason_zh);
       paragraph(item, '判断记录：' + dateLabel(watch.changes[0].created_at) + ' · 共 ' + watch.change_count + ' 条新判断，需核对原文', 'intel-source-meta');
     } else paragraph(item, '暂无新的支持、削弱或反证判断；不代表市场没有变化。', 'intel-muted');
     if (watch.source_timing?.error_code || watch.source_timing?.extraction_error_code) paragraph(item, '来源抓取或分析有失败，请核对采集状态；不能据此判断没有价值。', 'intel-caution');
     if (watch.candidate.evidence_status === 'conflict') paragraph(item, '存在原文冲突，请先核对适用范围与时间。', 'intel-caution');
-    paragraph(item, '下一步：' + f.next_action);
+    paragraph(item, '下一步：' + f.next_action, 'intel-watch-next');
     paragraph(item, '复核日期：' + f.review_on + '（北京时间） · 优先级：' + (priorityLabels[f.priority] || f.priority) + ' · 原文发布：' + publicationLabel(watch.source_timing), 'intel-source-meta');
     if (f.outcome) paragraph(item, '上次记录的实际结果：' + f.outcome);
     if (watch.status !== 'active') paragraph(item, '暂缓 / 退出原因：' + f.exit_reason);
