@@ -539,6 +539,27 @@
       } finally { pending = false; }
     });
   }
+  function renderReviewPoints(list, analysis, candidate) {
+    list.replaceChildren();
+    var points = [];
+    (candidate?.related_sources || []).filter(function (source) { return source.relation === 'conflicts'; }).forEach(function (source) {
+      (source.conflicting_facts_zh || []).forEach(function (fact) {
+        if (fact.reason_zh) points.push('原文分歧：' + fact.reason_zh);
+      });
+    });
+    if (candidate?.evidence_status === 'conflict' && !points.length) points.push('原文存在冲突，具体差异未列出；请打开关联原文比对。');
+    (analysis.unknowns_zh || []).forEach(function (point) { if (point && !points.includes(point)) points.push(point); });
+    if (!points.length) points.push('当前分析未列出具体核实点；这不代表全部信息已证实。');
+    points.forEach(function (point) { var li = document.createElement('li'); li.textContent = point; list.append(li); });
+  }
+  function reviewPointsSection(analysis, candidate) {
+    var section = document.createElement('section'); section.className = 'intel-review-points';
+    var heading = document.createElement('strong'); heading.textContent = '尚待核实的具体问题';
+    var list = document.createElement('ul');
+    renderReviewPoints(list, analysis, candidate);
+    section.append(heading, list);
+    return section;
+  }
   async function loadWorkbench() {
     var button = byId('workbench-refresh'); button.disabled = true;
     status('page-status', '正在核对今天的情报与跟踪…');
@@ -551,7 +572,8 @@
         setSourceLink(link, candidate.source_id); link.textContent = candidate.title_zh; heading.append(link); item.append(heading);
         paragraph(item, candidate.summary_zh);
         paragraph(item, '值得关注：' + (candidate.why_it_matters_zh || '影响尚待进一步判断。'));
-        paragraph(item, '下一步核实：' + (candidate.next_signals_zh[0] || '先核对原文是否支持当前判断。'));
+        item.append(reviewPointsSection(candidate, candidate));
+        paragraph(item, '下一步观察：' + (candidate.next_signals_zh[0] || '先核对原文是否支持当前判断。'));
         paragraph(item, '原文发布：' + publicationLabel(candidate.source_timing) + ' · 首次收录：' + dateLabel(candidate.created_at), 'intel-source-meta');
         var action = document.createElement('a'); action.href = link.href; action.className = 'intel-evidence-link'; action.textContent = '查看判断，决定是否跟踪 →'; item.append(action); fresh.append(item);
       });
@@ -651,14 +673,14 @@
       var badge = document.createElement('span');
       badge.className = 'intel-badge';
       badge.dataset.state = candidate.evidence_status;
-      var evidenceBadgeNames = { unverified: '有原文，待复核', sourced: '有原文', checked: '已比对多份原文', conflict: '原文有冲突', corrected: '已根据新原文更正' };
+      var evidenceBadgeNames = { unverified: '已有原文依据', sourced: '已有原文依据', checked: '已比对多份原文', conflict: '原文有冲突', corrected: '已根据新原文更正' };
       badge.textContent = evidenceBadgeNames[candidate.evidence_status] || candidate.evidence_status;
       row.append(heading, badge);
       var meta = document.createElement('p');
       meta.className = 'intel-source-meta';
       var radarNames = { trigger: '早期信号', demand: '需求', project: '项目' };
       var importanceNames = { low: '低', medium: '中', high: '高', critical: '重大' };
-      var evidenceNames = { unverified: '单一来源待复核', sourced: '原文引文已核对', checked: '多份原文已比对', conflict: '原文之间有冲突', corrected: '已根据新原文更正' };
+      var evidenceNames = { unverified: '原文说法尚未充分核实', sourced: '原文引文已核对', checked: '多份原文已比对', conflict: '原文之间有冲突', corrected: '已根据新原文更正' };
       var maturityNames = { background: '研究背景', signal: '研究中', demand: '需求形成', project: '项目组织', opportunity: '机会评估', procurement: '采购开放', contract: '已授标/签约' };
       var countryNames = regionNames;
       meta.textContent = (candidate.occurrence_countries || []).map(function (value) { return countryNames[value] || value; }).join('、') +
@@ -693,14 +715,10 @@
           next.innerHTML = '<strong>下一步观察</strong><p></p>';
           next.querySelector('p').textContent = candidate.next_signals_zh[0];
           decision.append(next);
-        } else if ((candidate.unknowns_zh || []).length) {
-          var unknown = document.createElement('section');
-          unknown.innerHTML = '<strong>仍需确认</strong><p></p>';
-          unknown.querySelector('p').textContent = candidate.unknowns_zh[0];
-          decision.append(unknown);
         }
         if (decision.children.length) item.append(decision);
       }
+      item.append(reviewPointsSection(candidate, candidate));
       var evidenceLink = document.createElement('a');
       evidenceLink.className = 'intel-evidence-link';
       evidenceLink.textContent = '打开情报详情与原文证据 →';
@@ -1370,9 +1388,8 @@
     byId('decision-change').textContent = extraction.summary_zh || '尚待分析。';
     byId('decision-impact').textContent = extraction.why_it_matters_zh || '能源影响尚待确认。';
     byId('decision-confidence').textContent = candidate?.disposition === 'source_only' ? '目前仅作为背景资料，尚不足以形成业务线索。'
-      : ({ sourced: '已有原文支持，尚不等于独立证实。', checked: '已比对多份原文；仍需核对是否为独立来源。', conflict: '原文存在冲突，先核对差异再作决定。', corrected: '判断已依据新证据更正，请查看历史。' }[candidate?.evidence_status] || '现有判断仍待复核。');
-    var unknowns = byId('decision-unknowns'); unknowns.replaceChildren();
-    (extraction.unknowns_zh || []).slice(0, 3).forEach(function (text) { var li = document.createElement('li'); li.textContent = '尚待确认：' + text; unknowns.append(li); });
+      : ({ unverified: '已有原文依据；原文中的说法尚未充分核实，具体信息缺口见下方。', sourced: '原文引文已核对；这不等于原文中的说法已被独立证实。', checked: '已比对多份原文；仍需核对是否为独立来源。', conflict: '原文存在冲突，先核对差异再作决定。', corrected: '判断已依据新证据更正，请查看历史。' }[candidate?.evidence_status] || '已有来源分析；证据核实状态尚未明确。');
+    renderReviewPoints(byId('decision-unknowns'), extraction, candidate);
     byId('decision-next').textContent = extraction.next_signals_zh?.[0] || '先核对原文，再确定需要验证的问题。';
     var deadline = extraction.classification?.procurement?.deadline_text;
     byId('decision-deadline').textContent = deadline ? '来源披露的截止信息：' + deadline + '。参与前请核对原公告及后续更正。' : '当前没有已确认的采购截止信息。复核日期由你另行设定。';

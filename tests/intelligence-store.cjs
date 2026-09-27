@@ -1250,6 +1250,7 @@ test('follow-up list paginates owner-scoped records without dropping the next pa
 test('workbench uses Beijing first-recorded day and excludes stale, conflicting, handled and invalid evidence', async () => {
   const ids = ['fresh','old','future','unknown','conflict','hash','handled','duplicate','boundary'];
   const sources = ids.map(id => ({id,final_url:id === 'duplicate' ? 'fresh' : id,publication_date:'2026-09-27',extraction_status:'extracted',content_sha256:'a',extraction_source_sha256:'a'}));
+  sources[0].unknowns_zh=['实际恢复程度未披露。','后续投资计划未披露。'];
   sources[1].publication_date='2026-08-28'; sources[2].publication_date='2026-09-28'; sources[3].publication_date=null;
   sources[4].publication_method='conflicting_metadata';sources[5].extraction_source_sha256='b';
   sources[8].publication_date='2026-08-28';sources[8].published_at='2026-08-28T17:00:00Z';
@@ -1261,11 +1262,16 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
       return Response.json(ids.map(id=>({id,source_id:id,created_at:'2026-09-27T00:00:00Z'})));
     }
     if(u.pathname.endsWith('intelligence_watch_targets'))return Response.json([{candidate_id:'handled',status:'expired'}]);
-    if(u.pathname.endsWith('intelligence_sources'))return Response.json(sources);
+    if(u.pathname.endsWith('intelligence_sources')) {
+      assert.ok(u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
+      return Response.json(sources);
+    }
     throw Error('unexpected');
   });
   const result=await store.workbench('owner-a','2026-09-27');
   assert.deepEqual(result.discoveries.map(x=>x.id),['fresh','boundary']);
+  assert.deepEqual(result.discoveries[0].unknowns_zh,sources[0].unknowns_zh);
+  assert.deepEqual(result.discoveries[1].unknowns_zh,[]);
   assert.deepEqual(result.due,[]);assert.deepEqual(result.updates,[]);
 });
 
