@@ -360,3 +360,24 @@ test('unbound numerical or package context is excluded with visible warnings whi
   assert.equal(result.context_issues.length, 2);
   assert.equal(validateExtraction(result, quote).context_issues.length, 2, 'replaying sanitized output preserves warnings');
 });
+
+test('MENA accepts the product 24 regions, keeps occurrence separate and requires topic evidence', () => {
+  const regions = require('../lib/intelligence/regions.json');
+  assert.equal(new Set(regions.countries.map(item => item.code)).size, 24);
+  assert.equal(regions.countries.filter(item => item.code === 'EG').length, 1);
+  assert.match(regions.countries.find(item => item.code === 'EH').name, /争议/);
+  const input = structuredClone(valid);
+  input.classification.countries = regions.countries.map(item => ({ code: item.code, relation: 'occurrence', rationale_zh: '测试原文依据', evidence_fact_number: 1 }));
+  input.classification.countries.push({ code: 'SA', relation: 'relevance', rationale_zh: '受影响地区关联，非发生地', evidence_fact_number: null });
+  input.classification.topics = [{ code: 'red-sea', evidence_fact_number: 1 }];
+  const result = validateExtraction(input, sourceText);
+  assert.equal(result.classification.countries.length, 25);
+  assert.equal(result.classification.countries.at(-1).relation, 'relevance');
+  assert.equal(result.classification.topics[0].code, 'red-sea');
+  assert.equal(result.gcc_relevance_zh, valid.gcc_relevance_zh);
+  input.classification.topics[0].evidence_fact_number = 99;
+  assert.throws(() => validateExtraction(input, sourceText), { code: 'extraction_invalid_topic_evidence' });
+  input.classification.topics = [];
+  input.classification.countries[0].code = 'US';
+  assert.throws(() => validateExtraction(input, sourceText), { code: 'extraction_invalid_country_evidence' });
+});

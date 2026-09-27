@@ -127,3 +127,13 @@ test('source control reads normalize www and keep owner boundaries', async () =>
   assert.equal(observed.searchParams.get('owner_id'), 'eq.owner-a');
   assert.equal(observed.searchParams.get('hostname'), 'eq.acwapower.com');
 });
+
+test('Turkish article identity keeps its id query and added MENA entry batches stay bounded', () => {
+  const entry = registry.find(item => item.id === 'tr-energy-news');
+  const links = registryLinks(entry, { finalUrl: entry.url, bytes: Buffer.from('<a href="news-detail?id=31825&utm_source=x">one</a><a href="news-detail?id=31825">duplicate</a><a href="news-detail?id=31926">two</a><a href="news-detail">missing</a><a href="news-detail?id=abc">invalid</a>') });
+  assert.deepEqual(links, ['https://enerji.gov.tr/news-detail?id=31825', 'https://enerji.gov.tr/news-detail?id=31926']);
+  const first = registryPlan(links, {}, entry.maxNew);
+  assert.equal(first.urls.length, 1); assert.equal(first.pending_count, 1);
+  const next = registryPlan(links, first, entry.maxNew);
+  assert.equal(next.urls.length, 2); assert.equal(next.fresh_count, 1); assert.equal(next.pending_count, 0);
+});

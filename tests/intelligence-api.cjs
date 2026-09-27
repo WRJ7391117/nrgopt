@@ -116,7 +116,7 @@ test('quiet-hour settings validate hours, timezone and owner without enabling de
 test('source controls validate publisher, boolean, owner and write permission', async () => {
   const { request, calls } = setup();
   const listed = await request('source-controls');
-  assert.equal(listed.body.sources.length, 7);
+  assert.equal(listed.body.sources.length, 10);
   const id = listed.body.sources[0].id;
   assert.equal((await request('save-source-control', { method: 'POST', body: { registry_id: id, paused: true } })).code, 200);
   assert.deepEqual(calls.find(call => call.name === 'setSourceControl').args, [admin, 'acwapower.com', true]);
@@ -397,7 +397,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   assert.deepEqual(calls.find(call => call.name === 'currentOpportunities').args, [admin, []]);
   const operations = await request('operations');
-  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: ['SA', 'OM', 'BH', 'AE', 'QA', 'KW'], scheduler_enabled: false, archive_status: 'disabled' });
+  assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: [...new Set(require('../lib/intelligence/registry.cjs').registry.map(item => item.country))], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('overview-page');
   assert.match(overviewPage.body, /近30天的能源变化/);
@@ -758,4 +758,29 @@ test('workflow page and data require the administrator, preserve login return an
   assert.ok(!calls.some(item => ['enqueueJob', 'claimJobItem', 'enqueueJobItems'].includes(item.name)));
   const rewrite = require('../vercel.json').rewrites.find(item => item.source === '/intelligence/workflow');
   assert.equal(rewrite.destination, '/api/intelligence?action=workflow-page');
+});
+
+test('MENA pages use compact groups and accept only supported country, group and topic return parameters', async () => {
+  const { request } = setup();
+  const page = await request('overview-page');
+  assert.match(page.body, /中东和北非能源情报/);
+  assert.match(page.body, /data-region="north-africa"/);
+  assert.match(page.body, /option value="EG"/);
+  assert.match(page.body, /西撒哈拉（地位有争议）/);
+  assert.doesNotMatch(page.body, /class="intel-country-card"/);
+  const anon = await request('overview-page', { loggedIn: false, query: { country: 'EG', group: 'north-africa', topic: 'suez' } });
+  assert.equal(decodeURIComponent(anon.headers.location.split('returnTo=')[1]), '/intelligence/overview?country=EG&group=north-africa&topic=suez');
+  assert.equal((await request('coverage', { loggedIn: false })).code, 401);
+});
+
+test('MENA manual discovery lists enabled regions and rejects pending regions before billing', async () => {
+  const { request, calls } = setup();
+  const page = await request('page');
+  const form = page.body.match(/<form id="discovery-form"[\s\S]*?<\/form>/)[0];
+  for (const code of ['SA', 'TR', 'MA', 'DZ']) assert.match(form, new RegExp('option value="' + code + '"'));
+  assert.doesNotMatch(form, /option value="EG"/);
+  const result = await request('discover', { method: 'POST', body: { country: 'EG' } });
+  assert.equal(result.code, 400);
+  assert.equal(result.body.error, 'discovery_country_not_enabled');
+  assert.equal(calls.filter(item => /reserve|provider/i.test(item.name)).length, 0);
 });

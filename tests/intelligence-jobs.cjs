@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { COUNTRIES, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, sourceItem } = require('../lib/intelligence/jobs.cjs');
+const { COUNTRIES, dailySearchCountries, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, sourceItem } = require('../lib/intelligence/jobs.cjs');
 const { automaticCallReserve } = require('../lib/intelligence/budget.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
 
@@ -44,7 +44,7 @@ test('daily schedule uses the configured timezone and stable six-country item ke
   assert.equal(result.jobId, 'job-1');
   assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey, []]);
   assert.deepEqual(store.calls[1], ['enqueueJobItems', 'owner-a', 'job-1',
-    [...COUNTRIES.map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]
+    [...dailySearchCountries(result.scheduleKey).map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]
       .map(item_key => ({ item_key, checkpoint: {} }))]);
 });
 
@@ -519,4 +519,22 @@ test('unchanged raw HTML queues re-extraction when old evidence came from an exc
     modelFactory: () => async () => { calls++; return { extraction: {}, provider: 'deepseek', model: 'fixture', usage: {} }; } });
   assert.equal(result.status, 'succeeded');
   assert.equal(calls, 1);
+});
+
+test('supported MENA countries do not silently enable searches and extra searches remain bounded', () => {
+  const { primaryHosts, discoveryQuery, primarySource } = require('../lib/intelligence/discovery.cjs');
+  assert.equal(COUNTRIES.length, 24);
+  assert.deepEqual(dailySearchCountries('2026-09-27').slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);
+  assert.ok(dailySearchCountries('2026-09-27').length <= 8);
+  assert.equal(primarySource('https://example.org/', 'IR'), false);
+  assert.throws(() => discoveryQuery('IR'), { code: 'discovery_country_not_enabled' });
+  const saved = { ...primaryHosts };
+  for (const code of ['EG', 'TR', 'MA']) primaryHosts[code] = ['fixture.invalid'];
+  try {
+    const first = dailySearchCountries('2026-09-27');
+    assert.equal(first.length, 8);
+    assert.deepEqual(first.slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);
+    assert.notDeepEqual(first, dailySearchCountries('2026-09-28'));
+    assert.match(discoveryQuery('TR', 3), /site:fixture.invalid/);
+  } finally { for (const code of ['EG', 'TR', 'MA']) { if (saved[code]) primaryHosts[code] = saved[code]; else delete primaryHosts[code]; } }
 });

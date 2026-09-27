@@ -21,3 +21,19 @@ This first version reads the index's first page only. It does not claim complete
 Outstanding access checks include KAHRAMAA (DNS lookup failed), PIF (timeout), KUNA (transport failed), and an SPPC candidate domain (browser certificate mismatch). KAPP and Principal Buyer use host-specific supplementary certificate chains after validation; TLS and hostname checks remain enabled. A reachable procurement page containing only an external supplier login is not counted as working announcement discovery.
 
 Operational results appear in the private overview's task list: new link count, correction rechecks, retries and safe error reasons. Link discovery itself makes no paid model calls. Article extraction remains subject to the existing provider budgets.
+
+## MENA scope expansion — 2026-09-27
+
+The product supports 24 countries/territories defined in `lib/intelligence/regions.json`, grouped as GCC, other Middle East and North Africa. This is a product boundary, not a claim of universal MENA geography or full collection coverage. Western Sahara is separately labeled as disputed; occurrence, affected regions and cross-border topics remain separate.
+
+Three additional indexes and article bodies were verified using the production HTTPS fetcher and actual model analysis with preserved originals and exact quotes:
+
+| Publisher | Index | First-page article links | Verified sample publication date |
+| --- | --- | ---: | --- |
+| Türkiye Ministry of Energy | https://enerji.gov.tr/media-news | 15 | 2026-05-12 |
+| Morocco MASEN | https://www.masen.ma/fr/actualites-masen | 10 | 2026-07-23 |
+| Algeria Sonelgaz | https://www.sonelgaz.dz/fr/category/actualites | 15 | 2026-08-11 |
+
+These sample dates are historical, not fresh intelligence. The default 30-day filter continues to exclude them. Article IDs in Turkish query parameters are preserved; dates in unrelated Algerian sidebar stories are excluded. Each new index is limited to one unseen article and one correction revisit per daily run, with pending links explicitly reported. Original GCC limits are unchanged. Country search retains the six GCC countries plus at most two rotating enabled additional countries per day. Existing budget limits and pause behavior remain unchanged.
+
+Egypt, Iraq, Iran and Israel were probed but are not enabled: official endpoints returned transport/access/encoding errors, or readable content lacked verifiable publication dates. Other unverified countries remain pending. The overview shows configuration and actual daily entry status separately. A successful index task is not proof that its child article extraction succeeded, or that a country's market is fully covered. Scheduled cloud evidence is recorded separately from local parsing and paid model verification; no manual verification counts as a natural observation day.

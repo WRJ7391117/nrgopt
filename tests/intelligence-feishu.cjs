@@ -136,7 +136,7 @@ test('daily digest contains evidence and judgment, abbreviates accepted FLASH an
       { source_id: 'source-b', title_zh: '已发送事项', flash_accepted: true, grouped_source_count: 5, summary_zh: '不应再次详述' }]
   } } });
   const output = JSON.stringify(card);
-  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','本期覆盖不完整','已发重大提醒','同一事件共 5 个来源','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
+  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','当天覆盖不完整','不代表24地全部接入','已发重大提醒','同一事件共 5 个来源','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
   assert.ok(!output.includes('不应再次详述'));
   assert.ok(!output.includes('六国任务：成功 20'));
 });
@@ -146,4 +146,11 @@ test('new FLASH renders its queued snapshot instead of a later model rewrite', (
     notification: { notification_type: 'flash', payload: { evidence_change_id: 1, facts: ['入队时的事实'], judgment_zh: '当时判断' } } });
   assert.ok(JSON.stringify(card).includes('入队时的事实'));
   assert.ok(!JSON.stringify(card).includes('后续改写'));
+});
+
+test('MENA cards show region names and keep disputed territory wording neutral', () => {
+  const { buildCard } = require('../lib/intelligence/feishu.cjs');
+  const card = buildCard({notification:{notification_type:'flash',payload:{countries:['EG','TR','EH'],title_zh:'范围测试'}},baseUrl:'https://example.test'});
+  const text = JSON.stringify(card);
+  assert.match(text,/埃及、土耳其、西撒哈拉（地位有争议）/);
 });
