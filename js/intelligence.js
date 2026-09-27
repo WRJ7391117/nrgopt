@@ -1227,6 +1227,17 @@
   }
   var followupForm = byId('followup-form');
   var followupRevision = 0;
+  var followupBusy = false, followupWritable = true;
+  function followupStatus(message, tone) {
+    status('followup-status', message, tone);
+    status('followup-save-status', message, tone);
+  }
+  function followupPending(pending, label) {
+    followupBusy = pending;
+    followupForm.setAttribute('aria-busy', String(pending));
+    Array.from(followupForm.elements).forEach(function (field) { field.disabled = pending || !followupWritable; });
+    byId('followup-save').textContent = label || '保存跟踪';
+  }
   var followupCandidate = null, followupSource = null, followupWatch = null;
   var followupLabels = { active: '正在跟踪', expired: '暂缓', completed: '已退出' };
   var priorityLabels = { high: '高', normal: '普通', low: '低' };
@@ -1271,8 +1282,11 @@
     byId('followup-editor').hidden = !data.eligible;
     byId('followup-editor-label').textContent = watch ? '更新计划、记录结果或调整状态' : '加入持续跟踪';
     if (['#followup-section', '#defer'].includes(location.hash)) byId('followup-editor').open = true;
-    Array.from(fields).forEach(function (field) { field.disabled = data.writable === false; });
-    if (!data.eligible) { status('followup-status', '这条来源尚未形成可跟踪的业务情报，请先查看或生成中文分析。'); return; }
+    followupWritable = data.writable !== false;
+    Array.from(fields).forEach(function (field) { field.disabled = followupBusy || !followupWritable; });
+    byId('followup-reload').hidden = !watch;
+    byId('followup-reload-help').hidden = !watch;
+    if (!data.eligible) { followupStatus('这条来源尚未形成可跟踪的业务情报，请先查看或生成中文分析。'); return; }
     var draft = followupSource?.extraction_status === 'extracted' && followupSource.content_sha256 === followupSource.extraction_source_sha256 ? followupSource.extraction_zh || {} : {};
     var value = watch?.followup || { reason: (draft.why_it_matters_zh || '').slice(0, 600), next_action: (draft.next_signals_zh?.[0] || draft.unknowns_zh?.[0] || '核对原文依据和当前进展，再决定是否继续跟进。').slice(0, 240), exit_condition: '出现可靠反证，或确认该事项与我的业务无关时，复核后退出。', outcome: '', exit_reason: '', priority: 'normal', review_on: new Date((beijingToday() + 7) * 86400000).toISOString().slice(0, 10) };
     Object.keys(value).forEach(function (key) { if (fields.namedItem(key)) fields.namedItem(key).value = value[key]; });
@@ -1294,7 +1308,7 @@
     byId('followup-history').hidden = !history.children.length;
     followupEvidence(watch);
     if (!watch && location.hash === '#defer') { fields.namedItem('status').value = 'expired'; fields.namedItem('exit_reason').required = true; }
-    status('followup-status', data.writable === false ? '当前环境只读。' : watch ? '已读取保存的跟踪计划。' : '以下是可编辑草稿，尚未保存；请确认理由、下一步和复核日期。');
+    followupStatus(data.writable === false ? '当前环境只读。' : watch ? '已读取保存的跟踪计划。' : '以下是可编辑草稿，尚未保存；请确认理由、下一步和复核日期。');
   }
   function renderDecision(source, candidate) {
     followupSource = source;
@@ -1326,31 +1340,53 @@
         }
         byId('followup-section').scrollIntoView({ block: 'start' });
         followupForm.elements.namedItem(id === 'decision-defer' ? 'exit_reason' : followupWatch ? 'outcome' : 'reason').focus();
-        status('followup-status', id === 'decision-defer' ? '请填写暂不关注的原因，再保存。记录会保留，可从“我的跟踪 → 暂缓”恢复。' : '确认计划或填写实际结果后保存；草稿不会自动执行。');
+        followupStatus(id === 'decision-defer' ? '请填写暂不关注的原因，再保存。记录会保留，可从“我的跟踪 → 暂缓”恢复。' : '确认计划或填写实际结果后保存；草稿不会自动执行。');
       });
     });
     followupForm.elements.namedItem('status').addEventListener('change', function () { followupForm.elements.namedItem('exit_reason').required = this.value !== 'active'; });
     followupForm.elements.namedItem('priority').addEventListener('change', function () {
       followupForm.elements.namedItem('review_on').value = new Date((beijingToday() + ({ high: 1, normal: 7, low: 30 }[this.value])) * 86400000).toISOString().slice(0, 10);
     });
+    followupForm.addEventListener('input', function () {
+      byId('followup-save').textContent = '保存跟踪';
+      followupStatus('有未保存的修改，请点击“保存跟踪”。');
+    });
+    followupForm.addEventListener('invalid', function () {
+      followupStatus('尚未保存：请补全或修正表单中提示的内容。', 'error');
+    }, true);
     byId('followup-reload').addEventListener('click', async function () {
-      if (!window.confirm('重新读取会替换表单里尚未保存的内容。继续吗？')) return;
-      try { await loadFollowup(location.pathname.match(detailPath)[1]); }
-      catch (error) { status('followup-status', error.message, 'error'); }
+      if (followupBusy || !window.confirm('放弃保存本次修改？表单将回到已保存的跟踪理由、下一步、复核日期、状态和处理结果等内容。已保存记录不会被删除。')) return;
+      followupPending(true);
+      followupStatus('正在还原已保存的跟踪计划…');
+      try {
+        await loadFollowup(location.pathname.match(detailPath)[1]);
+        followupStatus('已放弃未保存的修改，表单已回到保存的跟踪计划。', 'success');
+      } catch (error) { followupStatus(error.message + ' 表单内容已保留。', 'error'); }
+      finally { followupPending(false); }
     });
     followupForm.addEventListener('submit', async function (event) {
       event.preventDefault();
+      if (followupBusy) return;
       var body = Object.fromEntries(new FormData(followupForm)); body.revision = followupRevision;
-      Array.from(followupForm.elements).forEach(function (field) { field.disabled = true; });
-      status('followup-status', '正在保存跟踪计划…');
+      followupPending(true, '保存中…');
+      followupStatus('正在保存跟踪计划…');
+      var saved;
       try {
         var id = location.pathname.match(detailPath)[1];
-        var saved = await api('save-followup', body, id);
+        saved = await api('save-followup', body, id);
         followupRevision = saved.watch.revision;
-        try { await loadFollowup(id); status('followup-status', saved.watch.status === 'active' ? '跟踪已保存。建议仍需你实际执行并记录结果。' : '已移出活跃跟踪，原因与历史保留，可随时恢复。', 'success'); }
-        catch { status('followup-status', '已保存，但历史读取暂时失败。请重新读取已保存记录。', 'success'); }
-      } catch (error) { status('followup-status', error.message + ' 表单内容已保留。', 'error'); }
-      finally { Array.from(followupForm.elements).forEach(function (field) { field.disabled = false; }); }
+        var message = '已保存 · ' + dateLabel(saved.watch.updated_at) + '。'
+          + (saved.watch.status === 'active' ? '可在“我的跟踪”查看；实际行动后可回来记录结果。' : '已移出活跃跟踪，原因与历史保留，可在“我的跟踪”恢复。');
+        byId('followup-save').textContent = '已保存';
+        followupStatus(message, 'success');
+        try { await loadFollowup(id); followupStatus(message, 'success'); }
+        catch {
+          // The write succeeded; reflect its revision and state even if reading history fails.
+          renderFollowup({ watch: saved.watch, eligible: true, writable: followupWritable });
+          followupStatus(message + ' 历史记录暂未刷新，可刷新页面查看，无需重复保存。', 'success');
+        }
+      } catch (error) { followupStatus(error.message + ' 表单内容已保留；如网络中断，请先在“我的跟踪”核对是否保存成功。', 'error'); }
+      finally { followupPending(false, saved ? '已保存' : '重试保存'); }
     });
   }
   var followupsOffset = 0;
