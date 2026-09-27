@@ -15,9 +15,9 @@
     source = source || {};
     if (source.publication_method === 'conflicting_metadata') return '日期字段有冲突，待核验';
     var value = source.publication_date || (source.published_at || '').slice(0, 10);
-    if (!value) return '未知（原文未提供可可靠识别的发布日期）';
+    if (!value) return '未知（原文未提供可核验的发布时间）';
     var age = (Date.now() - Date.parse(value + 'T00:00:00Z')) / 86400000;
-    var label = source.published_at ? dateLabel(source.published_at) : value + '（仅日期）';
+    var label = source.published_at ? dateLabel(source.published_at) : dateLabel(value);
     return label + (age >= 30 ? ' · 历史公告（超过30天）' : age < -1 ? ' · 未来日期，待核验' : '');
   }
   function publicationAge(source) {
@@ -74,7 +74,14 @@
   function dateLabel(value) {
     if (!value) return '未知';
     var date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '未知' : date.toLocaleString('zh-CN', { hour12: false });
+    if (Number.isNaN(date.getTime())) return '未知';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value + '（仅日期，具体时刻未知）';
+    if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(value)) return value + '（时区未注明）';
+    var parts = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+    var fields = {};
+    parts.forEach(function (part) { fields[part.type] = part.value; });
+    return fields.year + '-' + fields.month + '-' + fields.day + ' ' + fields.hour + ':' + fields.minute + ':' + fields.second + '（北京时间 UTC+8）';
   }
   function webUrl(value) {
     try {
@@ -136,6 +143,9 @@
   }
   function renderExtraction(source, candidate) {
     var extraction = source.extraction_zh;
+    byId('detail-published-at').textContent = publicationLabel(source);
+    byId('detail-fetched-at').textContent = dateLabel(source.fetched_at);
+    byId('detail-analyzed-at').textContent = source.extracted_at ? dateLabel(source.extracted_at) : (extraction ? '未知（未记录分析时间）' : '尚未生成分析');
     var button = byId('extract-button');
     var languageNote = byId('source-language-note');
     button.textContent = extraction ? '重新生成初析' : '生成中文初析';
@@ -231,7 +241,10 @@
         : related.shared_quote_count
           ? related.shared_quote_count + ' 组引文相同，可能同源；不能累计为独立确认。'
           : '来源独立性尚未确认；内容一致不等于独立确认。';
-      item.append(link, note);
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '来源核对时间：' + dateLabel(related.checked_at);
+      item.append(link, timing, note);
       ['matching_facts_zh', 'conflicting_facts_zh'].forEach(function (field) {
         (related[field] || []).forEach(function (pair) {
           var reason = document.createElement('p');
@@ -294,6 +307,10 @@
       var item = document.createElement('li');
       item.textContent = (hypothesis.status ? (hypothesisLabels[hypothesis.status] || hypothesis.status) + '：' : '')
         + (hypothesis.claim_zh || hypothesis.hypothesis_zh) + (hypothesis.counter_evidence_zh ? '；反证方向：' + hypothesis.counter_evidence_zh : '');
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '判断形成：' + dateLabel(hypothesis.created_at) + ' · 最近复查：' + (hypothesis.last_reviewed_at ? dateLabel(hypothesis.last_reviewed_at) : '尚无记录');
+      item.append(timing);
       if (hypothesis.current_in_analysis === false) {
         var historyNote = document.createElement('p');
         historyNote.className = 'intel-muted';
@@ -375,7 +392,7 @@
       var meta = document.createElement('p');
       meta.className = 'intel-source-meta';
       var url = webUrl(source.final_url || source.requested_url);
-      meta.textContent = (url ? url.hostname + ' · ' : '') + '公布：' + publicationLabel(source) + ' · 获取：' + dateLabel(source.fetched_at);
+      meta.textContent = (url ? url.hostname + ' · ' : '') + '原文发布：' + publicationLabel(source) + ' · 系统采集：' + dateLabel(source.fetched_at) + ' · 分析更新：' + (source.extracted_at ? dateLabel(source.extracted_at) : '尚无记录');
       item.append(row, meta);
       var originalTitle = document.createElement('p');
       originalTitle.className = 'intel-source-original';
@@ -418,7 +435,10 @@
       var heading = document.createElement('div');
       heading.append(link, label);
       row.append(heading, save);
-      item.append(row);
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '原文发布时间：待核验' + (source.published_text ? ' · 搜索结果标注：' + source.published_text + '（保存原文后核验）' : '（保存原文后核验）');
+      item.append(row, timing);
       if (source.excerpt) {
         var excerpt = document.createElement('p');
         excerpt.textContent = source.excerpt;
@@ -525,7 +545,7 @@
         ' · ' + (evidenceNames[candidate.evidence_status] || candidate.evidence_status);
       var timing = document.createElement('p');
       timing.className = 'intel-source-meta';
-      timing.textContent = '来源公布：' + publicationLabel(candidate.source_timing) + ' · 情报更新：' + dateLabel(candidate.updated_at);
+      timing.textContent = '原文发布：' + publicationLabel(candidate.source_timing) + ' · 情报更新：' + dateLabel(candidate.updated_at);
       item.append(row, meta, timing);
       if (view === 'signal' && candidate.resilience_signal) {
         var signalChain = document.createElement('ol');
@@ -607,7 +627,10 @@
         + (entry.scope === 'early' ? ' · 关联待验证假设，详情见来源' : '');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
-      item.append(link, meta, quote);
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '原文发布：' + publicationLabel(entry.source_timing) + ' · 机会更新：' + dateLabel(entry.updated_at);
+      item.append(link, meta, timing, quote);
       if (entry.related_sources && entry.related_sources.length) {
         var related = document.createElement('p');
         related.textContent = '同包件证据关联（各来源状态独立）：';
@@ -645,7 +668,7 @@
         return (budgetNames[budget.capability] || budget.capability) + '：月度上限 ' + symbol + (Number(budget.limit_micro) / 1000000).toFixed(2)
           + (budget.billing_mode === 'included' ? ' · 已购套餐，不按次记金额' : ' · 官方余额累计减少 ' + symbol + (Number(budget.spent_micro) / 1000000).toFixed(2)
             + (budget.provider_balance_last_micro == null ? ' · 官方账户余额尚未读取' : ' · 官方账户余额 ' + symbol + (Number(budget.provider_balance_last_micro) / 1000000).toFixed(2))
-            + (budget.provider_balance_synced_at ? '（最近同步 ' + new Date(budget.provider_balance_synced_at).toLocaleString('zh-CN') + '）' : '（等待首次余额同步）'))
+            + (budget.provider_balance_synced_at ? '（最近同步 ' + dateLabel(budget.provider_balance_synced_at) + '）' : '（等待首次余额同步）'))
           + ' · 已预留 ' + symbol + (Number(budget.reserved_micro) / 1000000).toFixed(2);
       }).join('；')
       : '未配置或未启用；所有付费调用保持暂停';
@@ -743,7 +766,7 @@
       versions.replaceChildren(); calls.replaceChildren();
       result.versions.forEach(function (version) {
         var li = document.createElement('li');
-        li.textContent = new Date(version.created_at).toLocaleString('zh-CN') + ' · ' + (version.capability === 'discovery' ? '来源发现' : '情报分析') +
+        li.textContent = dateLabel(version.created_at) + ' · ' + (version.capability === 'discovery' ? '来源发现' : '情报分析') +
           ' · ' + version.provider + ' / ' + version.model + ' · 月上限 ' + version.currency + ' ' + moneyInput(version.budget_limit_micro) +
           ' · ' + (version.billing_mode === 'included' ? '已购套餐' : '官方余额对账') + ' · 版本 ' + version.id + (version.key_changed ? ' · 密钥有更新（不展示）' : '');
         versions.append(li);
@@ -752,7 +775,7 @@
         var li = document.createElement('li');
         var states = { started: '已开始，尚无完成回执', succeeded: '调用成功', failed: '调用失败' };
         var operations = { discovery: '来源发现', extraction: '原文分析', cross_check: '证据核对' };
-        li.textContent = new Date(call.call_started_at).toLocaleString('zh-CN') + ' · ' + operations[call.operation] +
+        li.textContent = dateLabel(call.call_started_at) + ' · ' + operations[call.operation] +
           ' · ' + call.provider + ' / ' + call.model + ' · ' + states[call.call_status] + ' · 版本 ' + call.config_version_id +
           (call.usage ? ' · 服务商返回的 token 用量：' + JSON.stringify(call.usage) : ' · 服务商未返回 token 用量') +
           (call.call_error_code ? ' · 错误：' + call.call_error_code : '');
@@ -860,7 +883,7 @@
       var item = document.createElement('li');
       var link = document.createElement('a');
       setSourceLink(link, entry.source_id);
-      link.textContent = (entry.publication_date || '公告日期未知') + ' · ' + entry.title_zh;
+      link.textContent = publicationLabel(entry) + ' · ' + entry.title_zh;
       var stage = document.createElement('p');
       stage.textContent = '该来源阶段：' + (entry.project?.stage_zh || '未披露')
         + (entry.procurement ? '；采购：' + entry.procurement.package_zh + ' · ' + entry.procurement.stage_zh : '');
@@ -907,7 +930,10 @@
         + (entry.current_in_analysis ? (earlyStatus || states[entry.participation_status] || states.unverified) : '本次分析未再次确认');
       var quote = document.createElement('blockquote');
       quote.textContent = '事实 ' + entry.evidence_fact_number + '，原文：“' + entry.evidence_quote + '”';
-      item.append(title, quote);
+      var timing = document.createElement('p');
+      timing.className = 'intel-source-meta';
+      timing.textContent = '机会更新：' + dateLabel(entry.updated_at) + ' · 原文发布时间见本页顶部';
+      item.append(title, timing, quote);
       if (entry.scope === 'early') {
         var link = document.createElement('p');
         link.textContent = '关联待验证假设：' + (hypothesis ? hypothesis.claim_zh : '请查看本来源的假设记录');
@@ -971,9 +997,9 @@
       var item = document.createElement('li');
       var link = document.createElement('a');
       setSourceLink(link, version.id);
-      link.textContent = '获取：' + dateLabel(version.fetched_at) + (version.id === currentId ? '（当前查看）' : ' · 查看此版本');
+      link.textContent = '系统采集：' + dateLabel(version.fetched_at) + (version.id === currentId ? '（当前查看）' : ' · 查看此版本');
       var meta = document.createElement('p');
-      meta.textContent = '公布：' + publicationLabel(version) + ' · 阶段分析：' + (maturityLabels[version.maturity] || '尚无可用分析')
+      meta.textContent = '原文发布：' + publicationLabel(version) + ' · 阶段分析：' + (maturityLabels[version.maturity] || '尚无可用分析')
         + (version.reused_from_source_id ? ' · 正文未变，沿用已有分析' : '');
       item.append(link, meta);
       var prior = versions[index + 1];
