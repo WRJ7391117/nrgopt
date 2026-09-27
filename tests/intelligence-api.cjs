@@ -725,7 +725,7 @@ test('entry routes open overview while source tools and deep links keep their lo
   const { rewrites } = require('../vercel.json');
   const entry = rewrites.find(route => route.source === '/intelligence');
   const action = new URL(entry.destination, 'https://preview.example').searchParams.get('action');
-  assert.match((await request(action)).body, /今天值得关注什么/);
+  assert.match((await request(action)).body, /<h1>总览<\/h1>/);
   const redirect = await request(action, { loggedIn: false });
   assert.equal(new URL(redirect.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
   assert.equal(rewrites.find(route => route.source === '/intelligence/sources').destination, '/api/intelligence?action=page');
