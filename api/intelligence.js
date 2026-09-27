@@ -237,12 +237,12 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const user = await store.user(token);
       if (!user || user.id !== config.adminId) throw failure('forbidden', 403);
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
-      if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null }));
-      if (action === 'overview-page') return html(overviewPage());
+      if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
+      if (action === 'overview-page') return html(overviewPage(user.email));
       if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(primaryHosts), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
-      if (action === 'workflow-page') return html(workflowPage());
+      if (action === 'workflow-page') return html(workflowPage(user.email));
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });
-      if (action === 'settings-page') return html(settingsPage());
+      if (action === 'settings-page') return html(settingsPage(user.email));
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id),
