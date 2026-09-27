@@ -43,7 +43,7 @@ test('daily schedule uses the configured timezone and stable six-country item ke
   const result = await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-22T00:00:00Z') });
   assert.equal(result.jobId, 'job-1');
   assert.deepEqual(store.calls[0], ['enqueueJob', 'owner-a', 'daily_scan', result.scheduleKey, []]);
-  assert.deepEqual(store.calls[1], ['enqueueJobItems', 'owner-a', 'job-1',
+  assert.deepEqual(store.calls.find(call => call[0] === 'enqueueJobItems'), ['enqueueJobItems', 'owner-a', 'job-1',
     [...dailySearchCountries(result.scheduleKey).map(code => `discover:${code}`), ...registry.map(entry => `registry:${entry.id}`)]
       .map(item_key => ({ item_key, checkpoint: {} }))]);
 });
@@ -537,4 +537,14 @@ test('supported MENA countries do not silently enable searches and extra searche
     assert.notDeepEqual(first, dailySearchCountries('2026-09-28'));
     assert.match(discoveryQuery('TR', 3), /site:fixture.invalid/);
   } finally { for (const code of ['EG', 'TR', 'MA']) { if (saved[code]) primaryHosts[code] = saved[code]; else delete primaryHosts[code]; } }
+});
+
+test('a mid-day region release keeps the first persisted country search selection', async () => {
+  const store = fakeStore();
+  const selected = ['SA','AE','QA','KW','OM','BH','TR','DZ'];
+  store.jobRun = async () => ({ items: selected.map(code => ({ item_key: 'discover:' + code, status: 'succeeded' })) });
+  await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-09-27T03:00:00Z') });
+  const entries = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  assert.deepEqual(entries.filter(item => item.item_key.startsWith('discover:')).map(item => item.item_key), selected.map(code => 'discover:' + code));
+  assert.ok(entries.some(item => item.item_key === 'registry:noc-news'));
 });
