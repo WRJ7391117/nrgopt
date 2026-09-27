@@ -1166,3 +1166,45 @@ test('overview reuses source reads within one request and refreshes evidence bin
   assert.equal(changed[0].why_it_matters_zh, null, 'stale analysis must not enrich a changed original');
   assert.equal(changed[0].resilience_signal, null);
 });
+
+test('daily tasks reads only the selected owner and day, paginates beyond 1000 and projects safe fields', async () => {
+  const calls = [], sourceId = '11111111-1111-4111-8111-111111111111';
+  const items = Array.from({ length: 1203 }, (_, i) => ({ id: String(i), item_key: 'extract:' + sourceId,
+    source_id: sourceId, status: i === 1202 ? 'queued' : 'succeeded', updated_at: '2026-09-27T01:00:00Z' }));
+  const result = await createStore(CONFIG, async input => {
+    const url = new URL(input); calls.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    if (url.pathname.endsWith('intelligence_job_runs')) {
+      assert.equal(url.searchParams.get('schedule_key'), 'eq.2026-09-27');
+      assert.equal(url.searchParams.get('job_type'), 'eq.daily_scan');
+      return Response.json([{ id: 'run-a', status: 'running', updated_at: '2026-09-27T01:00:00Z' }]);
+    }
+    if (url.pathname.endsWith('intelligence_job_items')) {
+      assert.equal(url.searchParams.get('job_run_id'), 'eq.run-a');
+      assert.equal(url.searchParams.get('order'), 'created_at.asc,id.asc');
+      assert.ok(!url.searchParams.get('select').split(',').includes('checkpoint'));
+      const offset = Number(url.searchParams.get('offset'));
+      return Response.json(items.slice(offset, offset + Number(url.searchParams.get('limit'))));
+    }
+    assert.equal(url.pathname, '/rest/v1/intelligence_sources');
+    assert.equal(url.searchParams.get('select'), 'id,title,final_url');
+    return Response.json([{ id: sourceId, title: 'Official source', final_url: 'https://example.org/news' }]);
+  }).dailyTasks('owner-a', '2026-09-27');
+  assert.equal(result.items.length, 1203);
+  assert.equal(result.items.at(-1).status, 'queued');
+  assert.equal(result.items[0].title, 'Official source');
+  assert.equal(result.changed_during_read, false);
+  assert.equal(calls.filter(url => url.pathname.endsWith('intelligence_job_items')).length, 3);
+});
+
+test('daily tasks distinguishes no plan from a plan that changed while reading', async () => {
+  let calls = 0;
+  const empty = await createStore(CONFIG, async () => { calls++; return Response.json([]); }).dailyTasks('owner-a', '2026-09-27');
+  assert.equal(calls, 1); assert.equal(empty.run, null); assert.deepEqual(empty.items, []);
+  let runs = 0;
+  const changed = await createStore(CONFIG, async input => {
+    if (new URL(input).pathname.endsWith('intelligence_job_runs')) return Response.json([{ id: 'run-a', updated_at: String(++runs), status: 'partial' }]);
+    return Response.json([]);
+  }).dailyTasks('owner-a', '2026-09-27');
+  assert.equal(changed.changed_during_read, true);
+});

@@ -86,6 +86,7 @@
     { "source": "/intelligence/login", "destination": "/api/intelligence?action=login-page" },
     { "source": "/intelligence/reset-password", "destination": "/api/intelligence?action=reset-password-page" },
     { "source": "/intelligence/overview", "destination": "/api/intelligence?action=overview-page" },
+    { "source": "/intelligence/workflow", "destination": "/api/intelligence?action=workflow-page" },
     { "source": "/intelligence/settings", "destination": "/api/intelligence?action=settings-page" },
     { "source": "/intelligence", "destination": "/api/intelligence?action=overview-page" },
     { "source": "/intelligence/sources", "destination": "/api/intelligence?action=page" },
