@@ -2,6 +2,8 @@
   'use strict';
   var $ = function(id){return document.getElementById(id);}, data, editing=null, busy=false, dirty=false, page=0, feedback={};
   var states={candidate:'待验证 / 待启用',active:'已启用',paused:'已暂停',removed:'已移除'};
+  var accessErrors={source_access_denied:'网站拒绝访问',source_tls_error:'网站证书校验失败',source_dns_error:'域名解析失败',source_timeout:'网站响应超时',source_connection_timeout:'连接超时',source_connection_reset:'连接被中断',source_empty_document:'页面没有可读取的正文',source_unsupported_encoding:'页面不是可验证的 UTF-8 编码',source_unsupported_type:'页面格式暂不支持',source_unsafe_address:'入口地址不安全',registry_redirect_host:'入口跳转到了其他网站'};
+  function accessReason(code){return accessErrors[code]||'入口暂时无法读取'+(code?'（'+code+'）':'');}
   var regions=JSON.parse($('intelligence-regions').textContent), names=Object.fromEntries(regions.countries.map(function(c){return[c.code,c.name];}));
   var form=$('library-form');
   function node(tag,text,cls){var e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
@@ -18,7 +20,7 @@
     if(busy)return;busy=true;feedback[e.id]={text:kind==='check'?'正在验证入口…':'正在保存…',error:false};render();message('library-status',kind==='check'?'正在验证入口，不调用模型…':'正在保存渠道状态…');
     try {var result=await api(kind==='check'?'check-library-entry':'save-library-entry',kind==='check'?{id:e.id,revision:e.revision}:payload(e,target));update(result.entry);
       if(kind!=='check'&&target==='active'&&e.config.scope==='site')data.entries.forEach(function(row){if(new URL(row.config.url).hostname.replace(/^www\./,'')===new URL(e.config.url).hostname.replace(/^www\./,''))row.host_paused=false;});
-      message('library-status',kind==='check'?(result.entry.access.status==='readable'?'入口本次可读取。尚不代表身份、文章或情报已核实。':'入口读取失败：'+result.entry.access.error_code+'。已记录，不会自动启用。'):'已保存「'+e.config.name+'」：'+states[result.entry.status]+'。已保存原文与情报保留；恢复不补跑历史任务。');
+      message('library-status',kind==='check'?(result.entry.access.status==='readable'?'入口本次可读取。尚不代表身份、文章或情报已核实。':'入口读取失败：'+accessReason(result.entry.access.error_code)+'。已记录，不会自动启用。'):'已保存「'+e.config.name+'」：'+states[result.entry.status]+'。已保存原文与情报保留；恢复不补跑历史任务。');
     feedback[e.id]={text:$('library-status').textContent,error:false};
     }catch(err){feedback[e.id]={text:err.message,error:true};message('library-status',err.message,true);}finally{busy=false;render();}
   }
@@ -31,7 +33,7 @@
     if(!entries.length)$('library-list').append(node('p','当前筛选下没有渠道。','intel-muted'));
     var pages=Math.max(1,Math.ceil(entries.length/8));page=Math.min(page,pages-1);
     entries.slice(page*8,page*8+8).forEach(function(e){var c=e.config,card=node('article',undefined,'intel-panel intel-library-card'),heading=node('div',undefined,'intel-section-heading');heading.append(node('h3',c.name),node('span',states[e.status],'intel-badge'));card.append(heading,link(c.url,c.url),node('p',(data.types[c.type]||'待分类')+' · '+(c.mode==='fixed'?'既有固定监测':'搜索额度内轮转')+' · '+(c.scope==='site'?'整个网站':'此栏目路径'),'intel-muted'),node('p','覆盖：'+c.countries.map(function(v){return names[v]||v;}).join('、'),'intel-muted'));
-      card.append(node('p',e.access.status==='readable'?'入口可读取 · '+new Date(e.access.checked_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+' 北京时间':e.access.status==='failed'?'入口读取失败：'+e.access.error_code:'尚未进行本次入口验证','intel-library-access'));
+      card.append(node('p',e.access.status==='readable'?'入口可读取 · '+new Date(e.access.checked_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+' 北京时间':e.access.status==='failed'?'入口读取失败：'+accessReason(e.access.error_code):'尚未进行本次入口验证','intel-library-access'));
       if(e.id.startsWith('reference:'))card.append(node('p',e.access.review==='recent_validated_source'?'已有近30天、日期明确且原件哈希匹配的有效分析；已加入原有额度内轮转。':e.access.review==='recent_source_missing'?'入口可读，但缺少近30天且原件哈希匹配的有效分析；保留待评估，后续自动复查。':e.access.review==='entry_unreadable'?'入口未通过读取检查；请核对网址，系统后续仍会限量复查。':e.status==='candidate'?'等待每日限量自动巡检；也可手动验证入口。':'固定参考入口已启用。','intel-muted'));
       if(e.execution)card.append(node('p',data.day+' 自然入口任务：'+({queued:'排队中',running:'运行中',succeeded:'入口任务已完成',failed:'失败',retry:'等待重试',manual_paused:'已暂停',budget_paused:'预算暂停'}[e.execution.status]||e.execution.status)+' · 返回链接 '+(e.execution.result_urls||[]).length+' 条'+(e.execution.error_code?' · '+e.execution.error_code:''),'intel-muted'));else card.append(node('p','今天尚无该渠道的独立执行记录；可能尚未轮到。','intel-muted'));
       if(e.host_paused)card.append(node('p','该网站另有暂停开关，当前仍停止自动抓取。请恢复该网站的渠道；网站级暂停优先于栏目启用。','intel-status'));
