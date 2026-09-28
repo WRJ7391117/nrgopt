@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 570" role="img" aria-labelledby="title"><title id="title">情报工作流程图：桌面布局</title><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#8fa5ba" stroke-width="1.5"/></marker></defs><style>svg{background:#111827;color:#c6d9eb;font-family:PingFang SC,Microsoft YaHei,Arial,sans-serif}text{fill:#a9ccea;font-size:14px}.heading{fill:#b9ddff;font-size:17px;font-weight:600}.node{fill:#062b4b;stroke:#345570;stroke-width:1.3}.group{fill:#182230;stroke:#344253;stroke-width:1}.group-title{fill:#d4dfeb;font-size:15px}.edge{fill:none;stroke:#8fa5ba;stroke-width:1.3;stroke-linejoin:round}.dashed{stroke-dasharray:5 5}.label{fill:#c3d1df;font-size:13px;paint-order:stroke;stroke:#111827;stroke-width:7px;stroke-linejoin:round}</style><rect class="group" x="20" y="65" width="1080" height="170" rx="18"/>
+<text x="560" y="92" class="group-title" text-anchor="middle"><tspan x="560" dy="0">主流程 · 你决定方向与行动，系统搜集和核验</tspan></text>
+<rect class="node" x="40" y="115" width="168" height="95" rx="14"/>
+<text x="124" y="157.5" class="heading" text-anchor="middle"><tspan x="124" dy="0">① 设定方向与渠道</tspan></text>
+<text x="124" y="181.5" class="" text-anchor="middle"><tspan x="124" dy="0">地区、行业、企业与主题</tspan></text>
+<rect class="node" x="258" y="115" width="168" height="95" rx="14"/>
+<text x="342" y="146.5" class="heading" text-anchor="middle"><tspan x="342" dy="0">② 自动搜集原文</tspan></text>
+<text x="342" y="170.5" class="" text-anchor="middle"><tspan x="342" dy="0">搜索线索 · 监测渠道</tspan><tspan x="342" dy="22">抓取与保存原件</tspan></text>
+<rect class="node" x="476" y="115" width="168" height="95" rx="14"/>
+<text x="560" y="146.5" class="heading" text-anchor="middle"><tspan x="560" dy="0">③ 分析与核验</tspan></text>
+<text x="560" y="170.5" class="" text-anchor="middle"><tspan x="560" dy="0">匹配方向 · 核对引文</tspan><tspan x="560" dy="22">标明事实、冲突与未知</tspan></text>
+<rect class="node" x="694" y="115" width="168" height="95" rx="14"/>
+<text x="778" y="146.5" class="heading" text-anchor="middle"><tspan x="778" dy="0">④ 查看与判断</tspan></text>
+<text x="778" y="170.5" class="" text-anchor="middle"><tspan x="778" dy="0">总览 · 发现 · 详情</tspan><tspan x="778" dy="22">判断是否值得跟进</tspan></text>
+<rect class="node" x="912" y="115" width="168" height="95" rx="14"/>
+<text x="996" y="146.5" class="heading" text-anchor="middle"><tspan x="996" dy="0">⑤ 持续跟踪与处理</tspan></text>
+<text x="996" y="170.5" class="" text-anchor="middle"><tspan x="996" dy="0">系统关注证据变化</tspan><tspan x="996" dy="22">你记录计划与实际结果</tspan></text>
+<path class="edge" d="M208 160H258" marker-end="url(#arrow)"/>
+<path class="edge" d="M426 160H476" marker-end="url(#arrow)"/>
+<path class="edge" d="M644 160H694" marker-end="url(#arrow)"/>
+<path class="edge" d="M862 160H912" marker-end="url(#arrow)"/>
+<path class="edge dashed" d="M996 115V30H124V115" marker-end="url(#arrow)"/>
+<text x="560" y="30" class="label" text-anchor="middle"><tspan x="560" dy="0">根据发现与处理结果，调整关注重点</tspan></text>
+<path class="edge dashed" d="M342 210V270H124V325" marker-end="url(#arrow)"/>
+<text x="206" y="270" class="label" text-anchor="middle"><tspan x="206" dy="0">原文获取失败</tspan></text>
+<path class="edge dashed" d="M500 210V295H124V325" marker-end="url(#arrow)"/>
+<text x="290" y="295" class="label" text-anchor="middle"><tspan x="290" dy="0">提取或引文校验失败</tspan></text>
+<path class="edge" d="M560 210V275H430V325" marker-end="url(#arrow)"/>
+<text x="670" y="275" class="label" text-anchor="middle"><tspan x="670" dy="0">满足日报或重大变化通知条件</tspan></text>
+<rect class="node" x="24" y="325" width="200" height="92" rx="14"/>
+<text x="124" y="366" class="heading" text-anchor="middle"><tspan x="124" dy="0">保留失败与缺口</tspan></text>
+<text x="124" y="390" class="" text-anchor="middle"><tspan x="124" dy="0">不建立未经核验的候选</tspan></text>
+<rect class="node" x="300" y="325" width="260" height="92" rx="14"/>
+<text x="430" y="366" class="heading" text-anchor="middle"><tspan x="430" dy="0">通知队列</tspan></text>
+<text x="430" y="390" class="" text-anchor="middle"><tspan x="430" dy="0">日报 · 重大变化 · 系统告警</tspan></text>
+<rect class="node" x="628" y="325" width="230" height="92" rx="14"/>
+<text x="743" y="355" class="heading" text-anchor="middle"><tspan x="743" dy="0">读取推送设置</tspan></text>
+<text x="743" y="379" class="" text-anchor="middle"><tspan x="743" dy="0">总开关 · 类型 · 接收目标</tspan><tspan x="743" dy="22">遵守免打扰时段</tspan></text>
+<rect class="node" x="912" y="325" width="184" height="92" rx="14"/>
+<text x="1004" y="355" class="heading" text-anchor="middle"><tspan x="1004" dy="0">⑥ 飞书推送</tspan></text>
+<text x="1004" y="379" class="" text-anchor="middle"><tspan x="1004" dy="0">群聊与个人通知</tspan><tspan x="1004" dy="22">记录投递结果</tspan></text>
+<path class="edge" d="M224 371H300" marker-end="url(#arrow)"/>
+<text x="262" y="350" class="label" text-anchor="middle"><tspan x="262" dy="0">告警条件</tspan></text>
+<path class="edge" d="M560 371H628" marker-end="url(#arrow)"/>
+<path class="edge" d="M858 371H912" marker-end="url(#arrow)"/>
+<path class="edge dashed" d="M1004 417V463" marker-end="url(#arrow)"/>
+<rect class="node" x="890" y="463" width="228" height="78" rx="14"/>
+<text x="1004" y="497" class="heading" text-anchor="middle"><tspan x="1004" dy="0">打开站内详情</tspan></text>
+<text x="1004" y="521" class="" text-anchor="middle"><tspan x="1004" dy="0">继续查看与判断</tspan></text>
+<text x="470" y="484" class="label" text-anchor="middle"><tspan x="470" dy="0">自动推送独立触发，无需先手动跟踪或填写处理结果</tspan></text>
+<text x="470" y="517" class="label" text-anchor="middle"><tspan x="470" dy="0">实线：工作流与推送　虚线：反馈、异常与回链</tspan></text></svg>

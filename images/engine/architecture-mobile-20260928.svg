@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1730" role="img" aria-labelledby="title"><title id="title">系统架构图：手机布局</title><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#8fa5ba" stroke-width="1.5"/></marker></defs><style>svg{background:#111827;color:#c6d9eb;font-family:PingFang SC,Microsoft YaHei,Arial,sans-serif}text{fill:#a9ccea;font-size:14px}.heading{fill:#b9ddff;font-size:17px;font-weight:600}.node{fill:#062b4b;stroke:#345570;stroke-width:1.3}.group{fill:#182230;stroke:#344253;stroke-width:1}.group-title{fill:#d4dfeb;font-size:15px}.edge{fill:none;stroke:#8fa5ba;stroke-width:1.3;stroke-linejoin:round}.dashed{stroke-dasharray:5 5}.label{fill:#c3d1df;font-size:13px;paint-order:stroke;stroke:#111827;stroke-width:7px;stroke-linejoin:round}</style><style>text{font-size:16px}.heading{font-size:18px}.label{font-size:14px}.group-title{font-size:15px}</style><rect class="group" x="60" y="265" width="280" height="285" rx="18"/>
+<text x="200" y="292" class="group-title" text-anchor="middle"><tspan x="200" dy="0">Vercel · 两个独立部署</tspan></text>
+<rect class="group" x="60" y="605" width="280" height="440" rx="18"/>
+<text x="200" y="632" class="group-title" text-anchor="middle"><tspan x="200" dy="0">Supabase · 数据与调度</tspan></text>
+<rect class="group" x="60" y="1110" width="280" height="340" rx="18"/>
+<text x="200" y="1137" class="group-title" text-anchor="middle"><tspan x="200" dy="0">搜索、原文与分析</tspan></text>
+<rect class="node" x="85" y="25" width="230" height="70" rx="14"/>
+<text x="200" y="55" class="heading" text-anchor="middle"><tspan x="200" dy="0">用户浏览器</tspan></text>
+<text x="200" y="79" class="" text-anchor="middle"><tspan x="200" dy="0">www.nrgopt.com</tspan></text>
+<rect class="node" x="85" y="145" width="230" height="82" rx="14"/>
+<text x="200" y="170" class="heading" text-anchor="middle"><tspan x="200" dy="0">域名与 DNS</tspan></text>
+<text x="200" y="194" class="" text-anchor="middle"><tspan x="200" dy="0">新网：域名管理</tspan><tspan x="200" dy="22">Vercel DNS：解析</tspan></text>
+<path class="edge dashed" d="M200 95V145" marker-end="url(#arrow)"/>
+<path class="edge dashed" d="M200 227V310" marker-end="url(#arrow)"/>
+<text x="205" y="251" class="label" text-anchor="middle"><tspan x="205" dy="0">解析与 HTTPS 访问</tspan></text>
+<rect class="node" x="85" y="310" width="230" height="88" rx="14"/>
+<text x="200" y="338" class="heading" text-anchor="middle"><tspan x="200" dy="0">网站与 API</tspan></text>
+<text x="200" y="362" class="" text-anchor="middle"><tspan x="200" dy="0">页面、配置、情报查询</tspan><tspan x="200" dy="22">读取通知队列并发送</tspan></text>
+<rect class="node" x="85" y="439" width="230" height="88" rx="14"/>
+<text x="200" y="467" class="heading" text-anchor="middle"><tspan x="200" dy="0">独立采集服务</tspan></text>
+<text x="200" y="491" class="" text-anchor="middle"><tspan x="200" dy="0">取任务 · 搜索与抓原文</tspan><tspan x="200" dy="22">调用分析 · 核验后入库</tspan></text>
+<path class="edge" d="M85 345H45V624H60" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="203" y="583" class="label" text-anchor="middle"><tspan x="203" dy="0">网站与采集服务读写数据及原件</tspan></text>
+<path class="edge" d="M315 479H349V624H340" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<rect class="node" x="85" y="646" width="230" height="65" rx="14"/>
+<text x="200" y="673.5" class="heading" text-anchor="middle"><tspan x="200" dy="0">Auth</tspan></text>
+<text x="200" y="697.5" class="" text-anchor="middle"><tspan x="200" dy="0">登录与身份验证</tspan></text>
+<rect class="node" x="85" y="738" width="230" height="87" rx="14"/>
+<text x="200" y="765.5" class="heading" text-anchor="middle"><tspan x="200" dy="0">PostgreSQL</tspan></text>
+<text x="200" y="789.5" class="" text-anchor="middle"><tspan x="200" dy="0">方向、源库、情报</tspan><tspan x="200" dy="22">任务与通知队列</tspan></text>
+<rect class="node" x="85" y="852" width="230" height="78" rx="14"/>
+<text x="200" y="875" class="heading" text-anchor="middle"><tspan x="200" dy="0">Storage</tspan></text>
+<text x="200" y="899" class="" text-anchor="middle"><tspan x="200" dy="0">原文文件</tspan><tspan x="200" dy="22">私有证据存档</tspan></text>
+<rect class="node" x="85" y="957" width="230" height="65" rx="14"/>
+<text x="200" y="984.5" class="heading" text-anchor="middle"><tspan x="200" dy="0">Cron / pg_net</tspan></text>
+<text x="200" y="1008.5" class="" text-anchor="middle"><tspan x="200" dy="0">独立采集 / 通知 / 健康调度</tspan></text>
+<path class="edge" d="M85 990H28V378H85" marker-end="url(#arrow)"/>
+<path class="edge" d="M28 483H85" marker-end="url(#arrow)"/>
+<rect class="node" x="85" y="1155" width="230" height="70" rx="14"/>
+<text x="200" y="1185" class="heading" text-anchor="middle"><tspan x="200" dy="0">MiniMax</tspan></text>
+<text x="200" y="1209" class="" text-anchor="middle"><tspan x="200" dy="0">搜索并发现线索</tspan></text>
+<rect class="node" x="85" y="1253" width="230" height="70" rx="14"/>
+<text x="200" y="1283" class="heading" text-anchor="middle"><tspan x="200" dy="0">公开信息渠道</tspan></text>
+<text x="200" y="1307" class="" text-anchor="middle"><tspan x="200" dy="0">机构、企业、媒体与作者</tspan></text>
+<rect class="node" x="85" y="1351" width="230" height="70" rx="14"/>
+<text x="200" y="1381" class="heading" text-anchor="middle"><tspan x="200" dy="0">DeepSeek</tspan></text>
+<text x="200" y="1405" class="" text-anchor="middle"><tspan x="200" dy="0">分析原文 · 匹配方向</tspan></text>
+<path class="edge" d="M315 499H368V1386H315" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<path class="edge" d="M368 1190H315" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<path class="edge" d="M368 1288H315" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<rect class="node" x="85" y="1505" width="230" height="78" rx="14"/>
+<text x="200" y="1539" class="heading" text-anchor="middle"><tspan x="200" dy="0">飞书</tspan></text>
+<text x="200" y="1563" class="" text-anchor="middle"><tspan x="200" dy="0">群聊与个人通知</tspan></text>
+<path class="edge" d="M85 362H13V1544H85" marker-end="url(#arrow)"/>
+<text x="201" y="1485" class="label" text-anchor="middle"><tspan x="201" dy="0">网站 API 按设置发送通知</tspan></text>
+<rect class="node" x="60" y="1650" width="115" height="55" rx="14"/>
+<text x="117.5" y="1683.5" class="heading" text-anchor="middle"><tspan x="117.5" dy="0">Codex</tspan></text>
+<rect class="node" x="225" y="1650" width="115" height="55" rx="14"/>
+<text x="282.5" y="1683.5" class="heading" text-anchor="middle"><tspan x="282.5" dy="0">GitHub</tspan></text>
+<path class="edge dashed" d="M175 1678H225" marker-end="url(#arrow)"/>
+<path class="edge dashed" d="M340 1678H383V287H340" marker-end="url(#arrow)"/>
+<text x="195" y="1624" class="label" text-anchor="middle"><tspan x="195" dy="0">开发发布 · 不参与每日自动采集</tspan></text></svg>
