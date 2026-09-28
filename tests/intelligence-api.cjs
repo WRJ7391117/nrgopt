@@ -86,11 +86,12 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
 
 test('private pages redirect, data and evidence deny unauthenticated access before upstream calls', async () => {
   const { request, calls } = setup();
-  for (const action of ['page', 'overview-page', 'settings-page', 'detail-page']) {
+  for (const action of ['engine-page', 'page', 'overview-page', 'settings-page', 'detail-page']) {
     const response = await request(action, { loggedIn: false });
     assert.equal(response.code, 303);
     assert.match(response.headers.location, /^\/intelligence\/login\?returnTo=/);
     assert.equal(response.body, undefined);
+    if (action === 'engine-page') assert.equal(response.headers.location, '/intelligence/login?returnTo=%2Fintelligence%2Fengine');
   }
   for (const action of ['session', 'sources', 'source', 'overview', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence']) assert.equal((await request(action, { loggedIn: false })).code, 401);
   assert.deepEqual(calls, []);
@@ -190,6 +191,7 @@ test('wrong allowed user and revoked or invalid upstream session cannot access p
   const login = await wrong.request('login', { method: 'POST', body: { email: 'other@example.test', password: 'test-password' } });
   assert.equal(login.code, 403); assert.equal(login.headers['set-cookie'], undefined);
   assert.equal((await wrong.request('sources')).code, 403);
+  assert.equal((await wrong.request('engine-page')).code, 403);
   assert.ok(!wrong.calls.some(call => call.name === 'list'));
   const expired = setup({ overrides: { user: async () => { throw failure('auth_required', 401); } } });
   assert.equal((await expired.request('detail-page')).code, 303);
@@ -794,7 +796,7 @@ test('MENA manual discovery lists enabled regions and rejects pending regions be
 
 test('every authenticated HTML page includes its verified account before loading business data', async () => {
   const { request } = setup();
-  for (const action of ['overview-page', 'workflow-page', 'settings-page', 'page', 'detail-page']) {
+  for (const action of ['engine-page', 'overview-page', 'workflow-page', 'settings-page', 'page', 'detail-page']) {
     const response = await request(action, { query: { id } });
     assert.equal(response.code, 200);
     assert.match(response.body, /id="account-email" class="intel-account">local@example\.test<\/span>/);

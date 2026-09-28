@@ -83,6 +83,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/intelligence/engine", "destination": "/api/intelligence?action=engine-page" },
     { "source": "/intelligence/feishu", "destination": "/api/intelligence?action=feishu-page" },
     { "source": "/intelligence/library", "destination": "/api/intelligence?action=library-page" },
     { "source": "/intelligence/directions", "destination": "/api/intelligence?action=directions-page" },
