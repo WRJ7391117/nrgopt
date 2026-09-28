@@ -1847,7 +1847,10 @@
     directionResultId = null; editingDirection = null; directionDirty = false;
     directionView('home');
     var button = Array.from(document.querySelectorAll('[data-direction-edit]')).find(function(n){return n.dataset.directionEdit === id;});
-    (button && !button.disabled ? button : Array.from(document.querySelectorAll('[data-direction-results]')).find(function(n){return n.dataset.directionResults===id;}) || byId('direction-new')).focus();
+    var target = button && !button.disabled ? button : Array.from(document.querySelectorAll('[data-direction-results]')).find(function(n){return n.dataset.directionResults===id;}) || byId('direction-new');
+    var card = target.closest('.intel-direction-card');
+    if (card) card.open = true;
+    target.focus();
   }
   function renderDirections() {
     var list = byId('direction-list'); list.replaceChildren();
@@ -1855,17 +1858,20 @@
     var priority = { high: '高', normal: '普通', low: '低' };
     var active = directionData.effective.filter(function(d){return d.config.enabled;}).length;
     byId('direction-count').textContent = '共 ' + directionData.directions.length + ' 个方向 · 今天已启用 ' + active + ' 个。启用不代表今天已完成搜索。';
-    directionData.directions.forEach(function (d) {
-      var card = directionText(list, 'article', '', 'intel-panel intel-direction-card');
-      var heading = directionText(card, 'div', '', 'intel-section-heading');
-      directionText(heading, 'h3', d.config.name);
+    directionData.directions.forEach(function (d, index) {
+      var card = directionText(list, 'details', '', 'intel-panel intel-direction-card');
+      var summary = directionText(card, 'summary', '');
+      var heading = directionText(summary, 'span', '', 'intel-direction-heading');
+      directionText(heading, 'span', String(index + 1).padStart(2, '0'), 'intel-direction-number');
+      directionText(heading, 'strong', d.config.name);
       var effective = directionData.effective.find(function (v) { return v.id === d.id; });
-      directionText(heading, 'span', effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效', 'intel-badge');
-      if (d.effective_on > directionData.day) directionText(card, 'p', '以下为已保存设置，' + d.effective_on + ' 北京时间起' + (d.config.enabled ? '启用' : '暂停') + '；今天的任务不受本次修改影响。', 'intel-direction-pending');
-      directionText(card, 'p', d.config.why, 'intel-direction-purpose');
-      directionText(card, 'p', '关注对象：' + d.config.industries, 'intel-muted');
-      directionText(card, 'p', '范围：' + d.config.countries.length + ' 个地区 · 希望找到：' + d.config.targets.map(function(t){return ({signal:'变化线索',investment:'投资动向',procurement:'采购机会'})[t];}).join('、'), 'intel-muted');
-      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
+      directionText(summary, 'span', effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效', 'intel-badge');
+      var body = directionText(card, 'div', '', 'intel-direction-card-body');
+      if (d.effective_on > directionData.day) directionText(body, 'p', '以下为已保存设置，' + d.effective_on + ' 北京时间起' + (d.config.enabled ? '启用' : '暂停') + '；今天的任务不受本次修改影响。', 'intel-direction-pending');
+      directionText(body, 'p', d.config.why, 'intel-direction-purpose');
+      directionText(body, 'p', '关注对象：' + d.config.industries, 'intel-muted');
+      directionText(body, 'p', '范围：' + d.config.countries.length + ' 个地区 · 希望找到：' + d.config.targets.map(function(t){return ({signal:'变化线索',investment:'投资动向',procurement:'采购机会'})[t];}).join('、'), 'intel-muted');
+      var actions = directionText(body, 'div', '', 'intel-direction-buttons');
       var edit = directionText(actions, 'button', '修改搜集要求', 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable; edit.dataset.directionEdit = d.id;
       edit.addEventListener('click',function(){ openDirection(d); });
       var results = directionText(actions, 'button', '查看搜集结果', 'intel-button'); results.type='button'; results.dataset.directionResults=d.id;
@@ -1874,9 +1880,9 @@
       toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
       var task = directionData.tasks.find(function (t) { return t.checkpoint.direction.id === d.id; });
       var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
-      directionText(card, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
-      if (task?.error_code) directionText(card, 'p', '本次搜索未完成，可在“采集流程与当天任务”查看原因。', 'intel-muted');
-      var details = document.createElement('details'); card.appendChild(details);
+      directionText(body, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
+      if (task?.error_code) directionText(body, 'p', '本次搜索未完成，可在“采集流程与当天任务”查看原因。', 'intel-muted');
+      var details = document.createElement('details'); body.appendChild(details);
       directionText(details, 'summary', '查看完整设置、来源网站与修改记录');
       directionText(details, 'p', '已保存的地区：' + d.config.countries.map(function(c){return regionNames[c];}).join('、'));
       directionText(details, 'p', '优先级：' + priority[d.config.priority] + ' · 排除：' + (d.config.exclude || '未设置'));
@@ -1920,7 +1926,7 @@
   }
   async function loadDirections() {
     directionData=await api('directions'); renderDirections();
-    status('page-status','读取于 '+dateLabel(new Date().toISOString())+'。'+(!directionData.writable?' 当前为只读模式。':''));
+    status('page-status',directionData.writable?'':'当前为只读模式。');
   }
   async function loadDirectionResults(direction) {
     directionResultId=direction.id; directionResults=[];
