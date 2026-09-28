@@ -47,9 +47,9 @@
 .intelligence-app h2 { margin: 0 0 14px; color: var(--text); font-size: 1.1rem; line-height: 1.5; text-align: left; }
 .intel-intro { margin-bottom: 28px; }
 .intel-main:has(.intel-engine) { max-width: 1280px; }
-.intel-engine .intel-intro, .intel-engine .intel-muted { font-size: 1rem; line-height: 1.8; }
-.intel-engine-index { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 18px 0; border-block: 1px solid var(--border); font-size: .9375rem; }
+.intel-engine .intel-muted { font-size: 1rem; line-height: 1.8; }
 .intel-engine .intel-engine-section { padding: 40px 0 0; margin: 0; background: transparent; scroll-margin-top: 24px; }
+.intel-engine .intel-engine-section:first-of-type { padding-top: 24px; }
 .intel-engine-section + .intel-engine-section { margin-top: 40px !important; border-top: 1px solid var(--border); }
 .intel-engine h2 { font-size: 1.5rem; margin: 0 0 8px; }
 .intel-engine-number { color: var(--accent); font-size: 1rem; font-weight: 500; margin-right: 8px; }
@@ -103,7 +103,6 @@
 .intel-engine-native figcaption { margin-top: 20px; padding-top: 14px; border-top: 1px solid #344253; color: #c6d9eb; font-size: .9375rem; line-height: 1.75; }
 .intel-engine-details { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; font-size: 1rem; }
 .intel-engine-details summary { cursor: pointer; padding: 8px 0; }
-.intel-engine-details ul { padding-left: 20px; color: var(--text-dim); line-height: 1.9; }
 .intel-engine-links { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 12px; font-size: .9375rem; }
 @media (max-width: 1040px) {
   .intel-diagram-flow, .intel-diagram-notify-flow, .intel-diagram-access, .intel-diagram-architecture, .intel-diagram-delivery-line, .intel-diagram-release { flex-direction: column; align-items: stretch; }
