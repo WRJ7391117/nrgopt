@@ -21,8 +21,8 @@ begin
  if p_enabled is null then raise exception 'invalid_library_schedule'; end if;
  if p_enabled and (not exists(select 1 from vault.secrets where name='nrgopt_scan_origin')
    or not exists(select 1 from vault.secrets where name='nrgopt_scan_secret')) then raise exception 'scheduler_not_configured'; end if;
- -- 14:30 UTC is 22:30 Asia/Shanghai; separate from the natural daily scan.
- job:=cron.schedule('nrgopt-intelligence-library','30 14 * * *','select public.dispatch_intelligence_library_maintenance();');
+ -- 14:00-14:50 UTC every ten minutes is 22:00-22:50 Asia/Shanghai.
+ job:=cron.schedule('nrgopt-intelligence-library','*/10 14 * * *','select public.dispatch_intelligence_library_maintenance();');
  perform cron.alter_job(job,active:=p_enabled);
  return true;
 end $$;

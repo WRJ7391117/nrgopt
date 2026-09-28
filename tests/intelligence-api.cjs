@@ -911,6 +911,20 @@ test('daily reference maintenance is authorized, bounded, evidence-gated and nev
  assert.equal(app.calls.filter(c=>c.name==='reserveLibraryCheck').length,3);
  assert.equal(app.calls.filter(c=>c.name==='recentLibrarySources').length,3);
 });
+test('recently reviewed references wait seven days while unchecked and older entries advance',async()=>{
+ const {defaults}=require('../lib/intelligence/source-library.cjs');
+ const refs=defaults().filter(e=>e.id.startsWith('reference:')).slice(0,4);
+ refs[0].access.checked_at=new Date().toISOString();
+ refs[1].access.checked_at=new Date(Date.now()-6*86400000).toISOString();
+ refs[2].access.checked_at=new Date(Date.now()-8*86400000).toISOString();
+ const app=setup({environment:{...env,CRON_SECRET:'cron-test-secret',NRGOPT_SCHEDULER_ENABLED:'1'},overrides:{
+   sourceLibrary:async()=>refs,recentLibrarySources:async()=>[],reserveLibraryCheck:async()=> 'reserved',
+   saveLibraryEntry:async(_owner,value,access)=>({...value,access})
+ },sourceFetcher:async url=>({finalUrl:url,excerpt:'Public',bytes:Buffer.from('Public')})});
+ const result=await app.request('library-maintenance',{loggedIn:false,headers:{authorization:'Bearer cron-test-secret'}});
+ assert.equal(result.code,200);assert.equal(result.body.checked,2);
+ assert.deepEqual(new Set(result.body.outcomes.map(x=>x.id)),new Set([refs[2].id,refs[3].id]));
+});
 
 
 test('health alert snapshots the full daily task result with actionable grouped causes', async () => {

@@ -157,7 +157,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const library = require('../lib/intelligence/source-library.cjs');
         const day = scheduleDate();
         const entries = await store.sourceLibrary(config.adminId);
-        const candidates = entries.filter(e => e.id.startsWith('reference:') && e.status === 'candidate' && !e.host_paused)
+        const candidates = entries.filter(e => {
+          const checked = Date.parse(e.access?.checked_at);
+          return e.id.startsWith('reference:') && e.status === 'candidate' && !e.host_paused
+            && (!Number.isFinite(checked) || checked <= Date.now() - 7 * 86400000);
+        })
           .sort((a,b) => (a.access?.checked_at || '').localeCompare(b.access?.checked_at || '') || a.id.localeCompare(b.id));
         const outcomes = [];
         for (const entry of candidates) {
