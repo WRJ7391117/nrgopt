@@ -1,5 +1,5 @@
 const test=require('node:test'), assert=require('node:assert/strict');
-const {defaults,validateEntry,matches,selectChannel}=require('../lib/intelligence/source-library.cjs');
+const {defaults,validateEntry,matches,checkEntry,selectChannel}=require('../lib/intelligence/source-library.cjs');
 const {discoveryQuery}=require('../lib/intelligence/discovery.cjs');
 const {createStore}=require('../lib/intelligence/store.cjs');
 const entry=()=>validateEntry({revision:0,status:'candidate',config:{name:'Public author',url:'https://example.org/authors/alice/',scope:'path',type:'research',countries:['SA'],languages:['en'],direction_ids:[],notes:'公开能源专栏',priority:'normal'}});
@@ -43,4 +43,14 @@ test('extra-country channel rotation advances by country cycle, avoiding a fixed
  const used=new Set();for(let n=0;n<9;n++){const day=new Date(Date.UTC(2026,8,21)+n*18*86400000).toISOString().slice(0,10);const selected=selectChannel(entries,'JO',null,day);if(selected)used.add(selected.id);}
  // Sept 21 is an eligible odd day in this selection policy; each cycle advances one source.
  assert.equal(used.size,9);
+});
+test('candidate check requires readable entry and recent same-host analysis of the current source hash',async()=>{
+ const e={...entry(),config:{...entry().config,url:'https://example.org/',scope:'site'}};
+ const fetch=async()=>({finalUrl:'https://www.example.org/',excerpt:'Public page',bytes:Buffer.from('public page'),title:'Example'});
+ const sample={id:'sample',final_url:'https://example.org/article',publication_date:'2026-09-01',publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
+ assert.equal((await checkEntry(e,fetch,[sample],'2026-09-28')).review,'recent_validated_source');
+ for(const changed of [{final_url:'https://example.org.evil.test/article'},{publication_date:'2026-08-29'},{publication_date:null},{publication_method:'conflicting_metadata'},{extraction_source_sha256:'b'.repeat(64)},{extraction_status:'failed'}])
+  assert.equal((await checkEntry(e,fetch,[{...sample,...changed}],'2026-09-28')).review,'recent_source_missing');
+ assert.equal((await checkEntry(e,fetch,[{...sample,extraction_status:'failed'},sample],'2026-09-28')).review,'recent_source_missing');
+ assert.equal((await checkEntry(e,async()=>({...await fetch(),finalUrl:'https://evil.test/'}),[sample],'2026-09-28')).error_code,'registry_redirect_host');
 });

@@ -894,6 +894,23 @@ test('failed live entry verification is stored and deactivates an unreadable cus
  assert.equal(record.owner,admin);assert.equal(record.value.status,'candidate');assert.equal(record.access.error_code,'source_access_denied');
  assert.equal((await s.request('check-library-entry',{method:'POST',body:{id,revision:0}})).code,409);
 });
+test('daily reference maintenance is authorized, bounded, evidence-gated and never calls a model',async()=>{
+ const {defaults}=require('../lib/intelligence/source-library.cjs');
+ const refs=defaults().filter(e=>e.id.startsWith('reference:')).sort((a,b)=>a.id.localeCompare(b.id)).slice(0,4);
+ let reserved=0;const saved=[];
+ const sample={id,final_url:refs[0].config.url+'article',publication_date:new Date().toISOString().slice(0,10),publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
+ const app=setup({environment:{...env,CRON_SECRET:'cron-test-secret',NRGOPT_SCHEDULER_ENABLED:'1'},overrides:{
+   sourceLibrary:async()=>refs,recentLibrarySources:async()=>[sample],reserveLibraryCheck:async()=>reserved++<3?'reserved':'limit',
+   saveLibraryEntry:async(_owner,value,access)=>{saved.push({value,access});return {...value,access};}
+ },sourceFetcher:async url=>({finalUrl:url,excerpt:'Public website',bytes:Buffer.from('website')}),modelFactory:()=>{throw Error('model must not run');}});
+ assert.equal((await app.request('library-maintenance',{loggedIn:false})).code,401);
+ const result=await app.request('library-maintenance',{loggedIn:false,headers:{authorization:'Bearer cron-test-secret'}});
+ assert.equal(result.code,200);assert.equal(result.body.checked,3);
+ assert.equal(saved.filter(x=>x.value.status==='active').length,1);
+ assert.equal(saved.filter(x=>x.value.status==='candidate'&&x.access.review==='recent_source_missing').length,2);
+ assert.equal(app.calls.filter(c=>c.name==='reserveLibraryCheck').length,3);
+ assert.equal(app.calls.filter(c=>c.name==='recentLibrarySources').length,3);
+});
 
 
 test('health alert snapshots the full daily task result with actionable grouped causes', async () => {
