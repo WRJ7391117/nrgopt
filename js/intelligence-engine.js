@@ -83,6 +83,7 @@
       }
     } else {
       if (mobile) {
+        figure.querySelector('.intel-diagram-access-line').style.transform = '';
         down('browser', 'dns');
         down('dns', 'vercel');
         down('vercel', 'supabase', true);
@@ -94,7 +95,12 @@
       } else {
         across('browser', 'dns');
         var dns = box('dns'), vercel = box('vercel'), feishu = box('feishu');
-        wire('dns', 'vercel', 'M' + dns.cx + ' ' + dns.bottom + ' V' + (dns.bottom + 16) + ' H' + vercel.cx + ' V' + vercel.top);
+        var lane = dns.bottom + 16;
+        var label = figure.querySelector('.intel-diagram-access-line');
+        label.style.transform = '';
+        var labelRect = label.getBoundingClientRect();
+        label.style.transform = 'translate(' + ((dns.cx + vercel.cx) / 2 - (labelRect.left - frame.left + labelRect.width / 2)) + 'px, ' + (lane - (labelRect.top - frame.top + labelRect.height / 2)) + 'px)';
+        wire('dns', 'vercel', 'M' + dns.cx + ' ' + dns.bottom + ' V' + lane + ' H' + vercel.cx + ' V' + vercel.top);
         across('supabase', 'vercel', true);
         across('vercel', 'external');
         wire('vercel', 'feishu', 'M' + vercel.cx + ' ' + vercel.bottom + ' V' + (vercel.bottom + 22) + ' H' + feishu.cx + ' V' + feishu.top);
