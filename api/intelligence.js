@@ -8,7 +8,7 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu.cjs');
-const { directionsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
+const { enginePage, directionsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 const feishuConfig = require('../lib/intelligence/feishu-config.cjs');
@@ -91,7 +91,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
       const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -245,6 +245,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract', 'followup', 'save-followup'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
       if (action === 'overview-page') return html(['view', 'country', 'group', 'topic', 'period', 'radar'].some(key => req.query[key]) ? overviewPage(user.email) : workbenchPage(user.email));
+      if (action === 'engine-page') return html(enginePage(user.email));
       if (action === 'feishu-page') return html(require('../lib/intelligence/pages.cjs').feishuPage(user.email));
       if (action === 'library-page') return html(require('../lib/intelligence/pages.cjs').sourceLibraryPage(user.email));
       if (action === 'source-library') return res.status(200).json({ ...(await store.libraryOverview(user.id)), writable:config.writes, directions:(await store.collectionDirections(user.id,scheduleDate())).directions, types:require('../lib/intelligence/source-library.cjs').types });
@@ -416,9 +417,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['feishu-page', 'library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['engine-page', 'feishu-page', 'library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'engine-page' ? '/intelligence/engine' : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (['overview-page', 'discover-page'].includes(action)) {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);
