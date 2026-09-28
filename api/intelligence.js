@@ -15,6 +15,8 @@ const { registry } = require('../lib/intelligence/registry.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
+  library_duplicate:'此入口已在源库中，请编辑或恢复已有记录。', library_conflict: '渠道已在其他页面修改，请刷新后重试。当前编辑保留。', library_limit:'最多登记500个渠道。', library_unchecked:'请先验证渠道入口可读取，再启用持续搜索。', source_invalid_url:'请填写可公开访问、不含查询参数的HTTPS渠道入口。',
+
   direction_conflict: '此方向已在其他页面修改。你的编辑仍保留，请核对最新设置后重新编辑。', direction_limit: '最多保留20个搜集方向，请编辑已有方向。',
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
@@ -86,8 +88,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -135,7 +137,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
         const result = await runDailyJobItem({ store, owner: config.adminId, env,
-          discover: (country, profile, attempt, direction) => discoverCountry(country, profile, discoveryFactory, attempt, direction),
+          discover: (country, profile, attempt, direction, channel) => discoverCountry(country, profile, discoveryFactory, attempt, direction, channel),
           watchDiscover: (plan, profile) => discoverWatch(plan, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
           balanceReaderFactory });
         const job = await store.jobRun(config.adminId, result.jobId || scheduled.jobId);
@@ -241,6 +243,36 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract', 'followup', 'save-followup'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
       if (action === 'overview-page') return html(['view', 'country', 'group', 'topic', 'period', 'radar'].some(key => req.query[key]) ? overviewPage(user.email) : workbenchPage(user.email));
+      if (action === 'library-page') return html(require('../lib/intelligence/pages.cjs').sourceLibraryPage(user.email));
+      if (action === 'source-library') return res.status(200).json({ ...(await store.libraryOverview(user.id)), writable:config.writes, directions:(await store.collectionDirections(user.id,scheduleDate())).directions, types:require('../lib/intelligence/source-library.cjs').types });
+      if (action === 'library-history') {
+        if (typeof req.query.id !== 'string' || req.query.id.length>255) throw failure('invalid_request',400);
+        return res.status(200).json({ history:await store.libraryHistory(user.id,req.query.id) });
+      }
+      if (action === 'save-library-entry' || action === 'check-library-entry') {
+        if (!config.writes) throw failure('writes_disabled',403);
+        const library = require('../lib/intelligence/source-library.cjs');
+        if (action === 'save-library-entry') {
+          const entry = library.validateEntry(body);
+          const directions = (await store.collectionDirections(user.id,scheduleDate())).directions;
+          if (entry.config.direction_ids.some(id=>!directions.some(d=>d.id===id))) throw failure('invalid_request',400);
+          const entries = await store.sourceLibrary(user.id);
+          if (entries.some(e=>e.id!==entry.id && library.scopeKey(e)===library.scopeKey(entry))) throw failure('library_duplicate',409);
+          return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,entry) });
+        }
+        const entry = (await store.sourceLibrary(user.id)).find(e=>e.id===body.id && e.revision===body.revision);
+        if (!entry) throw failure('library_conflict',409);
+        if (entry.status==='removed') throw failure('invalid_request',400);
+        let access;
+        try {
+          const source = await sourceFetcher(entry.config.url);
+          if (!library.matches(entry,source.finalUrl)) throw failure('registry_redirect_host',422);
+          if (!source.excerpt?.trim()) throw failure('source_empty_document',422);
+          access = { status:'readable',checked_at:new Date().toISOString(),final_url:source.finalUrl,sha256:source.sha256 || createHash('sha256').update(source.bytes).digest('hex'), title:source.title, note:'仅验证入口可读取，未验证身份、文章日期、分析或持续产出。' };
+        } catch(error) { access = { status:'failed',checked_at:new Date().toISOString(),error_code:/^(source|registry)_[a-z_]+$/.test(error.code||'')?error.code:'source_failed' }; }
+        const checkedEntry = access.status==='failed' && entry.status==='active' && entry.config.mode!=='fixed' ? {...entry,status:'candidate'} : entry;
+        return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
+      }
       if (action === 'directions-page') return html(directionsPage(user.email));
       if (action === 'directions') return res.status(200).json({ ...(await store.collectionDirections(user.id, scheduleDate())), writable: config.writes, websites: primaryHosts });
       if (action === 'direction-results') {
@@ -372,9 +404,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (['overview-page', 'discover-page'].includes(action)) {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);
