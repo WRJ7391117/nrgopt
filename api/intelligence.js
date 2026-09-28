@@ -91,7 +91,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
       const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -147,6 +147,37 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           await store.enqueueDailyDigest(config.adminId, result.jobId || scheduled.jobId);
         }
         return res.status(200).json({ ...scheduled, result });
+      }
+      if (action === 'library-maintenance') {
+        if (env.NRGOPT_SCHEDULER_ENABLED !== '1') throw failure('scheduler_disabled', 503);
+        if (!env.CRON_SECRET || req.headers.authorization !== `Bearer ${env.CRON_SECRET}`) throw failure('scheduler_unauthorized', 401);
+        const config = settings(env);
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const store = storeFactory(config);
+        const library = require('../lib/intelligence/source-library.cjs');
+        const day = scheduleDate();
+        const entries = await store.sourceLibrary(config.adminId);
+        const candidates = entries.filter(e => e.id.startsWith('reference:') && e.status === 'candidate' && !e.host_paused)
+          .sort((a,b) => (a.access?.checked_at || '').localeCompare(b.access?.checked_at || '') || a.id.localeCompare(b.id));
+        const outcomes = [];
+        for (const entry of candidates) {
+          if (outcomes.length >= 3) break;
+          const reservation = await store.reserveLibraryCheck(config.adminId, entry.id, day);
+          if (reservation === 'limit') break;
+          if (reservation === 'duplicate') continue;
+          if (reservation !== 'reserved') throw failure('upstream_unavailable', 502);
+          const sources = await store.recentLibrarySources(config.adminId, entry);
+          const access = await library.checkEntry(entry, sourceFetcher, sources, day);
+          const status = access.status === 'readable' && access.review === 'recent_validated_source' ? 'active' : 'candidate';
+          try {
+            await store.saveLibraryEntry(config.adminId, { ...entry, status }, access);
+            outcomes.push({ id:entry.id, status, review:access.review, error_code:access.error_code || null });
+          } catch(error) {
+            if (error.code !== 'library_conflict') throw error;
+            outcomes.push({ id:entry.id, status:'conflict', review:'changed_during_check' });
+          }
+        }
+        return res.status(200).json({ day, checked:outcomes.length, outcomes });
       }
       if (action === 'health-check') {
         if (!env.CRON_SECRET || req.headers.authorization !== `Bearer ${env.CRON_SECRET}`) throw failure('scheduler_unauthorized', 401);
@@ -267,13 +298,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const entry = (await store.sourceLibrary(user.id)).find(e=>e.id===body.id && e.revision===body.revision);
         if (!entry) throw failure('library_conflict',409);
         if (entry.status==='removed') throw failure('invalid_request',400);
-        let access;
-        try {
-          const source = await sourceFetcher(entry.config.url);
-          if (!library.matches(entry,source.finalUrl)) throw failure('registry_redirect_host',422);
-          if (!source.excerpt?.trim()) throw failure('source_empty_document',422);
-          access = { status:'readable',checked_at:new Date().toISOString(),final_url:source.finalUrl,sha256:source.sha256 || createHash('sha256').update(source.bytes).digest('hex'), title:source.title, note:'仅验证入口可读取，未验证身份、文章日期、分析或持续产出。' };
-        } catch(error) { access = { status:'failed',checked_at:new Date().toISOString(),error_code:/^(source|registry)_[a-z_]+$/.test(error.code||'')?error.code:'source_failed' }; }
+        const access = await library.checkEntry(entry, sourceFetcher);
         const checkedEntry = access.status==='failed' && entry.status==='active' && entry.config.mode!=='fixed' ? {...entry,status:'candidate'} : entry;
         return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
       }
