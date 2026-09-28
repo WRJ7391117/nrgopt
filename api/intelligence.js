@@ -288,7 +288,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         return res.status(200).json({ direction: await store.saveDirection(user.id, require('../lib/intelligence/directions.cjs').validateDirection(body)) });
       }
       if (action === 'discover-page') return html(overviewPage(user.email));
-      if (action === 'workbench') return res.status(200).json(await store.workbench(user.id, scheduleDate()));
+      if (action === 'workbench') {
+        const period = Number(req.query.period || 1);
+        if (![1,7,30].includes(period)) throw failure('invalid_request', 400);
+        return res.status(200).json(await store.workbench(user.id, scheduleDate(), period));
+      }
       if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(primaryHosts), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
       if (action === 'workflow-page') return html(workflowPage(user.email));
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });

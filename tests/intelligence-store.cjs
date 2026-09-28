@@ -1257,8 +1257,8 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
   const store=createStore(CONFIG,async input=>{
     const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
     if(u.pathname.endsWith('intelligence_candidates')) {
-      assert.equal(u.searchParams.get('created_at'),'gte.2026-09-26T16:00:00.000Z');
-      assert.deepEqual(u.searchParams.getAll('created_at'),['gte.2026-09-26T16:00:00.000Z','lt.2026-09-27T16:00:00.000Z']);
+      assert.equal(u.searchParams.get('disposition'),'eq.candidate');
+      assert.equal(u.searchParams.get('offset'),'0');
       return Response.json(ids.map(id=>({id,source_id:id,created_at:'2026-09-27T00:00:00Z'})));
     }
     if(u.pathname.endsWith('intelligence_watch_targets'))return Response.json([{candidate_id:'handled',status:'expired'}]);
@@ -1266,6 +1266,7 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
       assert.ok(u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
       return Response.json(sources);
     }
+    if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities|notification_outbox)$/.test(u.pathname))return Response.json([]);
     throw Error('unexpected');
   });
   const result=await store.workbench('owner-a','2026-09-27');
@@ -1296,4 +1297,42 @@ test('active followups are globally prioritized, per-watch changes exclude uncha
   assert.deepEqual(result.items.slice(0,3).map(x=>x.id),['w26','w25','w0']);
   assert.equal(result.items.find(x=>x.id==='w1').change_count,0);
   assert.equal(result.items[2].change_count,1);
+});
+
+test('overview counts include all candidate pages and preserve source-level classification counts', async()=>{
+  const candidates=Array.from({length:501},(_,i)=>({id:'c'+i,source_id:'s'+i,created_at:'2026-09-26T16:00:00+00:00',radars:['demand','project'],source_sha256:'a'}));
+  const offsets=[];
+  const store=createStore(CONFIG,async(input,init)=>{
+    assert.ok(!init.method || init.method==='GET');
+    const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
+    if(u.pathname.endsWith('intelligence_candidates')){const offset=Number(u.searchParams.get('offset'));offsets.push(offset);return Response.json(candidates.slice(offset,offset+500));}
+    if(u.pathname.endsWith('intelligence_sources'))return Response.json(u.searchParams.get('id').slice(4,-1).split(',').map(id=>({id,final_url:'https://example.com/'+id,content_sha256:'a',extraction_source_sha256:'a',extraction_status:'extracted',publication_date:'2026-09-27'})));
+    return Response.json([]);
+  });
+  const result=await store.workbench('owner-a','2026-09-27',1);
+  assert.deepEqual(offsets,[0,500]);assert.equal(result.counts.discoveries,501);assert.equal(result.new_items.length,501);
+  assert.equal(result.distribution.project,501);assert.equal(result.distribution.demand,501);assert.equal(result.distribution.total,501);
+});
+
+test('overview separates period evidence, current decisions, configuration and verified direction output',()=>{
+  const {summarize,periodWindow,recentPublication}=require('../lib/intelligence/overview-summary.cjs');
+  assert.equal(periodWindow('2026-09-28',7).start,'2026-09-21T16:00:00.000Z');
+  assert.throws(()=>periodWindow('2026-09-28',8),{code:'invalid_request'});
+  assert.equal(recentPublication({publication_date:'2026-09-29'},'2026-09-28'),false);
+  assert.equal(recentPublication({publication_date:'2026-02-31'},'2026-03-05'),false);
+  assert.equal(recentPublication({published_at:'2026-09-27T17:00:00Z'},'2026-09-28'),true);
+  const source={id:'s',final_url:'https://example.com/a',content_sha256:'a',extraction_source_sha256:'a',extraction_status:'extracted',extracted_at:'2026-09-28T00:00:00Z',publication_date:'2026-09-28'};
+  const candidate={id:'c',source_id:'s',source_sha256:'a',created_at:'2026-09-27T16:00:00+00:00',radars:['project']};
+  const watch={id:'w',candidate_id:'c',candidate:{...candidate,evidence_status:'conflict'},followup:{review_on:'2099-01-01'},changes:[{created_at:'2026-09-26T00:00:00Z'},{created_at:'2026-09-28T00:00:00Z'}]};
+  const ref={source_id:'s',direction_id:'d',analysis_sha256:'a',analysis_extracted_at:source.extracted_at,match:{relevant:true}};
+  const input={day:'2026-09-28',period:1,candidates:[candidate],sources:[source],watches:[watch],followed:[watch],directions:[{id:'d',effective_on:'2026-09-29',config:{name:'Future config',enabled:true,countries:['SA','AE'],industries:'Energy'}}],runs:[],tasks:[{status:'failed',checkpoint:{country:'SA',direction:{id:'d'}}}],refs:[ref,{...ref,analysis_sha256:'old'}],library:[],opportunities:[{candidate_id:'c',source_sha256:'old'}],notifications:[],currentTasks:[]};
+  const result=summarize(input);
+  assert.equal(result.counts.discoveries,1);assert.equal(result.discoveries.length,0);assert.equal(result.counts.active,1);assert.equal(result.counts.due,1);
+  assert.equal(result.updates[0].change_count,1);assert.equal(result.directions[0].new_count,1);assert.equal(result.directions[0].unverified_links,1);
+  assert.deepEqual(result.directions[0].succeeded_countries,[]);assert.deepEqual(result.directions[0].searched_countries,['SA']);assert.equal(result.distribution.procurement,0);
+  assert.equal(result.runtime.run,null);assert.equal(summarize({...input,period:7}).updates[0].change_count,2);
+  assert.equal(summarize({...input,refs:[{...ref,analysis_sha256:'old'}]}).directions[0].new_count,0);
+  const revised=summarize({...input,candidates:[{...candidate,created_at:'2026-09-24T00:00:00Z'}, {...candidate,id:'c2',source_id:'s2',radars:['demand']}],sources:[source,{...source,id:'s2'}]});
+  assert.equal(revised.counts.discoveries,0,'New source version must not refresh first discovery');
+  assert.equal(revised.distribution.total,1);assert.equal(revised.distribution.project,0);assert.equal(revised.distribution.demand,1,'Latest valid version supplies the category');
 });
