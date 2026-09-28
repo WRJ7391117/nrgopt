@@ -1271,6 +1271,7 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
   });
   const result=await store.workbench('owner-a','2026-09-27');
   assert.deepEqual(result.discoveries.map(x=>x.id),['fresh','boundary']);
+  assert.deepEqual(result.highlights.map(x=>x.id),['fresh','boundary']);
   assert.deepEqual(result.discoveries[0].unknowns_zh,sources[0].unknowns_zh);
   assert.deepEqual(result.discoveries[1].unknowns_zh,[]);
   assert.deepEqual(result.due,[]);assert.deepEqual(result.updates,[]);
@@ -1328,6 +1329,7 @@ test('overview separates period evidence, current decisions, configuration and v
   const input={day:'2026-09-28',period:1,candidates:[candidate],sources:[source],watches:[watch],followed:[watch],directions:[{id:'d',effective_on:'2026-09-29',config:{name:'Future config',enabled:true,countries:['SA','AE'],industries:'Energy'}}],runs:[],tasks:[{status:'failed',checkpoint:{country:'SA',direction:{id:'d'}}}],refs:[ref,{...ref,analysis_sha256:'old'}],library:[],opportunities:[{candidate_id:'c',source_sha256:'old'}],notifications:[],currentTasks:[]};
   const result=summarize(input);
   assert.equal(result.counts.discoveries,1);assert.equal(result.discoveries.length,0);assert.equal(result.counts.active,1);assert.equal(result.counts.due,1);
+  assert.deepEqual(result.highlights,[],'Followed evidence belongs to the action section, not new discoveries');
   assert.equal(result.updates[0].change_count,1);assert.equal(result.directions[0].new_count,1);assert.equal(result.directions[0].unverified_links,1);
   assert.deepEqual(result.directions[0].succeeded_countries,[]);assert.deepEqual(result.directions[0].searched_countries,['SA']);assert.equal(result.distribution.procurement,0);
   assert.equal(result.runtime.run,null);assert.equal(summarize({...input,period:7}).updates[0].change_count,2);

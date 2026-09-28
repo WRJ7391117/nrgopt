@@ -514,10 +514,8 @@
 .intel-overview-controls { display: flex; align-items: flex-end; gap: 12px; }
 .intel-overview-controls label { font-size: .75rem; color: var(--text-dim); }
 .intel-overview-controls select { display: block; min-width: 130px; margin-top: 4px; }
-.intel-overview-brief { padding: 24px 0 18px; border-top: 1px solid var(--border); margin-top: 20px; }
-#workbench-summary { font-size: 1.1rem; max-width: 900px; line-height: 1.85; }
-.intel-overview-alert { display: block; margin-top: 14px; font-size: .83rem; }
-.intel-overview-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 32px; }
+.intel-overview-alert { display: block; margin: -14px 0 22px; font-size: .83rem; }
+.intel-overview-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 24px 0 32px; }
 .intel-overview-metrics a { background: var(--surface); padding: 20px 24px; text-decoration: none; }
 .intel-overview-metrics strong { display: block; font-size: 2rem; font-weight: 600; color: var(--text); line-height: 1.5; }
 .intel-overview-metrics span { font-size: .88rem; }

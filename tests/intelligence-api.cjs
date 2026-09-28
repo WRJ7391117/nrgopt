@@ -406,7 +406,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('discover-page');
   assert.match(overviewPage.body, /发现情报/);
-  assert.match(overviewPage.body, />总览</);
+  assert.match(overviewPage.body, />工作台总览</);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
   assert.match(overviewPage.body, /谁需要解决什么问题/);
@@ -729,7 +729,11 @@ test('entry routes open overview while source tools and deep links keep their lo
   const { rewrites } = require('../vercel.json');
   const entry = rewrites.find(route => route.source === '/intelligence');
   const action = new URL(entry.destination, 'https://preview.example').searchParams.get('action');
-  assert.match((await request(action)).body, /<h1>总览<\/h1>/);
+  const workbench = (await request(action)).body;
+  assert.match(workbench, /<h1>工作台总览<\/h1>/);
+  assert.ok(workbench.indexOf('id="workbench-actions"') < workbench.indexOf('id="workbench-highlights-title"'));
+  assert.ok(workbench.indexOf('id="workbench-highlights-title"') < workbench.indexOf('id="workbench-directions-section"'));
+  assert.doesNotMatch(workbench, /整体概况|id="workbench-summary"/);
   const redirect = await request(action, { loggedIn: false });
   assert.equal(new URL(redirect.headers.location, 'https://preview.example').searchParams.get('returnTo'), '/intelligence/overview');
   assert.equal(rewrites.find(route => route.source === '/intelligence/sources').destination, '/api/intelligence?action=page');
@@ -850,7 +854,7 @@ test('decision workbench is private, read-only and separate from filtered discov
   assert.equal((await request('workbench',{query:{period:'2'}})).code,400);
   assert.equal((await request('workbench',{query:{period:'all'}})).code,400);
   const page=await request('overview-page');
-  for(const label of ['新发现','跟踪有更新','需要处理','发现情报','我的跟踪','管理'])assert.ok(page.body.includes(label));
+  for(const label of ['工作台总览','新增情报','跟踪有更新','需要处理','发现情报','我的跟踪','运行状态'])assert.ok(page.body.includes(label));
   assert.doesNotMatch(page.body,/id="overview-list"/);
   assert.match((await request('overview-page',{query:{view:'project'}})).body,/id="overview-title"/);
   const redirect=await request('discover-page',{loggedIn:false,query:{country:'EG',view:'demand',period:'90'}});
