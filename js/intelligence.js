@@ -561,36 +561,92 @@
     section.append(heading, list);
     return section;
   }
-  async function loadWorkbench() {
-    var button = byId('workbench-refresh'); button.disabled = true;
-    status('page-status', '正在核对今天的情报与跟踪…');
-    try {
-      var data = await api('workbench');
-      byId('workbench-period').textContent = data.day + ' · 北京时间 UTC+8 · 数据读取于 ' + dateLabel(data.captured_at);
-      var fresh = byId('workbench-new'); fresh.replaceChildren();
-      data.discoveries.forEach(function (candidate) {
-        var item = document.createElement('li'), heading = document.createElement('h3'), link = document.createElement('a');
-        setSourceLink(link, candidate.source_id); link.textContent = candidate.title_zh; heading.append(link); item.append(heading);
-        paragraph(item, candidate.summary_zh);
-        paragraph(item, '值得关注：' + (candidate.why_it_matters_zh || '影响尚待进一步判断。'));
-        item.append(reviewPointsSection(candidate, candidate));
-        paragraph(item, '下一步观察：' + (candidate.next_signals_zh[0] || '先核对原文是否支持当前判断。'));
-        paragraph(item, '原文发布：' + publicationLabel(candidate.source_timing) + ' · 首次收录：' + dateLabel(candidate.created_at), 'intel-source-meta');
-        var action = document.createElement('a'); action.href = link.href; action.className = 'intel-evidence-link'; action.textContent = '查看判断，决定是否跟踪 →'; item.append(action); fresh.append(item);
-      });
-      if (!data.discoveries.length) emptyWorkList(fresh, '今天暂无符合上述条件的新情报。可浏览全部情报，或继续处理已有跟踪。');
-      if (data.discovery_more) emptyWorkList(fresh, '此处展示部分新发现；更多内容请进入“发现情报”。');
-      [['updates', '跟踪事项暂未出现新的证据判断。'], ['due', '当前没有到期或存在原文冲突的活跃跟踪。']].forEach(function (entry) {
-        var list = byId('workbench-' + entry[0]); list.replaceChildren();
-        data[entry[0]].forEach(function (watch) { list.append(watchCard(watch)); });
-        if (!data[entry[0]].length) emptyWorkList(list, entry[1]);
-        if (data[entry[0] + '_more']) emptyWorkList(list, '更多事项请进入“我的跟踪”。');
-      });
-      status('page-status', '');
-    } catch (error) { status('page-status', error.message + ' 当前无法判断是否有新情报；已显示内容保留，请稍后刷新。', 'error'); }
-    finally { button.disabled = false; }
+  function overviewDiscovery(candidate, compact) {
+    var item=document.createElement('li'), heading=directionText(item,'h3','');
+    var link=directionText(heading,'a',candidate.title_zh);setSourceLink(link,candidate.source_id);
+    var labels={trigger:'早期信号',demand:'需求',project:'项目'};
+    paragraph(item,(candidate.occurrence_countries||[]).map(function(c){return regionNames[c]||c;}).join('、')+' · '+(candidate.radars||[]).map(function(r){return labels[r]||r;}).join(' / '),'intel-source-meta');
+    paragraph(item,candidate.summary_zh);
+    paragraph(item,'与你的关注有关：'+(candidate.direction_names.length?candidate.direction_names.join('、')+'。':'尚无已核验的方向归属。')+(candidate.why_it_matters_zh||''),'intel-overview-impact');
+    if(compact) {
+      paragraph(item,'关键未知：'+(candidate.unknowns_zh[0]||'当前未列出具体核实点，不代表全部证实。'),'intel-muted');
+      var details=directionText(item,'details','');directionText(details,'summary','查看全部核实点与依据');details.append(reviewPointsSection(candidate,candidate));
+      paragraph(details,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta');
+    } else { item.append(reviewPointsSection(candidate,candidate));paragraph(item,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta'); }
+    var action=directionText(item,'a','查看证据与跟踪计划 →','intel-evidence-link');action.href=link.href;
+    return item;
   }
-  if (byId('workbench-refresh')) byId('workbench-refresh').addEventListener('click', loadWorkbench);
+  function overviewWatch(watch) {
+    var item=document.createElement('li'), heading=directionText(item,'h3',''),link=directionText(heading,'a',watch.candidate.title_zh);
+    link.href='/intelligence/sources/'+encodeURIComponent(watch.candidate.source_id)+'#followup-section';
+    paragraph(item,watch.changes.length?'最新证据：'+watch.changes[0].reason_zh:'暂无新的证据判断；不代表市场没有变化。');
+    if(watch.candidate.evidence_status==='conflict')paragraph(item,'原文存在冲突，需要核对。','intel-caution');
+    paragraph(item,'下一步：'+watch.followup.next_action,'intel-overview-impact');
+    paragraph(item,'复核日 '+watch.followup.review_on+' · '+(priorityLabels[watch.followup.priority]||'普通')+'优先级','intel-source-meta');
+    return item;
+  }
+  var workbenchRenderedPeriod = '1';
+  async function loadWorkbench() {
+    var button=byId('workbench-refresh'),range=byId('workbench-range');button.disabled=true;range.disabled=true;
+    status('page-status','正在核对情报、方向成果和运行记录…');
+    try {
+      var data=await api('workbench&period='+range.value);workbenchRenderedPeriod=String(data.period);
+      byId('workbench-period').textContent='统计 '+data.from+' 至 '+data.day+' · 北京时间 · 读取于 '+dateLabel(data.captured_at);
+      Object.keys(data.counts).forEach(function(key){byId('workbench-count-'+key).textContent=data.counts[key];});
+      var leading=data.directions.filter(function(d){return d.new_count>0;}).sort(function(a,b){return b.new_count-a.new_count;}).slice(0,2);
+      byId('workbench-summary').textContent=(data.counts.discoveries?'本期新增 '+data.counts.discoveries+' 条近期情报'+(leading.length?'，已核验的方向关联主要见于「'+leading.map(function(d){return d.name;}).join('」「')+'」。':'。'):'本期暂无符合近期规则的新情报。')+' '+data.counts.updates+' 个跟踪事项有新证据，当前 '+data.counts.due+' 个事项需要处理。';
+      var run=data.runtime,failed=run.counts.failed||0,paused=(run.counts.budget_paused||0)+(run.counts.manual_paused||0);
+      var alert=byId('workbench-alert');alert.hidden=!failed&&!paused&&!!run.run;
+      alert.textContent=!run.run?'今天尚无自然计划记录，不能据此判断市场没有变化。查看搜集状态 →':'今天有 '+failed+' 项失败、'+paused+' 项暂停，可能影响对应来源或环节的覆盖；有效结果保留。查看缺口 →';
+      var highlights=byId('workbench-highlights');highlights.replaceChildren();
+      data.highlights.forEach(function(h){highlights.append(h.kind==='update'?overviewWatch(h.watch):overviewDiscovery(h.candidate,true));});
+      if(!data.highlights.length)emptyWorkList(highlights,'本期暂无新的重点变化。可以查看已有情报，或检查搜集进度与缺口。');
+      var fresh=byId('workbench-new');fresh.replaceChildren();data.new_items.forEach(function(c){fresh.append(overviewDiscovery(c,false));});
+      if(!data.new_items.length)emptyWorkList(fresh,'本期暂无符合首次收录、原文日期与有效证据条件的新增情报。');
+      byId('workbench-new-label').textContent='查看本期全部新增情报（'+data.counts.discoveries+'）';
+      var directionList=byId('workbench-directions');directionList.replaceChildren();
+      byId('workbench-coverage').textContent='已保存 '+data.directions.length+' 个关注方向 · 当前启用渠道 '+data.library.active+' / '+data.library.total+'。渠道启用不代表本期均已执行。';
+      data.directions.forEach(function(d){
+        var row=directionText(directionList,'article','','intel-overview-direction');
+        var title=directionText(row,'div','','intel-overview-direction-title'),link=directionText(title,'a',d.name);link.href='/intelligence/directions?direction='+encodeURIComponent(d.id);
+        directionText(title,'small',(d.effective_on>data.day?d.effective_on+' 起生效': '已保存设置')+' · '+(d.enabled?'启用':'暂停'));
+        var scope=directionText(row,'div','');directionText(scope,'small','关注范围');directionText(scope,'p',d.industries||'未设置行业');
+        var details=directionText(scope,'details','');directionText(details,'summary',d.countries.length+' 个地区');directionText(details,'p',d.countries.map(function(c){return regionNames[c]||c;}).join('、'));
+        var execution=directionText(row,'div','');directionText(execution,'small','本期定向搜索');
+        directionText(execution,'p',d.task_count?'已完成 '+(d.status_counts.succeeded||0)+' / '+d.task_count+' 项':'尚无执行记录 / 未轮到');
+        if(d.searched_countries.length)directionText(execution,'p','安排：'+d.searched_countries.map(function(c){return regionNames[c]||c;}).join('、'),'intel-muted');
+        if(d.succeeded_countries.length)directionText(execution,'p','完成：'+d.succeeded_countries.map(function(c){return regionNames[c]||c;}).join('、'),'intel-muted');
+        var result=directionText(row,'div','');directionText(result,'small','本期新增相关情报');directionText(result,'strong',String(d.new_count),'intel-overview-direction-count');
+        if(d.latest){var latest=directionText(result,'a',d.latest.title);setSourceLink(latest,d.latest.source_id);directionText(result,'p','原文 '+publicationLabel(d.latest.source_timing),'intel-source-meta');}else directionText(result,'p','本期暂无有效新发现','intel-muted');
+        var gap=directionText(row,'div','');directionText(gap,'small','仍待补齐');
+        var outstanding=Object.keys(d.status_counts).filter(function(s){return s!=='succeeded';}).map(function(s){return (taskStates[s]||'状态未知')+' '+d.status_counts[s]+' 项';});
+        if(d.unverified_links)outstanding.push(d.unverified_links+' 条关联记录待原文或相关性核验');
+        directionText(gap,'p',outstanding.join('；')||(d.task_count?'搜索已执行，结果不等于完整覆盖':'等待实际执行记录'));
+      });
+      if(!data.directions.length)directionText(directionList,'p','尚未设置搜集方向。先明确关注什么，再查看对应搜集成果。','intel-muted');
+      var distribution=byId('workbench-distribution');distribution.replaceChildren();
+      byId('workbench-corpus-note').textContent='当前累计 '+data.distribution.total+' 条有效情报来源 · 不随上方统计期间切换。';
+      [['trigger','早期信号'],['demand','需求'],['project','项目'],['procurement','采购机会来源']].forEach(function(pair){var a=directionText(distribution,'a','');a.href='/intelligence/discover?view='+(pair[0]==='procurement'?'opportunity':pair[0]==='trigger'?'signal':pair[0])+'&period=all';directionText(a,'strong',String(data.distribution[pair[0]]));directionText(a,'span',pair[1]);});
+      [['due','当前没有到期或存在原文冲突的活跃跟踪。'],['updates','本期没有新的跟踪证据判断。'],['active','尚未建立跟踪计划，可从发现情报中选择值得跟进的事项。']].forEach(function(entry){var list=byId('workbench-'+entry[0]);list.replaceChildren();data[entry[0]].forEach(function(w){list.append(overviewWatch(w));});if(!data[entry[0]].length)emptyWorkList(list,entry[1]);if(data[entry[0]+'_more']){var li=directionText(list,'li','');var a=directionText(li,'a','查看更多跟踪事项 →');a.href='/intelligence/followups';}});
+      var states={running:'搜集进行中',queued:'等待执行',retry:'等待重试',partial:'已结束，部分失败或暂停',completed:'搜集已完成',succeeded:'搜集已完成',failed:'搜集失败',budget_paused:'预算暂停',manual_paused:'人工暂停'};
+      byId('workbench-run-status').textContent=run.day+' · '+(run.run?(states[run.run.status]||'运行状态待核对'):'尚无计划记录');
+      byId('workbench-run-counts').textContent=run.run?Object.keys(run.counts).map(function(s){return (taskStates[s]||'状态未知')+' '+run.counts[s];}).join(' · ')+'。任务数不是文章数；运行中的快照会继续变化。':'暂无可统计的当天任务。';
+      var failures=byId('workbench-failures');failures.replaceChildren();
+      run.failures.forEach(function(f){var name=f.name;if(f.url){try{name=new URL(f.url).hostname;}catch{}}var reason=/tls/.test(f.error_code)?'来源连接验证失败':/empty/.test(f.error_code)?'未取得有效正文':/large/.test(f.error_code)?'原文超过抓取大小限制':/extraction/.test(f.error_code)?'原文分析未通过核验':'执行失败';directionText(failures,'li',name+'：'+reason);});
+      if(failed>run.failures.length)directionText(failures,'li','其余失败与具体影响请查看当天任务详情。');
+      var notifications=byId('workbench-notifications');notifications.replaceChildren();
+      var notifyStates={retry:'等待重试',accepted:'飞书已接收',failed:'发送失败',pending:'等待发送',queued:'等待发送',unknown:'结果未知，未自动重发',sending:'发送中',paused:'已暂停'};
+      data.notifications.forEach(function(n){directionText(notifications,'li',({daily:'日报',flash:'重大提醒',system:'系统告警'}[n.notification_type]||'通知')+' · '+(n.error_code==='not_sent_before_production_enablement'?'接通前历史通知，未补发':notifyStates[n.status]||'状态待核对')+' · '+dateLabel(n.updated_at));});
+      if(!data.notifications.length)directionText(notifications,'li','尚无投递记录。');
+      byId('workbench-content').hidden=false;status('page-status','');
+    } catch(error){range.value=workbenchRenderedPeriod;status('page-status',error.message+' 本次读取未完成，已有内容仍是上次快照，不能据此判断没有新情报。','error');}
+    finally{button.disabled=false;range.disabled=false;}
+  }
+  if(byId('workbench-refresh')) {
+    byId('workbench-refresh').addEventListener('click',loadWorkbench);
+    byId('workbench-range').addEventListener('change',loadWorkbench);
+    document.querySelectorAll('.intel-overview-metrics a').forEach(function(a){a.addEventListener('click',function(){var target=document.querySelector(a.getAttribute('href'));if(target.tagName==='DETAILS')target.open=true;});});
+  }
   var overviewCandidates = [], overviewOpportunities = [], overviewLoaded = false;
   function renderOverviewHeading() {
     var filters = byId('candidate-filters'), period = filters.elements.period.value, view = filters.elements.view.value || 'overview';
@@ -1953,7 +2009,7 @@
   }
   (async function () {
     try {
-      if (byId('direction-list')) { await loadDirections(); return; }
+      if (byId('direction-list')) { await loadDirections(); var requestedDirection=new URLSearchParams(location.search).get('direction'); var selectedDirection=directionData.directions.find(function(d){return d.id===requestedDirection;}); if(selectedDirection)await loadDirectionResults(selectedDirection); return; }
       if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }

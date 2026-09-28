@@ -845,6 +845,9 @@ test('decision workbench is private, read-only and separate from filtered discov
   assert.equal((await request('workbench',{loggedIn:false})).code,401);
   assert.equal((await request('workbench',{method:'POST'})).code,405);
   assert.equal((await request('workbench')).code,200);
+  assert.equal((await request('workbench',{query:{period:'7'}})).code,200);
+  assert.equal((await request('workbench',{query:{period:'2'}})).code,400);
+  assert.equal((await request('workbench',{query:{period:'all'}})).code,400);
   const page=await request('overview-page');
   for(const label of ['新发现','跟踪有更新','需要处理','发现情报','我的跟踪','管理'])assert.ok(page.body.includes(label));
   assert.doesNotMatch(page.body,/id="overview-list"/);
