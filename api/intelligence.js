@@ -11,10 +11,12 @@ const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu
 const { directionsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
+const feishuConfig = require('../lib/intelligence/feishu-config.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const messages = {
+  feishu_config_incomplete: '请填写 App ID、App Secret，并选择及填写至少一个接收目标。', feishu_secret_required: '更换 App ID 时请填写对应的新 App Secret。', feishu_config_conflict: '飞书配置已在其他页面更改。请重新读取后再修改，当前输入尚未覆盖。',
   library_duplicate:'此入口已在源库中，请编辑或恢复已有记录。', library_conflict: '渠道已在其他页面修改，请刷新后重试。当前编辑保留。', library_limit:'最多登记500个渠道。', library_unchecked:'请先验证渠道入口可读取，再启用持续搜索。', source_invalid_url:'请填写可公开访问、不含查询参数的HTTPS渠道入口。',
 
   direction_conflict: '此方向已在其他页面修改。你的编辑仍保留，请核对最新设置后重新编辑。', direction_limit: '最多保留20个搜集方向，请编辑已有方向。',
@@ -79,7 +81,7 @@ function sessionCookie(token, seconds, env) {
 
 function createHandler({ env = process.env, storeFactory = createStore, sourceFetcher = fetchSource, modelFactory = createDeepSeekExtractor,
   crossCheckFactory = createDeepSeekCrossChecker, discoveryFactory = createMiniMaxDiscoverer,
-  balanceReaderFactory = createProviderBalanceReader, notificationFactory = createFeishuSender } = {}) {
+  balanceReaderFactory = createProviderBalanceReader, notificationFactory = createFeishuSender, feishuChecker = feishuConfig.checkCredentials } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
@@ -88,8 +90,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -161,13 +163,13 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         return res.status(200).json({ schedule_key: scheduleKey, health, run_status: run?.status || null });
       }
       if (action === 'notification-worker') {
-        if (env.NRGOPT_FEISHU_ENABLED !== '1') throw failure('feishu_disabled', 503);
         if (!env.CRON_SECRET || req.headers.authorization !== `Bearer ${env.CRON_SECRET}`) throw failure('scheduler_unauthorized', 401);
         const config = settings(env);
         if (!config.writes) throw failure('writes_disabled', 403);
-        const send = notificationFactory({ webhookUrl: env.FEISHU_WEBHOOK_URL, appId: env.FEISHU_APP_ID,
-          appSecret: env.FEISHU_APP_SECRET, chatId: env.FEISHU_CHAT_ID, userOpenId: env.FEISHU_USER_OPEN_ID });
         const store = storeFactory(config);
+        const delivery = feishuConfig.effectiveConfig(await store.feishuConfig(config.adminId), env, config.adminId);
+        if (!delivery.enabled) return res.status(200).json({ status: 'paused' });
+        const send = notificationFactory(feishuConfig.senderOptions(delivery));
         const notification = await store.claimNotification(config.adminId);
         if (!notification) return res.status(200).json({ status: 'idle' });
         let source = null;
@@ -243,6 +245,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract', 'followup', 'save-followup'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
       if (action === 'overview-page') return html(['view', 'country', 'group', 'topic', 'period', 'radar'].some(key => req.query[key]) ? overviewPage(user.email) : workbenchPage(user.email));
+      if (action === 'feishu-page') return html(require('../lib/intelligence/pages.cjs').feishuPage(user.email));
       if (action === 'library-page') return html(require('../lib/intelligence/pages.cjs').sourceLibraryPage(user.email));
       if (action === 'source-library') return res.status(200).json({ ...(await store.libraryOverview(user.id)), writable:config.writes, directions:(await store.collectionDirections(user.id,scheduleDate())).directions, types:require('../lib/intelligence/source-library.cjs').types });
       if (action === 'library-history') {
@@ -328,8 +331,17 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         scheduler_enabled: env.NRGOPT_SCHEDULER_ENABLED === '1' && config.writes,
         archive_status: env.NRGOPT_ARCHIVE_ENABLED !== '1' ? 'disabled' : !env.NRGOPT_ARCHIVE_TOKEN ? 'missing_token' : !config.writes ? 'read_only' : 'enabled' });
       if (action === 'provider-history') return res.status(200).json(await store.providerHistory(user.id));
-      if (action === 'notification-settings') return res.status(200).json({ settings: await store.notificationSettings(user.id), writable: config.writes,
-        delivery_enabled: env.NRGOPT_FEISHU_ENABLED === '1' && Boolean(env.FEISHU_WEBHOOK_URL || (env.FEISHU_APP_ID && env.FEISHU_APP_SECRET)) });
+      if (['feishu-config', 'save-feishu-config', 'check-feishu-config', 'notification-settings'].includes(action)) {
+        const current = feishuConfig.effectiveConfig(await store.feishuConfig(user.id), env, user.id);
+        if (action === 'feishu-config') return res.status(200).json({ config: feishuConfig.publicConfig(current), writable: config.writes, history: await store.notificationHistory(user.id) });
+        if (action === 'notification-settings') return res.status(200).json({ settings: await store.notificationSettings(user.id), writable: config.writes,
+          delivery_enabled: current.enabled && Boolean(current.webhook_url || (current.app_id && current.app_secret)) });
+        if (!config.writes) throw failure('writes_disabled', 403);
+        if (action === 'check-feishu-config') return res.status(200).json(await feishuChecker(current));
+        const record = feishuConfig.configRecord(body, current, env, user.id);
+        const saved = await store.saveFeishuConfig(user.id, body.revision, record);
+        return res.status(200).json({ config: feishuConfig.publicConfig(feishuConfig.effectiveConfig(saved, env, user.id)) });
+      }
       if (action === 'save-notification-settings') {
         if (!config.writes) throw failure('writes_disabled', 403);
         const { quiet_enabled, quiet_start_hour, quiet_end_hour, timezone, flash_breaks_quiet } = body;
@@ -404,9 +416,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['feishu-page', 'library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (['overview-page', 'discover-page'].includes(action)) {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);

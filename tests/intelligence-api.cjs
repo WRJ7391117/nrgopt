@@ -38,7 +38,7 @@ test('provider settings accept generic profiles and keep legacy fallbacks', () =
 });
 
 function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory, crossCheckFactory, discoveryFactory,
-  balanceReaderFactory = () => async () => 1_000_000, notificationFactory } = {}) {
+  balanceReaderFactory = () => async () => 1_000_000, notificationFactory, feishuChecker } = {}) {
   const calls = [];
   const store = {
     sourceControls: async () => [], setSourceControl: async () => 0,
@@ -48,6 +48,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     logout: async () => {}, list: async () => [source], get: async () => source,
     dailyTasks: async () => ({ run: null, items: [] }), candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
+    feishuConfig: async () => null, notificationHistory: async () => [], saveFeishuConfig: async (_owner, revision, config) => ({ ...config, revision: revision + 1 }),
     notificationSettings: async () => ({ quiet_enabled: true, quiet_start_hour: 23, quiet_end_hour: 7, timezone: 'Asia/Shanghai', flash_breaks_quiet: false }),
     saveNotificationSettings: async (_owner, record) => record,
     providerConfigs: async () => [], saveProviderConfig: async (_owner, record) => record,
@@ -71,6 +72,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     crossCheckFactory: crossCheckFactory || (() => async () => { throw failure('model_unavailable'); }),
     discoveryFactory: discoveryFactory || (() => async () => { throw failure('discovery_unavailable'); }),
     balanceReaderFactory,
+    feishuChecker: feishuChecker || (async () => ({ message: '凭据有效，未发消息' })),
     notificationFactory: notificationFactory || (() => async () => ({ responseCode: 200 })) });
   async function request(action, { method = 'GET', body, loggedIn = true, headers = {}, sourceId = id, query = {} } = {}) {
     const res = { code: 200, headers: {}, status(code) { this.code = code; return this; }, setHeader(key, value) { this.headers[key.toLowerCase()] = value; }, json(value) { this.body = value; }, end(value) { this.body = value; } };
@@ -329,7 +331,7 @@ test('independent health check records one system alert for a missing daily run'
 
 test('notification worker records accepted and unknown delivery outcomes without blind retry', async () => {
   const disabled = setup();
-  assert.equal((await disabled.request('notification-worker', { loggedIn: false })).code, 503);
+  assert.equal((await disabled.request('notification-worker', { loggedIn: false })).code, 401);
   assert.deepEqual(disabled.calls, []);
   const workerEnv = { ...env, NRGOPT_FEISHU_ENABLED: '1', CRON_SECRET: 'test-cron-secret',
     FEISHU_WEBHOOK_URL: 'https://open.feishu.cn/open-apis/bot/v2/hook/test-hook-value' };
@@ -903,4 +905,43 @@ test('health alert snapshots the full daily task result with actionable grouped 
   assert.match(payload.problem_groups.find(g => g.stage === '情报分析').reason, /背景材料与商业分类/);
   assert.ok(!app.calls.some(c => c.name === 'operations'));
   assert.deepEqual(app.calls.find(c => c.name === 'dailyTasks').args, [admin, result.body.schedule_key]);
+});
+
+test('Feishu page and settings are admin-only; saving encrypts and version checks stay server scoped', async () => {
+  const environment = { ...env, NRGOPT_PROVIDER_CONFIG_KEY: Buffer.alloc(32, 9).toString('base64'), FEISHU_APP_ID: 'cli_example_app', FEISHU_APP_SECRET: 'existing-secret' };
+  const app = setup({ environment });
+  assert.equal((await app.request('feishu-page', { loggedIn: false })).code, 303);
+  assert.equal((await app.request('feishu-config', { loggedIn: false })).code, 401);
+  assert.match((await app.request('feishu-page')).body, /飞书配置与推送/);
+  const read = await app.request('feishu-config');
+  assert.equal(read.body.config.secret_configured, true); assert.ok(!JSON.stringify(read.body).includes('existing-secret'));
+  const value = { ...read.body.config, enabled: true, send_chat: true, chat_id: 'oc_example_chat', send_user: false, user_open_id: '', app_secret: '' };
+  assert.equal((await app.request('save-feishu-config', { method: 'POST', body: value, headers: { origin: 'https://evil.example' } })).code, 403);
+  const saved = await app.request('save-feishu-config', { method: 'POST', body: { ...value, owner_id: 'other-owner' } });
+  assert.equal(saved.code, 200); assert.equal(saved.body.config.revision, 1);
+  assert.ok(!JSON.stringify(saved.body).includes('secret_ciphertext'));
+  assert.equal(app.calls.find(c => c.name === 'saveFeishuConfig').args[0], admin);
+  assert.equal((await app.request('check-feishu-config', { method: 'POST', body: {} })).code, 200);
+  assert.ok(!app.calls.some(c => ['claimNotification','enqueueNotification'].includes(c.name)));
+  const locked = setup({ environment: { ...environment, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
+  assert.equal((await locked.request('save-feishu-config', { method: 'POST', body: value })).code, 403);
+  const conflict = setup({ environment, overrides: { saveFeishuConfig: async () => { throw Object.assign(new Error('conflict'), { code: 'feishu_config_conflict', status: 409 }); } } });
+  assert.equal((await conflict.request('save-feishu-config', { method: 'POST', body: value })).code, 409);
+});
+
+test('worker honors stored master pause before claiming any notification', async () => {
+  const app = setup({ environment: { ...env, CRON_SECRET: 'test-cron-secret', NRGOPT_FEISHU_ENABLED: '1' },
+    overrides: { feishuConfig: async () => ({ revision: 1, enabled: false, secret_ciphertext: null }) } });
+  const r = await app.request('notification-worker', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
+  assert.equal(r.body.status, 'paused'); assert.ok(!app.calls.some(c => c.name === 'claimNotification'));
+});
+
+test('worker uses managed bot settings even when legacy environment delivery is disabled', async () => {
+  const environment = { ...env, CRON_SECRET: 'test-cron-secret', NRGOPT_FEISHU_ENABLED: '0', NRGOPT_PROVIDER_CONFIG_KEY: Buffer.alloc(32, 3).toString('base64') };
+  const ciphertext = require('../lib/intelligence/provider-config.cjs').encryptApiKey('managed-secret', environment, admin, 'feishu-app');
+  const app = setup({ environment, overrides: { feishuConfig: async () => ({ revision: 1, enabled: true, app_id: 'cli_managed_app', secret_ciphertext: ciphertext, chat_id: 'oc_managed_chat', user_open_id: '', send_chat: true, send_user: false }),
+    claimNotification: async () => ({ id: id, notification_type: 'daily', payload: {} }) },
+    notificationFactory: options => { assert.equal(options.appSecret, 'managed-secret'); assert.equal(options.sendUser, false); assert.equal(options.webhookUrl, ''); return async () => ({ responseCode: 200 }); } });
+  const result = await app.request('notification-worker', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
+  assert.equal(result.body.status, 'accepted'); assert.ok(!JSON.stringify(result.body).includes('managed-secret'));
 });
