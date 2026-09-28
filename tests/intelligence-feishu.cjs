@@ -183,3 +183,19 @@ test('legacy partial cards do not fabricate counts and paused cards do not claim
   assert.match(paused, /失败 0，预算暂停 1，人工暂停 1，未结束 1/);
   assert.doesNotMatch(paused, /部分任务失败/);
 });
+
+test('configured group-only and private-only delivery never resolves or sends to the disabled target', async () => {
+  for (const privateOnly of [true, false]) {
+    const calls = [];
+    const sender = createFeishuSender({ appId: 'cli_example_app', appSecret: 'private-example',
+      sendChat: !privateOnly, sendUser: privateOnly, chatId: privateOnly ? '' : 'oc_example_chat', userOpenId: privateOnly ? 'ou_example_user' : '',
+      fetchImpl: async (url, init) => {
+        calls.push(String(url));
+        if (String(url).includes('/auth/')) return Response.json({ code: 0, tenant_access_token: 'token' });
+        assert.equal(JSON.parse(init.body).receive_id, privateOnly ? 'ou_example_user' : 'oc_example_chat');
+        return Response.json({ code: 0, data: { message_id: 'om_test' } });
+      } });
+    await sender({ notification: { notification_type: 'system', payload: {} }, baseUrl: 'https://example.test' });
+    assert.equal(calls.length, 2); assert.ok(calls[1].endsWith(privateOnly ? 'receive_id_type=open_id' : 'receive_id_type=chat_id'));
+  }
+});

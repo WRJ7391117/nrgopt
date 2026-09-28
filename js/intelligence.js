@@ -1077,7 +1077,7 @@
       var result = await api('notification-settings');
       fillNotificationForm(result.settings);
       byId('notification-settings-form').querySelector('fieldset').disabled = !result.writable;
-      status('notification-settings-status', result.delivery_enabled ? '设置已读取。已在发送中的消息不受随后修改影响。' : '设置已读取。飞书发送尚未启用；保存静默时间不会启用发送。');
+      status('notification-settings-status', '免打扰设置已读取。机器人和推送开关在上方单独管理；已在发送中的消息不受随后修改影响。');
     } catch (error) { status('notification-settings-status', error.message, 'error'); }
   }
   async function loadOverview() {
