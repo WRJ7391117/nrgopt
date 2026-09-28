@@ -591,21 +591,21 @@
     status('page-status','正在核对情报、方向成果和运行记录…');
     try {
       var data=await api('workbench&period='+range.value);workbenchRenderedPeriod=String(data.period);
-      byId('workbench-period').textContent='统计 '+data.from+' 至 '+data.day+' · 北京时间 · 读取于 '+dateLabel(data.captured_at);
+      byId('workbench-period').textContent='本期 '+data.from+'—'+data.day+' · 读取 '+dateLabel(data.captured_at);
       Object.keys(data.counts).forEach(function(key){byId('workbench-count-'+key).textContent=data.counts[key];});
-      var leading=data.directions.filter(function(d){return d.new_count>0;}).sort(function(a,b){return b.new_count-a.new_count;}).slice(0,2);
-      byId('workbench-summary').textContent=(data.counts.discoveries?'本期新增 '+data.counts.discoveries+' 条近期情报'+(leading.length?'，已核验的方向关联主要见于「'+leading.map(function(d){return d.name;}).join('」「')+'」。':'。'):'本期暂无符合近期规则的新情报。')+' '+data.counts.updates+' 个跟踪事项有新证据，当前 '+data.counts.due+' 个事项需要处理。';
       var run=data.runtime,failed=run.counts.failed||0,paused=(run.counts.budget_paused||0)+(run.counts.manual_paused||0);
       var alert=byId('workbench-alert');alert.hidden=!failed&&!paused&&!!run.run;
-      alert.textContent=!run.run?'今天尚无自然计划记录，不能据此判断市场没有变化。查看搜集状态 →':'今天有 '+failed+' 项失败、'+paused+' 项暂停，可能影响对应来源或环节的覆盖；有效结果保留。查看缺口 →';
+      alert.textContent=!run.run?'今天暂无搜集计划记录 · 查看运行状态 →':'今天 '+failed+' 项失败、'+paused+' 项暂停 · 查看运行状态 →';
       var highlights=byId('workbench-highlights');highlights.replaceChildren();
-      data.highlights.forEach(function(h){highlights.append(h.kind==='update'?overviewWatch(h.watch):overviewDiscovery(h.candidate,true));});
-      if(!data.highlights.length)emptyWorkList(highlights,'本期暂无新的重点变化。可以查看已有情报，或检查搜集进度与缺口。');
+      data.highlights.forEach(function(candidate){highlights.append(overviewDiscovery(candidate,true));});
+      if(!data.highlights.length)emptyWorkList(highlights,'本期暂无未跟踪的新情报。');
       var fresh=byId('workbench-new');fresh.replaceChildren();data.new_items.forEach(function(c){fresh.append(overviewDiscovery(c,false));});
       if(!data.new_items.length)emptyWorkList(fresh,'本期暂无符合首次收录、原文日期与有效证据条件的新增情报。');
       byId('workbench-new-label').textContent='查看本期全部新增情报（'+data.counts.discoveries+'）';
       var directionList=byId('workbench-directions');directionList.replaceChildren();
-      byId('workbench-coverage').textContent='已保存 '+data.directions.length+' 个关注方向 · 当前启用渠道 '+data.library.active+' / '+data.library.total+'。渠道启用不代表本期均已执行。';
+      var coverage=byId('workbench-coverage');
+      coverage.replaceChildren(document.createTextNode('已保存 '+data.directions.length+' 个方向 · 当前启用渠道 '+data.library.active+' / '+data.library.total+' · '));
+      var libraryLink=directionText(coverage,'a','查看情报渠道库 →');libraryLink.href='/intelligence/library';
       data.directions.forEach(function(d){
         var row=directionText(directionList,'article','','intel-overview-direction');
         var title=directionText(row,'div','','intel-overview-direction-title'),link=directionText(title,'a',d.name);link.href='/intelligence/directions?direction='+encodeURIComponent(d.id);
@@ -625,12 +625,20 @@
       });
       if(!data.directions.length)directionText(directionList,'p','尚未设置搜集方向。先明确关注什么，再查看对应搜集成果。','intel-muted');
       var distribution=byId('workbench-distribution');distribution.replaceChildren();
-      byId('workbench-corpus-note').textContent='当前累计 '+data.distribution.total+' 条有效情报来源 · 不随上方统计期间切换。';
+      byId('workbench-corpus-note').textContent='累计 '+data.distribution.total+' 条有效情报来源，包含历史资料。';
       [['trigger','早期信号'],['demand','需求'],['project','项目'],['procurement','采购机会来源']].forEach(function(pair){var a=directionText(distribution,'a','');a.href='/intelligence/discover?view='+(pair[0]==='procurement'?'opportunity':pair[0]==='trigger'?'signal':pair[0])+'&period=all';directionText(a,'strong',String(data.distribution[pair[0]]));directionText(a,'span',pair[1]);});
-      [['due','当前没有到期或存在原文冲突的活跃跟踪。'],['updates','本期没有新的跟踪证据判断。'],['active','尚未建立跟踪计划，可从发现情报中选择值得跟进的事项。']].forEach(function(entry){var list=byId('workbench-'+entry[0]);list.replaceChildren();data[entry[0]].forEach(function(w){list.append(overviewWatch(w));});if(!data[entry[0]].length)emptyWorkList(list,entry[1]);if(data[entry[0]+'_more']){var li=directionText(list,'li','');var a=directionText(li,'a','查看更多跟踪事项 →');a.href='/intelligence/followups';}});
+      var visibleDue=new Set(data.due.map(function(w){return w.candidate.id;}));
+      [['due','当前没有到期或存在原文冲突的活跃跟踪。'],['updates','本期没有新的跟踪证据判断。'],['active','尚未建立跟踪计划，可从发现情报中选择值得跟进的事项。']].forEach(function(entry){
+        var list=byId('workbench-'+entry[0]);list.replaceChildren();
+        var items=entry[0]==='updates'?data.updates.filter(function(w){return !visibleDue.has(w.candidate.id);}):data[entry[0]];
+        items.forEach(function(w){list.append(overviewWatch(w));});
+        if(!items.length)emptyWorkList(list,entry[0]==='updates'&&data.updates.length?'更新事项已在“需要处理”列出。':entry[1]);
+        else if(entry[0]==='updates'&&items.length<data.updates.length)directionText(list,'li',(data.updates.length-items.length)+' 项更新已在“需要处理”列出。','intel-muted');
+        if(data[entry[0]+'_more']){var li=directionText(list,'li','');var a=directionText(li,'a','查看更多跟踪事项 →');a.href='/intelligence/followups';}
+      });
       var states={running:'搜集进行中',queued:'等待执行',retry:'等待重试',partial:'已结束，部分失败或暂停',completed:'搜集已完成',succeeded:'搜集已完成',failed:'搜集失败',budget_paused:'预算暂停',manual_paused:'人工暂停'};
       byId('workbench-run-status').textContent=run.day+' · '+(run.run?(states[run.run.status]||'运行状态待核对'):'尚无计划记录');
-      byId('workbench-run-counts').textContent=run.run?Object.keys(run.counts).map(function(s){return (taskStates[s]||'状态未知')+' '+run.counts[s];}).join(' · ')+'。任务数不是文章数；运行中的快照会继续变化。':'暂无可统计的当天任务。';
+      byId('workbench-run-counts').textContent=run.run?Object.keys(run.counts).map(function(s){return (taskStates[s]||'状态未知')+' '+run.counts[s];}).join(' · ')+'（任务数）':'暂无可统计的当天任务。';
       var failures=byId('workbench-failures');failures.replaceChildren();
       run.failures.forEach(function(f){var name=f.name;if(f.url){try{name=new URL(f.url).hostname;}catch{}}var reason=/tls/.test(f.error_code)?'来源连接验证失败':/empty/.test(f.error_code)?'未取得有效正文':/large/.test(f.error_code)?'原文超过抓取大小限制':/extraction/.test(f.error_code)?'原文分析未通过核验':'执行失败';directionText(failures,'li',name+'：'+reason);});
       if(failed>run.failures.length)directionText(failures,'li','其余失败与具体影响请查看当天任务详情。');
