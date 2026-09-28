@@ -46,7 +46,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     requestPasswordReset: async () => ({}), resetPassword: async () => ({ id: admin }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
-    candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    dailyTasks: async () => ({ run: null, items: [] }), candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
     notificationSettings: async () => ({ quiet_enabled: true, quiet_start_hour: 23, quiet_end_hour: 7, timezone: 'Asia/Shanghai', flash_breaks_quiet: false }),
     saveNotificationSettings: async (_owner, record) => record,
@@ -319,8 +319,8 @@ test('independent health check records one system alert for a missing daily run'
   assert.match(alert.args[2], /^system:daily-health:\d{4}-\d{2}-\d{2}:missing$/);
   assert.match(alert.args[3].issue_zh, /任务缺失/);
 
-  const healthy = setup({ environment: healthEnv, overrides: { operations: async () => ({
-    runs: [{ job_type: 'daily_scan', schedule_key: response.body.schedule_key, status: 'succeeded' }], items: [], budgets: [], notifications: []
+  const healthy = setup({ environment: healthEnv, overrides: { dailyTasks: async () => ({
+    run: { status: 'succeeded' }, items: []
   }) } });
   const ok = await healthy.request('health-check', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
   assert.equal(ok.body.health, 'ok');
@@ -885,4 +885,22 @@ test('failed live entry verification is stored and deactivates an unreadable cus
  assert.equal((await s.request('check-library-entry',{method:'POST',body:{id,revision:1}})).code,200);
  assert.equal(record.owner,admin);assert.equal(record.value.status,'candidate');assert.equal(record.access.error_code,'source_access_denied');
  assert.equal((await s.request('check-library-entry',{method:'POST',body:{id,revision:0}})).code,409);
+});
+
+
+test('health alert snapshots the full daily task result with actionable grouped causes', async () => {
+  const items = Array.from({ length: 1200 }, () => ({ status: 'succeeded', item_key: 'source:ok' }));
+  items.push({ status: 'failed', item_key: 'source:bad', error_code: 'source_empty_document', name: '公告网站' },
+    { status: 'failed', item_key: 'extract:bad', error_code: 'extraction_invalid_source_only_consistency', title: '行业文章' },
+    { status: 'budget_paused', item_key: 'discover:SA', error_code: 'budget_exhausted' });
+  const app = setup({ environment: { ...env, CRON_SECRET: 'test-cron-secret' }, overrides: {
+    dailyTasks: async () => ({ run: { status: 'partial' }, items }) } });
+  const result = await app.request('health-check', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
+  assert.equal(result.code, 200);
+  const payload = app.calls.find(c => c.name === 'enqueueNotification').args[3];
+  assert.deepEqual(payload.task_counts, { total: 1203, succeeded: 1200, failed: 2, budget_paused: 1, manual_paused: 0, unfinished: 0 });
+  assert.equal(payload.problem_groups.length, 3);
+  assert.match(payload.problem_groups.find(g => g.stage === '情报分析').reason, /背景材料与商业分类/);
+  assert.ok(!app.calls.some(c => c.name === 'operations'));
+  assert.deepEqual(app.calls.find(c => c.name === 'dailyTasks').args, [admin, result.body.schedule_key]);
 });

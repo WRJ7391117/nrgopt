@@ -7,7 +7,7 @@ const { createDeepSeekCrossChecker } = require('../lib/intelligence/crosscheck.c
 const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
-const { createFeishuSender } = require('../lib/intelligence/feishu.cjs');
+const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu.cjs');
 const { directionsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
@@ -152,12 +152,12 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         const store = storeFactory(config);
         const scheduleKey = scheduleDate();
-        const operations = await store.operations(config.adminId);
-        const run = operations.runs.find(item => item.job_type === 'daily_scan' && item.schedule_key === scheduleKey);
+        const snapshot = await store.dailyTasks(config.adminId, scheduleKey);
+        const run = snapshot.run;
         const health = !run ? 'missing' : run.status === 'succeeded' ? 'ok' : ['failed', 'partial', 'budget_paused', 'manual_paused'].includes(run.status) ? 'degraded' : 'running';
         if (health === 'missing' || health === 'degraded') await store.enqueueNotification(config.adminId, 'system',
-          `system:daily-health:${scheduleKey}:${health}`, { schedule_key: scheduleKey, health, run_status: run?.status || null,
-            issue_zh: health === 'missing' ? '今日扫描任务缺失。' : `今日扫描状态为 ${run.status}，覆盖可能不完整。` });
+          `system:daily-health:${scheduleKey}:${health}`, { schedule_key: scheduleKey, health,
+            ...summarizeRun(run, snapshot.items) });
         return res.status(200).json({ schedule_key: scheduleKey, health, run_status: run?.status || null });
       }
       if (action === 'notification-worker') {

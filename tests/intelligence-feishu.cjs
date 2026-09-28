@@ -154,3 +154,32 @@ test('MENA cards show region names and keep disputed territory wording neutral',
   const text = JSON.stringify(card);
   assert.match(text,/埃及、土耳其、西撒哈拉（地位有争议）/);
 });
+
+
+test('partial health card explains counts, grouped causes and effect without raw status jargon', () => {
+  const { summarizeRun } = require('../lib/intelligence/feishu.cjs');
+  const summary = summarizeRun({ status: 'partial' }, [
+    { status: 'succeeded', item_key: 'source:a' },
+    { status: 'failed', item_key: 'source:b', error_code: 'source_empty_document', name: '公告入口' },
+    { status: 'failed', item_key: 'source:c', error_code: 'source_empty_document', name: '另一个入口' },
+    { status: 'failed', item_key: 'extract:b', error_code: 'extraction_invalid_attribution', title: '企业文章' }
+  ]);
+  assert.equal(summary.problem_groups[0].count, 2);
+  const card = buildCard({ notification: { notification_type: 'system', payload: { ...summary, health: 'degraded', schedule_key: '2026-09-27' } }, baseUrl: 'https://nrgopt.example' });
+  const content = card.card.elements[0].content;
+  for (const phrase of ['扫描已结束，部分任务失败', '共 4 项：成功 1，失败 3', '原文抓取 2 项', '没有可读取的正文', '类型或归属', '成功任务的结果仍可使用', '不是文章或国家数量']) assert.ok(content.includes(phrase));
+  assert.ok(!content.includes('partial'));
+  assert.equal(card.card.elements[1].actions[0].url, 'https://nrgopt.example/intelligence/workflow');
+  assert.equal(card.card.elements[1].actions[0].text.content, '查看当前任务明细');
+});
+
+test('legacy partial cards do not fabricate counts and paused cards do not claim failure', () => {
+  const { summarizeRun } = require('../lib/intelligence/feishu.cjs');
+  const old = buildCard({ notification: { notification_type: 'system', payload: { run_status: 'partial', issue_zh: '今日扫描状态为 partial，覆盖可能不完整。' } }, baseUrl: 'https://nrgopt.example' }).card.elements[0].content;
+  assert.match(old, /未保存任务统计/); assert.doesNotMatch(old, /成功 0|partial/);
+  const summary = summarizeRun({ status: 'budget_paused' }, [{ status: 'succeeded' }, { status: 'budget_paused' }, { status: 'manual_paused' }, { status: 'retry' }]);
+  const paused = buildCard({ notification: { notification_type: 'system', payload: summary }, baseUrl: 'https://nrgopt.example' }).card.elements[0].content;
+  assert.match(paused, /扫描因预算限制暂停/);
+  assert.match(paused, /失败 0，预算暂停 1，人工暂停 1，未结束 1/);
+  assert.doesNotMatch(paused, /部分任务失败/);
+});
