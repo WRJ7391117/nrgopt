@@ -799,7 +799,8 @@ test('every authenticated HTML page includes its verified account before loading
   for (const action of ['engine-page', 'overview-page', 'workflow-page', 'settings-page', 'page', 'detail-page']) {
     const response = await request(action, { query: { id } });
     assert.equal(response.code, 200);
-    assert.match(response.body, /id="account-email" class="intel-account">local@example\.test<\/span>/);
+    assert.match(response.body, /id="account-email" hidden>local@example\.test<\/span>/);
+    assert.match(response.body, /title="当前账号：local@example\.test" aria-label="退出当前账号：local@example\.test"/);
     assert.equal(response.headers['cache-control'], 'private, no-store');
   }
   const unsafe = setup({ overrides: { user: async () => ({ id: admin, email: '<img src=x onerror=alert(1)>@example.test' }) } });

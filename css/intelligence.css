@@ -11,8 +11,8 @@
   border-bottom: 1px solid var(--border);
   background: var(--nav-bg);
 }
-.intel-private, .intel-muted, .intel-account, .intel-intro { color: var(--text-dim); }
-.intel-private, .intel-account, .intel-muted { font-size: .85rem; }
+.intel-muted, .intel-intro { color: var(--text-dim); }
+.intel-muted { font-size: .85rem; }
 .intel-tools { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .intel-nav { display: flex; align-items: center; justify-content: center; flex: 1; flex-wrap: wrap; gap: 8px 14px; margin-left: 12px; }
 .intel-nav a { color: var(--text-dim); font-size: .84rem; text-decoration: none; }
@@ -37,7 +37,6 @@
 }
 .intel-nav-divider { width: 1px; height: 18px; background: var(--border); }
 .intel-nav + .intel-tools { margin-left: 0; }
-.intel-account { max-width: 240px; overflow-wrap: anywhere; }
 .intelligence-app .theme-toggle { flex-shrink: 0; }
 .intelligence-app .theme-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
 .intel-main { max-width: 1040px; margin: 0 auto; padding: 56px 24px 80px; }
@@ -296,10 +295,8 @@
 .intel-quiet-fields > button { margin-top: 24px; }
 @media (max-width: 640px) {
   .intel-header { flex-wrap: wrap; gap: 10px 16px; padding: 12px 20px; }
-  .intel-private { order: 3; width: 100%; font-size: .75rem; }
   .intel-tools { gap: 8px; }
-  .intel-account { max-width: 140px; font-size: .7rem; }
-  .intel-nav { order: 4; width: 100%; justify-content: flex-start; margin-left: 0; }
+  .intel-nav { order: 4; flex: 0 0 100%; justify-content: flex-start; margin-left: 0; }
   .intel-nav-divider { display: none; }
   .intel-main { padding: 36px 20px 56px; }
   .intel-login { padding-top: 48px; }
