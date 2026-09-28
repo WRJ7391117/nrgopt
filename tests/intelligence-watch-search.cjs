@@ -83,7 +83,7 @@ test('evidence search admits public media and rejects unsafe links', async () =>
 
 test('repeated daily triggers keep the first watch plan despite changes in the candidate pool', async () => {
   const items = new Map(); let reads = 0;
-  const store = { snapshotDirections: async () => null, enqueueJob: async () => 'job', reviewTracking: async () => ({}), watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
+  const store = { sourceLibrary: async () => [], snapshotDirections: async () => null, enqueueJob: async () => 'job', reviewTracking: async () => ({}), watchedSources: async () => [], jobRun: async () => ({ items: [...items.values()] }),
     watchSearchTargets: async () => { reads++; return [target()]; },
     enqueueJobItems: async (_owner, _job, values) => { values.forEach(v => { if (!items.has(v.item_key)) items.set(v.item_key, v); }); } };
   await enqueueDailyScan({ store, owner: 'owner', now });

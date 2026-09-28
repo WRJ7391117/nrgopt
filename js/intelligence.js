@@ -60,7 +60,7 @@
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/directions' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/intelligence/library' || value === '/intelligence/directions' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (['/intelligence/overview', '/intelligence/discover'].includes(location.pathname) ? location.search : '')));
@@ -447,10 +447,11 @@
       save.className = 'intel-button';
       save.type = 'button';
       save.dataset.sourceUrl = source.url;
-      save.textContent = '保存此来源';
+      save.textContent = '保存这篇原文';
       var heading = document.createElement('div');
       heading.append(link, label);
-      row.append(heading, save);
+      var channel = document.createElement('a'); channel.className='intel-button'; channel.textContent='添加此渠道'; channel.href='/intelligence/library?channel='+encodeURIComponent(new URL(source.url).origin+'/');
+      row.append(heading, save, channel);
       var timing = document.createElement('p');
       timing.className = 'intel-source-meta';
       timing.textContent = '原文发布时间：待核验' + (source.published_text ? ' · 搜索结果标注：' + source.published_text + '（保存原文后核验）' : '（保存原文后核验）');
@@ -1103,33 +1104,6 @@
     try { renderOperations(await api('operations')); }
     catch (error) { status('automation-status', error.message, 'error'); }
   }
-  async function loadSourceControls() {
-    try {
-      var result = await api('source-controls');
-      var list = byId('source-controls');
-      list.replaceChildren();
-      result.sources.forEach(function (source) {
-        var item = document.createElement('li');
-        var label = document.createElement('p');
-        label.textContent = source.name + ' · ' + (source.paused ? '已暂停自动抓取' : '自动抓取已开启');
-        var button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'intel-button intel-button-quiet';
-        button.textContent = source.paused ? '恢复此来源' : '暂停此来源';
-        button.disabled = !result.writable;
-        button.addEventListener('click', async function () {
-          button.disabled = true;
-          try {
-            var saved = await api('save-source-control', { registry_id: source.id, paused: !source.paused });
-            await loadSourceControls();
-            status('source-controls-status', source.paused ? '已恢复此来源；最近计划日有 ' + saved.resumed + ' 项任务重新排队。' : '已暂停此来源的后续自动抓取。其他来源继续运行。', 'success');
-          } catch (error) { status('source-controls-status', error.message, 'error'); button.disabled = false; }
-        });
-        item.append(label, button);
-        list.append(item);
-      });
-    } catch (error) { status('source-controls-status', error.message, 'error'); }
-  }
   async function loadSources() {
     var button = byId('refresh-button');
     button.disabled = true;
@@ -1673,7 +1647,6 @@
       finally { button.disabled = false; }
     });
   }
-  if (byId('source-controls')) loadSourceControls();
   providerForms.forEach(function (form) {
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -1706,7 +1679,7 @@
       event.preventDefault();
       var button = discoveryForm.querySelector('button[type="submit"]');
       button.disabled = true;
-      status('discovery-status', '来源发现服务正在搜索最新官方来源…');
+      status('discovery-status', '正在搜索公开来源线索…');
       byId('discovery-results').replaceChildren();
       try {
         var result = await api('discover', { country: byId('discovery-country').value });

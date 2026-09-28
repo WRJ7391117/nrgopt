@@ -15,7 +15,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   const source = { id: sourceId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/plain', content_sha256: 'a'.repeat(64) };
   const methods = {
     snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
-    sourcePaused: async () => false,
+    sourcePaused: async () => false, sourceLibrary: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -572,4 +572,11 @@ test('no applicable enabled direction finishes without paying and retry retains 
     assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),!!chosen);
     assert.deepEqual(store.calls.find(c=>c[0]==='finishJobItem')[4].direction,chosen);
   }
+});
+
+test('removed channel in a frozen search plan stops before paid discovery without replacing the plan',async()=>{
+ const store=fakeStore({item:{id:'item-1',item_key:'discover:SA',attempts:1,checkpoint:{channel:{id:'channel-1',url:'https://example.org/',scope:'site'}}}});
+ store.sourceLibrary=async()=>[{id:'channel-1',status:'removed',config:{url:'https://example.org/',scope:'site'}}];
+ let called=false;const result=await runDailyJobItem({store,owner:'owner',jobId:'job',discover:async()=>{called=true;},...dependencies});
+ assert.equal(called,false);assert.equal(result.status,'manual_paused');assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),false);
 });

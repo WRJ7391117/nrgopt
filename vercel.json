@@ -83,6 +83,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/intelligence/library", "destination": "/api/intelligence?action=library-page" },
     { "source": "/intelligence/directions", "destination": "/api/intelligence?action=directions-page" },
     { "source": "/intelligence/login", "destination": "/api/intelligence?action=login-page" },
     { "source": "/intelligence/reset-password", "destination": "/api/intelligence?action=reset-password-page" },

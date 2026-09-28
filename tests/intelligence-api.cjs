@@ -54,7 +54,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
-    snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
+    sourceLibrary: async () => [], snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -864,4 +864,25 @@ test('collection directions require authentication, owner scope, valid revisions
   assert.equal((await request('save-direction',{method:'POST',body:value,headers:{origin:'https://other.test'}})).code,403);
   const locked=setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'}});
   assert.equal((await locked.request('save-direction',{method:'POST',body:value})).code,403);
+});
+
+test('source library routes enforce login, origin, write switch, owner directions and canonical duplicates',async()=>{
+ const {defaults,validateEntry}=require('../lib/intelligence/source-library.cjs');const e=validateEntry({revision:0,status:'candidate',config:{name:'Media',url:'https://public.example/',scope:'site',type:'media',countries:['SA'],languages:[],direction_ids:[],notes:'',priority:'normal'}});
+ const base={collectionDirections:async()=>({directions:[]}),sourceLibrary:async()=>[],saveLibraryEntry:async(_owner,value)=>{assert.equal(_owner,admin);return value;}};
+ const s=setup({overrides:base});
+ assert.equal((await s.request('library-page',{loggedIn:false})).code,303);
+ assert.equal((await s.request('source-library',{loggedIn:false})).code,401);
+ assert.equal((await s.request('save-library-entry',{method:'POST',body:e,loggedIn:false})).code,401);
+ assert.equal((await s.request('save-library-entry',{method:'POST',body:e,headers:{origin:'https://other.example'}})).code,403);
+ assert.equal((await s.request('save-library-entry',{method:'POST',body:e})).code,200);
+ assert.equal((await s.request('save-library-entry',{method:'POST',body:{...e,config:{...e.config,direction_ids:[id]}}})).code,400);
+ assert.equal((await setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'},overrides:base}).request('save-library-entry',{method:'POST',body:e})).code,403);
+ const duplicate=setup({overrides:{...base,sourceLibrary:async()=>[{...e,id:'other'}]}});assert.equal((await duplicate.request('save-library-entry',{method:'POST',body:e})).code,409);
+});
+test('failed live entry verification is stored and deactivates an unreadable custom channel without invoking models',async()=>{
+ const e={id,revision:1,status:'active',access:{status:'readable'},config:{url:'https://public.example/',scope:'site',mode:'search'}};let record;
+ const s=setup({overrides:{sourceLibrary:async()=>[e],saveLibraryEntry:async(owner,value,access)=>{record={owner,value,access};return{...value,access};}},sourceFetcher:async()=>{throw failure('source_access_denied',422);},modelFactory:()=>{throw Error('must not create model');}});
+ assert.equal((await s.request('check-library-entry',{method:'POST',body:{id,revision:1}})).code,200);
+ assert.equal(record.owner,admin);assert.equal(record.value.status,'candidate');assert.equal(record.access.error_code,'source_access_denied');
+ assert.equal((await s.request('check-library-entry',{method:'POST',body:{id,revision:0}})).code,409);
 });
