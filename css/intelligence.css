@@ -522,7 +522,8 @@
 .intel-overview-metrics small { display: block; font-size: .72rem; color: var(--text-dim); }
 .intel-overview .intel-overview-section { padding: 24px 26px; margin: 0 0 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .intel-overview .intel-overview-section > .intel-section-heading { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
-.intel-overview .intel-overview-section .intel-kicker { font-size: .9rem; }
+.intel-overview .intel-overview-section .intel-kicker { display: flex; align-items: baseline; gap: 8px; font-size: 1rem; }
+.intel-overview .intel-overview-section .intel-kicker span { font-size: 1.4rem; font-weight: 700; line-height: 1.2; }
 .intel-overview h2 { font-size: 1.5rem; margin: 4px 0 0; }
 .intel-overview h3 { font-size: 1.1rem; }
 .intel-overview-highlights > li { padding: 18px 0; }
