@@ -521,10 +521,10 @@
 .intel-overview-metrics span { font-size: .88rem; }
 .intel-overview-metrics small { display: block; font-size: .72rem; color: var(--text-dim); }
 .intel-overview .intel-overview-section { padding: 24px 26px; margin: 0 0 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-.intel-overview #workbench-actions { border-left: 3px solid var(--accent); }
 .intel-overview .intel-overview-section > .intel-section-heading { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
-.intel-overview h2 { font-size: 1.2rem; margin: 4px 0 0; }
-.intel-overview h3 { font-size: .96rem; }
+.intel-overview .intel-overview-section .intel-kicker { font-size: .9rem; }
+.intel-overview h2 { font-size: 1.5rem; margin: 4px 0 0; }
+.intel-overview h3 { font-size: 1.1rem; }
 .intel-overview-highlights > li { padding: 18px 0; }
 .intel-overview-highlights > li h3 { font-size: 1.08rem; }
 .intel-overview-highlights details { font-size: .8rem; margin: 8px 0; }
