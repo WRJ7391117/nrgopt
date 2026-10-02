@@ -891,7 +891,7 @@
       var data = await api('workflow'); workflowData = data;
       byId('account-email').textContent = data.user.email;
       document.querySelector('.intel-nav a[href="/intelligence/settings"]').setAttribute('aria-current', 'page');
-      byId('workflow-date').textContent = data.day + ' · 当天任务';
+      byId('workflow-date').textContent = data.day;
       var counts = data.items.reduce(function (all, item) { all[item.status] = (all[item.status] || 0) + 1; return all; }, {});
       var unfinished = data.items.some(function (item) { return !['succeeded', 'failed'].includes(item.status); });
       var ended = data.run && ['succeeded', 'partial', 'failed'].includes(data.run.status) && data.items.length > 0 && !unfinished && !data.changed_during_read;
@@ -902,12 +902,12 @@
       byId('workflow-time').textContent = '读取时间：' + dateLabel(data.read_at) + (data.run ? ' · 计划建立：' + dateLabel(data.run.created_at) : '')
         + (ended && data.run.finished_at ? ' · 结束时间：' + dateLabel(data.run.finished_at) : '');
       var boxes = byId('workflow-counts'); boxes.replaceChildren();
-      [['全部任务', data.items.length]].concat(Object.keys(taskStates).map(function (key) { return [taskStates[key], counts[key] || 0]; })).forEach(function (pair) {
+      [['全部任务', data.items.length]].concat(Object.keys(taskStates).map(function (key) { return [taskStates[key], counts[key] || 0]; })).filter(function (pair, index) { return index === 0 || pair[1] > 0; }).forEach(function (pair) {
         var box = document.createElement('div'), number = document.createElement('strong'), label = document.createElement('span');
         number.textContent = pair[1]; label.textContent = pair[0]; box.append(number, label); boxes.append(box);
       });
       renderWorkflowTasks();
-      status('page-status', '已读取数据库任务记录。' + (data.changed_during_read ? '运行仍在变化，此次记录不用于判定完成。' : ''));
+      status('page-status', data.changed_during_read ? '运行仍在变化，此次记录不用于判定完成。' : '');
     } catch (error) { status('page-status', error.message + (workflowData ? ' 下方保留上次记录，未更新为最新状态。' : ' 请点击刷新重试。'), 'error'); }
     finally { button.disabled = false; }
   }
@@ -1834,7 +1834,7 @@
       var task = directionData.tasks.find(function (t) { return t.checkpoint.direction.id === d.id; });
       var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
       directionText(body, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
-      if (task?.error_code) directionText(body, 'p', '本次搜索未完成，可在“采集流程与当天任务”查看原因。', 'intel-muted');
+      if (task?.error_code) directionText(body, 'p', '本次搜索未完成，可在“当天任务”查看原因。', 'intel-muted');
       var details = document.createElement('details'); body.appendChild(details);
       directionText(details, 'summary', '查看完整设置、来源网站与修改记录');
       directionText(details, 'p', '已保存的地区：' + d.config.countries.map(function(c){return regionNames[c];}).join('、'));

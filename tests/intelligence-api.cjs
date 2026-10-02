@@ -761,8 +761,13 @@ test('workflow page and data require the administrator, preserve login return an
   assert.equal((await forbidden.request('workflow')).code, 403);
   const page = await request('workflow-page');
   assert.equal(page.code, 200);
-  assert.match(page.body, /采集流程与当天任务/);
+  assert.match(page.body, /<h1>当天任务<\/h1>/);
+  assert.doesNotMatch(page.body, /自动采集执行细节|intel-workflow-steps/);
+  assert.match(page.body, /<details class="intel-workflow-guide"><summary>状态说明：怎样判断任务结束？/);
   assert.match(page.body, /id="workflow-tasks"/);
+  const engine = await request('engine-page');
+  assert.match(engine.body, /<details class="intel-engine-details"><summary>查看采集执行细节/);
+  assert.match(engine.body, /云端每分钟检查/);
   const data = await request('workflow', { query: { day: '2000-01-01', owner: id } });
   assert.equal(data.code, 200);
   const call = calls.find(item => item.name === 'dailyTasks');
