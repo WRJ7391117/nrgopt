@@ -1109,6 +1109,46 @@
     try { renderOperations(await api('operations')); }
     catch (error) { status('automation-status', error.message, 'error'); }
   }
+  var archiveSettings = null;
+  function renderArchiveSettings(result) {
+    archiveSettings = result.node;
+    var node = result.node, form = byId('archive-directory-form');
+    byId('archive-directory-current').textContent = node?.active_directory || 'Mac 尚未回报保存目录';
+    form.hidden = !node || !result.writable;
+    if (!node) {
+      byId('archive-directory-meta').textContent = 'Mac 下次连接后会显示实际目录；目前无法从网站确认本地路径。';
+      status('archive-directory-status', '');
+      return;
+    }
+    form.elements.directory.value = node.requested_directory || node.active_directory || '';
+    var pending = node.revision > node.active_revision;
+    var errors = { invalid_directory: '目录格式无效', directory_unavailable: '目录不存在、磁盘未挂载或位置已变化',
+      directory_not_writable: '目录不可写', archive_state_failed: 'Mac 无法保存目录状态' };
+    byId('archive-directory-meta').textContent = 'Mac 最近检查：' + dateLabel(node.last_seen_at) +
+      (node.previous_directories?.length ? ' · 旧原件仍在：' + node.previous_directories.join('；') : '');
+    status('archive-directory-status', node.error_code ? '切换未完成：' + (errors[node.error_code] || '请检查 Mac 归档日志') + '。原件没有写入所填新目录。' :
+      pending ? '等待 Mac 验证新目录：' + node.requested_directory : '当前目录已由 Mac 确认。', node.error_code ? 'error' : pending ? '' : 'success');
+  }
+  async function loadArchiveSettings() {
+    try { renderArchiveSettings(await api('local-archive-settings')); }
+    catch (error) { status('archive-directory-status', error.message, 'error'); }
+  }
+  if (byId('archive-directory-refresh')) {
+    byId('archive-directory-refresh').addEventListener('click', loadArchiveSettings);
+    byId('archive-directory-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      if (!archiveSettings) return;
+      var form = event.currentTarget, button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      status('archive-directory-status', '正在保存目录…');
+      try {
+        var result = await api('save-local-archive-directory', { node_id: archiveSettings.node_id,
+          revision: archiveSettings.revision, directory: form.elements.directory.value.trim() });
+        renderArchiveSettings({ node: result.node, writable: true });
+      } catch (error) { status('archive-directory-status', error.message + ' 输入内容仍保留。', 'error'); }
+      finally { button.disabled = false; }
+    });
+  }
   async function loadSources() {
     var button = byId('refresh-button');
     button.disabled = true;
@@ -2035,7 +2075,7 @@
       var match = location.pathname.match(detailPath);
       if (match) await loadDetail(match[1]);
       else if (importForm) await loadSources();
-      else if (providerForms.length) await Promise.all([loadProviderSettings(), loadOperations()]);
+      else if (providerForms.length) await Promise.all([loadProviderSettings(), loadOperations(), loadArchiveSettings()]);
     } catch (error) { status('page-status', error.message, 'error'); }
   })();
 })();

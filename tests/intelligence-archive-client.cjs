@@ -4,7 +4,7 @@ const { createHash, randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { archiveConfig, runArchivePull, verifyArchive } = require('../lib/intelligence/archive-client.cjs');
+const { archiveConfig, runArchivePull, runManagedArchivePull, verifyArchive, verifyManagedArchive } = require('../lib/intelligence/archive-client.cjs');
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -62,7 +62,7 @@ test('official JSON originals pass the same local archive verification', async (
   const job = { id: randomUUID(), source_id: randomUUID(), content_type: 'application/json',
     byte_size: bytes.length, content_sha256: hash, download_url: '/api/intelligence?action=archive-object' };
   let acknowledged = false;
-  const fetchImpl = async input => {
+  const fetchImpl = async (input, init) => {
     const action = new URL(input).searchParams.get('action');
     if (action === 'archive-claim') return json({ job });
     if (action === 'archive-object') return new Response(bytes);
@@ -102,6 +102,39 @@ test('archive configuration accepts HTTPS or loopback only and requires an absol
     NRGOPT_ARCHIVE_NODE_ID: 'mac-mini', NRGOPT_ARCHIVE_DIR: '/tmp/archive' }).baseUrl, 'http://127.0.0.1:4317');
   assert.throws(() => archiveConfig({ NRGOPT_ARCHIVE_BASE_URL: 'http://remote.example', NRGOPT_ARCHIVE_TOKEN: 'secret',
     NRGOPT_ARCHIVE_NODE_ID: 'mac-mini', NRGOPT_ARCHIVE_DIR: 'relative' }), { code: 'invalid_archive_config' });
+});
+
+test('Mac worker reports its actual directory and applies a validated new directory before claiming', async () => {
+  const base = await fs.mkdtemp(path.join(os.homedir(), '.nrgopt-archive-directory-test-'));
+  const oldDir = path.join(base, 'old'), newDir = path.join(base, 'new');
+  await fs.mkdir(oldDir); await fs.mkdir(newDir);
+  let desired = null, revision = 0;
+  const reports = [], actions = [];
+  const fetchImpl = async (input, init) => {
+    const action = new URL(input).searchParams.get('action');
+    actions.push(action);
+    if (action === 'archive-config') return json({ requested_directory: desired, revision });
+    if (action === 'archive-report') { reports.push(JSON.parse(init.body)); return json({ ok: true }); }
+    if (action === 'archive-claim') return json({ job: null });
+    throw new Error('unexpected request');
+  };
+  try {
+    const config = { baseUrl: 'https://archive.example', token: 'secret', nodeId: 'mac-mini', directory: oldDir, fetchImpl };
+    await runManagedArchivePull(config);
+    desired = newDir; revision = 1;
+    await runManagedArchivePull(config);
+    const state = JSON.parse(await fs.readFile(path.join(base, 'archive-state.json'), 'utf8'));
+    assert.equal(state.active_directory, newDir);
+    assert.equal(state.active_revision, 1);
+    assert.deepEqual(state.previous_directories, [oldDir]);
+    assert.deepEqual(await verifyManagedArchive(oldDir), { verified: 0, failures: [] });
+    const before = actions.filter(action => action === 'archive-claim').length;
+    desired = path.join(base, 'missing'); revision = 2;
+    await assert.rejects(runManagedArchivePull(config), { code: 'directory_unavailable' });
+    assert.equal(actions.filter(action => action === 'archive-claim').length, before);
+    assert.equal(reports.at(-1).error_code, 'directory_unavailable');
+    assert.equal(reports.at(-1).active_directory, newDir);
+  } finally { await fs.rm(base, { recursive: true, force: true }); }
 });
 
 test('interrupted acknowledgement resumes from intact files without duplicating the object', async () => {
