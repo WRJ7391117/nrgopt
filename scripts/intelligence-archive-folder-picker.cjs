@@ -1,13 +1,14 @@
 const http = require('node:http');
 const { execFile } = require('node:child_process');
 const fs = require('node:fs/promises');
+const path = require('node:path');
 
 const PORT = 47431;
 const ORIGINS = new Set(['https://www.nrgopt.com', 'https://nrgopt.com']);
 
 function chooseFolder() {
   return new Promise(resolve => {
-    execFile('/usr/bin/osascript', ['-e', 'POSIX path of (choose folder with prompt "选择 NRGOPT 原文归档目录")'],
+    execFile(path.join(__dirname, 'NRGOPTArchivePicker.app', 'Contents', 'MacOS', 'NRGOPTArchivePicker'), [],
       { timeout: 300000 }, (error, stdout) => resolve(error ? '' : stdout.trim().replace(/\/$/, '')));
   });
 }
@@ -18,8 +19,15 @@ function createServer(pick = chooseFolder) {
     const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
     const origin = url.searchParams.get('origin');
     const nonce = url.searchParams.get('nonce');
-    if (request.method !== 'GET' || url.pathname !== '/pick' || !ORIGINS.has(origin) || !/^[a-f0-9]{32}$/.test(nonce || '')) {
+    if (request.method !== 'GET' || !['/pick', '/choose'].includes(url.pathname) || !ORIGINS.has(origin) || !/^[a-f0-9]{32}$/.test(nonce || '')) {
       response.writeHead(404).end(); return;
+    }
+    if (url.pathname === '/pick') {
+      const query = new URLSearchParams({ origin, nonce });
+      response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+        'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'" });
+      response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>选择归档目录</title><p id="status">正在打开 Mac 文件夹选择窗口…</p><script>(async()=>{try{const response=await fetch('/choose?${query}');if(!response.ok)throw Error();const result=await response.json();if(window.opener)window.opener.postMessage(result,${JSON.stringify(origin)});window.close()}catch{document.getElementById('status').textContent='无法打开文件夹选择窗口，请返回系统设置重试。'}})()</script></html>`);
+      return;
     }
     if (busy) { response.writeHead(409).end('已有目录选择窗口打开。'); return; }
     busy = true;
@@ -36,10 +44,8 @@ function createServer(pick = chooseFolder) {
       }
     } catch { directory = ''; result = 'unavailable'; }
     finally { busy = false; }
-    const payload = JSON.stringify({ type: 'nrgopt-archive-directory', nonce, directory, result }).replace(/</g, '\\u003c');
-    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
-      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'" });
-    response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>选择归档目录</title><p>${directory ? '已选择目录，请返回系统设置保存。' : '未选择可用目录，请返回系统设置查看提示。'}</p><script>if(window.opener)window.opener.postMessage(${payload},${JSON.stringify(origin)});window.close()</script></html>`);
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    response.end(JSON.stringify({ type: 'nrgopt-archive-directory', nonce, directory, result }));
   });
 }
 
