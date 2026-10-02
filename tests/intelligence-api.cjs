@@ -787,7 +787,9 @@ test('daily tasks and Feishu delivery have separate workbench and settings entra
   assert.doesNotMatch(workbench.body, /workbench-notifications|最近飞书投递/);
   const settings = await request('settings-page');
   assert.match(settings.body, /<h1>系统设置<\/h1>/);
-  assert.match(settings.body, /href="\/intelligence\/feishu">飞书配置与推送/);
+  assert.deepEqual([...settings.body.matchAll(/<section class="intel-settings-module" aria-labelledby="([^"]+)"/g)].map(match => match[1]), ['operations-title', 'settings-feishu-title', 'settings-model-title']);
+  assert.match(settings.body, /href="\/intelligence\/feishu">打开飞书配置与记录/);
+  assert.match(settings.body, /<details class="intel-settings-help"><summary>费用与密钥说明/);
   assert.doesNotMatch(settings.body, /href="\/intelligence\/workflow">当天任务/);
   const feishu = await request('feishu-page');
   assert.match(feishu.body, /<h1>飞书配置与推送<\/h1>/);

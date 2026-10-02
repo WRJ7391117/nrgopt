@@ -272,7 +272,17 @@
 .intel-signal-chain li::before { position: absolute; top: 13px; left: 14px; width: 20px; height: 20px; border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border)); border-radius: 50%; color: var(--accent); content: counter(signal-step); font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center; }
 .intel-signal-chain strong { display: block; margin-bottom: 6px; color: var(--text); font-size: .78rem; }
 .intel-signal-chain p { margin: 0; color: var(--text-dim); font-size: .82rem; line-height: 1.6; overflow-wrap: anywhere; }
-.intel-operations { margin-top: 28px; }
+section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.intel-settings-module > .intel-section-heading { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.intel-settings-module > .intel-section-heading h2 { font-size: 1.35rem; }
+.intel-settings-module > .intel-section-heading .intel-kicker { font-size: .88rem; }
+.intel-settings-module > .intel-section-heading .intel-kicker span { font-size: 1.25rem; font-weight: 700; }
+.intel-settings-module .intel-provider-form { background: var(--form-bg); }
+.intel-settings-module .intel-provider-form h3 { margin: 0; font-size: 1.1rem; }
+.intel-settings-help { margin-top: 16px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--form-bg); }
+.intel-settings-help > summary { cursor: pointer; font-weight: 700; }
+.intel-settings-help .intel-notice { margin-top: 16px; }
+.intel-settings-help .intel-notice h3 { margin: 0 0 8px; font-size: 1rem; }
 .intel-job-details[open] > summary { margin-bottom: 18px; }
 .intel-operation-facts { margin-top: 18px; }
 .intel-job-list { margin: 18px 0 0; padding: 0; list-style: none; }
@@ -308,6 +318,7 @@
   .intel-main { padding: 36px 20px 56px; }
   .intel-login { padding-top: 48px; }
   .intel-panel { padding: 20px; }
+  section.intel-settings-module { padding: 20px; }
   .intel-guide ol { grid-template-columns: minmax(0, 1fr); }
   .intel-guide li { min-height: 0; }
   .intel-analysis-grid { grid-template-columns: minmax(0, 1fr); }
@@ -383,8 +394,6 @@
 .intel-decision-evidence { display: inline-flex; align-items: center; min-height: 44px; font-size: .9rem; }
 #detail-evidence > summary { margin-bottom: 1rem; font-weight: 600; cursor: pointer; }
 #followup-section, #detail-evidence, [id^="workbench-"] { scroll-margin-top: 6rem; }
-.intel-management-links { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 280px; margin: 0 0 28px; }
-.intel-management-links .intel-button { min-height: 48px; text-align: center; }
 #feishu-form .intel-form-footer { flex-wrap: wrap; justify-content: flex-start; }
 
 .intel-followup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
