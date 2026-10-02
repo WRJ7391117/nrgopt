@@ -16,13 +16,15 @@ test('Mac folder picker returns only to the NRGOPT opener', async () => {
     const invalid = await fetch(`${base}?origin=https://other.example&nonce=${nonce}`);
     assert.equal(invalid.status, 404);
     assert.equal(picks, 0);
-    const result = await fetch(`${base}?origin=https://www.nrgopt.com&nonce=${nonce}`);
-    const html = await result.text();
-    assert.equal(result.status, 200);
+    const page = await fetch(`${base}?origin=https://www.nrgopt.com&nonce=${nonce}`);
+    const html = await page.text();
+    assert.equal(page.status, 200);
     assert.match(html, /window\.opener\.postMessage/);
     assert.match(html, /https:\/\/www\.nrgopt\.com/);
-    assert.ok(html.includes(directory));
-    assert.match(html, /"result":"selected"/);
+    assert.equal(picks, 0);
+    const result = await fetch(`${base.replace('/pick', '/choose')}?origin=https://www.nrgopt.com&nonce=${nonce}`);
+    assert.equal(result.status, 200);
+    assert.deepEqual(await result.json(), { type: 'nrgopt-archive-directory', nonce, directory, result: 'selected' });
     assert.equal(picks, 1);
   } finally { server.close(); await fs.rm(directory, { recursive: true }); }
 });
