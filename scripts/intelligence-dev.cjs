@@ -19,6 +19,7 @@ http.createServer(async (req, res) => {
     else if (url.pathname === '/intelligence/feishu') req.query.action = 'feishu-page';
     else if (url.pathname === '/intelligence/library') req.query.action = 'library-page';
     else if (url.pathname === '/intelligence/directions') req.query.action = 'directions-page';
+    else if (url.pathname === '/intelligence/topics') req.query.action = 'topics-page';
     else if (url.pathname === '/intelligence/discover') req.query.action = 'discover-page';
     else if (url.pathname === '/intelligence/overview') req.query.action = 'overview-page';
     else if (url.pathname === '/intelligence/followups') req.query.action = 'followups-page';

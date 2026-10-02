@@ -263,6 +263,23 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
     prompt_cache_hit_tokens: 20, prompt_cache_miss_tokens: 80 });
 });
 
+test('new extraction uses enabled owner topics while historical custom codes remain readable', async () => {
+  const custom = { code: 'custom-11111111-1111-4111-8111-111111111111', name: '跨境电网', description: '跨国输电线路' };
+  const input = structuredClone(valid);
+  input.classification.topics = [{ code: custom.code, evidence_fact_number: 1 }];
+  assert.equal(validateExtraction(input, sourceText).classification.topics[0].code, custom.code);
+  assert.throws(() => validateExtraction(input, sourceText, []), { code: 'extraction_invalid_topic_evidence' });
+  let messages;
+  const extract = createDeepSeekExtractor({apiKey:'test',fetchImpl:async(_url,init)=>{
+    messages=JSON.parse(init.body).messages;
+    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(input)}}]}));
+  }});
+  assert.equal((await extract({sourceText,url:'https://source.example',topics:[custom]})).extraction.classification.topics[0].code,custom.code);
+  assert.ok(messages.some(message=>message.content.includes(custom.name)&&message.content.includes(custom.description)));
+  assert.ok(messages.some(message=>message.content.includes('code='+custom.code)));
+  await assert.rejects(extract({sourceText,url:'https://source.example',topics:[]}),{code:'extraction_invalid_topic_evidence'});
+});
+
 test('missing key and upstream authentication errors expose stable codes', async () => {
   assert.throws(() => createDeepSeekExtractor({}), { code: 'model_not_configured', status: 503 });
   assert.throws(() => createDeepSeekExtractor({ apiKey: 'key', endpoint: null }), { code: 'model_not_configured', status: 503 });

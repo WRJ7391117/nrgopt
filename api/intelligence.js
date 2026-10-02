@@ -8,7 +8,7 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu.cjs');
-const { enginePage, directionsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
+const { enginePage, directionsPage, topicsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 const feishuConfig = require('../lib/intelligence/feishu-config.cjs');
@@ -20,6 +20,7 @@ const messages = {
   library_duplicate:'此入口已在源库中，请编辑或恢复已有记录。', library_conflict: '渠道已在其他页面修改，请刷新后重试。当前编辑保留。', library_limit:'最多登记500个渠道。', library_unchecked:'请先验证渠道入口可读取，再启用持续搜索。', source_invalid_url:'请填写可公开访问、不含查询参数的HTTPS渠道入口。',
 
   direction_conflict: '此方向已在其他页面修改。你的编辑仍保留，请核对最新设置后重新编辑。', direction_limit: '最多保留20个搜集方向，请编辑已有方向。',
+  topic_conflict: '专题名单已在其他页面修改，请刷新后重试。', topic_limit: '最多同时启用20个跨境专题，请先停用不再关注的专题。', topic_duplicate: '已有同名专题，请使用或恢复现有专题。',
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
   followup_conflict: '跟踪已在另一页面更新，请重新读取后再保存，当前输入尚未覆盖。',
@@ -90,8 +91,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-topic', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
+      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -307,6 +308,17 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
       }
       if (action === 'directions-page') return html(directionsPage(user.email));
+      if (action === 'topics-page') return html(topicsPage(user.email));
+      if (action === 'topics') return res.status(200).json({ topics: await store.topicCatalog(user.id), writable: config.writes });
+      if (action === 'save-topic') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const topics = await store.topicCatalog(user.id);
+        const existing = body?.code ? topics.find(topic => topic.code === body.code) : null;
+        if (body?.code && !existing) throw failure('not_found', 404);
+        const value = require('../lib/intelligence/topics.cjs').validateTopic(existing ? { ...body, name: existing.name, description: existing.description } : body);
+        if (topics.some(topic => topic.code !== value.code && topic.name === value.name)) throw failure('topic_duplicate', 409);
+        return res.status(200).json({ topic: await store.saveTopic(user.id, value) });
+      }
       if (action === 'directions') return res.status(200).json({ ...(await store.collectionDirections(user.id, scheduleDate())), writable: config.writes, websites: primaryHosts });
       if (action === 'direction-results') {
         if (!UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
@@ -341,11 +353,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'settings-page') return html(settingsPage(user.email));
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
-      if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id),
+      if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id), topics: await store.topicCatalog(user.id),
         candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
       if (action === 'overview') {
         const candidates = await store.candidates(user.id);
-        return res.status(200).json({ user: { email: user.email }, candidates, opportunities: await store.currentOpportunities(user.id, candidates) });
+        return res.status(200).json({ user: { email: user.email }, candidates, opportunities: await store.currentOpportunities(user.id, candidates), topics: await store.topicCatalog(user.id) });
       }
       if (action === 'source-controls') {
         const controls = await store.sourceControls(user.id);
@@ -450,14 +462,14 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['engine-page', 'feishu-page', 'library-page', 'directions-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['engine-page', 'feishu-page', 'library-page', 'directions-page', 'topics-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'engine-page' ? '/intelligence/engine' : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'engine-page' ? '/intelligence/engine' : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'topics-page' ? '/intelligence/topics' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (['overview-page', 'discover-page'].includes(action)) {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);
           if (Object.hasOwn(regions.groups, req.query.group || '')) params.set('group', req.query.group);
-          if (Object.hasOwn(regions.topics, req.query.topic || '')) params.set('topic', req.query.topic);
+          if (/^(?:[a-z0-9-]{1,80})$/.test(req.query.topic || '')) params.set('topic', req.query.topic);
           const view = ['signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
             : ['trigger', 'demand', 'project'].includes(req.query.radar) ? (req.query.radar === 'trigger' ? 'signal' : req.query.radar) : null;
           if (view) params.set('view', view);

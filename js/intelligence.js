@@ -2,6 +2,7 @@
   'use strict';
 
   var regions = JSON.parse(byId('intelligence-regions').textContent);
+  var topicNames = { ...regions.topics };
   var regionNames = Object.fromEntries(regions.countries.map(function (item) { return [item.code, item.name]; }));
   var uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
   var detailPath = new RegExp('^/intelligence/sources/(' + uuid + ')$', 'i');
@@ -54,14 +55,14 @@
       var params = new URLSearchParams(value.slice(value.indexOf('?') + 1)), retained = new URLSearchParams();
       if (regions.countries.some(function (item) { return item.code === params.get('country'); })) retained.set('country', params.get('country'));
       if (Object.hasOwn(regions.groups, params.get('group') || '')) retained.set('group', params.get('group'));
-      if (Object.hasOwn(regions.topics, params.get('topic') || '')) retained.set('topic', params.get('topic'));
+      if (/^[a-z0-9-]{1,80}$/.test(params.get('topic') || '')) retained.set('topic', params.get('topic'));
       var view = params.get('view');
       if (!view && ['trigger', 'demand', 'project'].includes(params.get('radar'))) view = params.get('radar') === 'trigger' ? 'signal' : params.get('radar');
       if (['signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/engine' || value === '/intelligence/library' || value === '/intelligence/directions' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/intelligence/engine' || value === '/intelligence/library' || value === '/intelligence/directions' || value === '/intelligence/topics' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (['/intelligence/overview', '/intelligence/discover'].includes(location.pathname) ? location.search : '')));
@@ -199,7 +200,7 @@
           ['业务分类', (classification.radars || []).map(function (item) { return radarLabels[item] || item; }).join(' / ') || '未分类'],
           ['发生国家/地区', occurred.join('、') || '尚未明确'],
           ['受影响地区（关联判断）', (classification.countries || []).filter(function (item) { return item.relation === 'relevance'; }).map(function (item) { return countryLabels[item.code] || item.code; }).join('、') || '未单列'],
-          ['跨境专题', (classification.topics || []).map(function (item) { return regions.topics[item.code] || item.code; }).join('、') || '未单列'],
+          ['跨境专题', (classification.topics || []).map(function (item) { return topicNames[item.code] || item.code; }).join('、') || '未单列'],
           ['重要性', importanceLabels[classification.importance]],
           ['证据状态', evidenceLabels[evidenceStatus] + (relatedCount ? '（另有 ' + relatedCount + ' 份关联原文）' : '')],
           ['成熟度', maturityLabels[extraction.maturity]],
@@ -468,7 +469,7 @@
   var navigationPath = location.pathname;
   var navigationTarget = navigationPath === '/intelligence/overview' && !location.search || navigationPath === '/intelligence' ? '/intelligence/overview'
     : navigationPath === '/intelligence/engine' || navigationPath === '/intelligence/followups' || navigationPath === '/intelligence/directions' ? navigationPath
-      : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
+      : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/topics' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
   document.querySelectorAll('.intel-nav a').forEach(function (link) { if (link.getAttribute('href') === navigationTarget) link.setAttribute('aria-current', 'page'); });
   function emptyWorkList(list, message) {
     var item = document.createElement('li'); item.className = 'intel-muted'; item.textContent = message; list.append(item);
@@ -1091,6 +1092,12 @@
     status('page-status', '正在读取情报…');
     try {
       var result = await api('overview');
+      topicNames = Object.fromEntries((result.topics || []).map(function (topic) { return [topic.code, topic.name]; }));
+      var topicSelect = byId('candidate-filters').elements.topic;
+      var selectedTopic = new URLSearchParams(location.search).get('topic') || topicSelect.value;
+      topicSelect.replaceChildren(new Option('全部专题', ''));
+      (result.topics || []).forEach(function (topic) { topicSelect.add(new Option(topic.name + (topic.active ? '' : '（已停用，历史）'), topic.code)); });
+      if (Array.from(topicSelect.options).some(function (option) { return option.value === selectedTopic; })) topicSelect.value = selectedTopic;
       if (result.user?.email) byId('account-email').textContent = result.user.email;
       overviewLoaded = true;
       overviewCandidates = result.candidates;
@@ -1459,6 +1466,7 @@
   async function loadDetail(id) {
     try {
       var result = await api('source', undefined, id);
+      topicNames = Object.fromEntries((result.topics || []).map(function (topic) { return [topic.code, topic.name]; }));
       var source = result.source;
       byId('source-title').textContent = source.title || '未命名来源';
       sourceStatus(byId('source-status'), source);
@@ -1554,7 +1562,7 @@
       try {
         await api('login', { email: byId('email').value.trim(), password: byId('password').value });
         byId('password').value = '';
-        location.replace('/intelligence/overview');
+        location.replace(safeReturnTo(new URLSearchParams(location.search).get('returnTo')));
       } catch (error) { status('login-status', error.message, 'error'); }
       finally { button.disabled = false; }
     });
@@ -1958,8 +1966,69 @@
       finally{directionSaving=false;fields.forEach(function(n){n.disabled=false;});byId('direction-save').disabled=!directionDirty;}
     });
   }
+  var topicData, topicSaving = false;
+  function renderTopics() {
+    var list = byId('topic-list'); list.replaceChildren();
+    var active = topicData.topics.filter(function (topic) { return topic.active; }).length;
+    byId('topic-count').textContent = '已启用 ' + active + ' 个 · 已停用 ' + (topicData.topics.length - active) + ' 个';
+    byId('topic-new').disabled = !topicData.writable || active >= 20;
+    topicData.topics.forEach(function (topic, index) {
+      var card = directionText(list, 'article', '', 'intel-panel intel-topic-card');
+      var heading = directionText(card, 'div', '', 'intel-topic-heading');
+      directionText(heading, 'span', String(index + 1).padStart(2, '0'), 'intel-direction-number');
+      directionText(heading, 'h3', topic.name);
+      directionText(heading, 'span', topic.active ? '已启用' : '已停用', 'intel-badge');
+      directionText(card, 'p', topic.description);
+      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
+      var toggle = directionText(actions, 'button', topic.active ? '停用专题' : '恢复专题', 'intel-button intel-button-quiet'); toggle.type = 'button'; toggle.disabled = !topicData.writable;
+      toggle.addEventListener('click', async function () {
+        if (topicSaving) return;
+        topicSaving = true; toggle.disabled = true;
+        status('page-status', '正在保存专题状态…');
+        try {
+          var result = await api('save-topic', { code: topic.code, revision: topic.revision, active: !topic.active });
+          topicData.topics = topicData.topics.map(function (item) { return item.code === result.topic.code ? { ...item, ...result.topic } : item; });
+          renderTopics();
+          status('page-status', topic.active ? '专题已停用；已有分类和历史记录保留。' : '专题已恢复，后续原文分析可以重新标注。', 'success');
+        } catch (error) { status('page-status', error.message + ' 请刷新名单后重试。', 'error'); }
+        finally { topicSaving = false; toggle.disabled = false; }
+      });
+    });
+  }
+  function openTopic() {
+    byId('topic-name').value = '';
+    byId('topic-description').value = '';
+    byId('topic-editor').hidden = false;
+    status('topic-save-status', '尚未保存。');
+    byId('topic-editor').scrollIntoView({ block: 'start' });
+    byId('topic-name').focus();
+  }
+  async function loadTopics() {
+    topicData = await api('topics');
+    renderTopics();
+    status('page-status', topicData.writable ? '' : '当前为只读模式。');
+  }
+  if (byId('topic-list')) {
+    byId('topic-new').addEventListener('click', function () { openTopic(null); });
+    byId('topic-cancel').addEventListener('click', function () { if (!topicSaving) byId('topic-editor').hidden = true; });
+    byId('topic-form').addEventListener('submit', async function (event) {
+      event.preventDefault(); if (topicSaving) return;
+      topicSaving = true; byId('topic-save').disabled = true;
+      var input = { code: null, revision: 0, name: byId('topic-name').value, description: byId('topic-description').value, active: true };
+      status('topic-save-status', '正在保存…');
+      try {
+        var result = await api('save-topic', input);
+        topicData.topics.push(result.topic);
+        renderTopics();
+        byId('topic-editor').hidden = true;
+        status('page-status', '专题已保存；后续新分析使用更新后的名单。', 'success');
+      } catch (error) { status('topic-save-status', error.message + ' 未保存的内容仍在表单中。', 'error'); }
+      finally { topicSaving = false; byId('topic-save').disabled = false; }
+    });
+  }
   (async function () {
     try {
+      if (byId('topic-list')) { await loadTopics(); return; }
       if (byId('direction-list')) { await loadDirections(); var requestedDirection=new URLSearchParams(location.search).get('direction'); var selectedDirection=directionData.directions.find(function(d){return d.id===requestedDirection;}); if(selectedDirection)await loadDirectionResults(selectedDirection); return; }
       if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
