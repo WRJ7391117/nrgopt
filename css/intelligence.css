@@ -285,6 +285,7 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-settings-help .intel-notice h3 { margin: 0 0 8px; font-size: 1rem; }
 .intel-job-details[open] > summary { margin-bottom: 18px; }
 .intel-operation-facts { margin-top: 18px; }
+.intel-operation-help { margin: 10px 0 0; font-size: .9rem; line-height: 1.6; }
 .intel-job-list { margin: 18px 0 0; padding: 0; list-style: none; }
 .intel-job-list li { padding: 14px 0; border-top: 1px solid var(--border); }
 .intel-job-list strong { font-size: .9rem; }
