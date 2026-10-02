@@ -63,6 +63,8 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     reserveBudget: async () => '44444444-4444-4444-8444-444444444444', settleBudget: async () => true, releaseBudget: async () => true,
     syncProviderBalance: async () => true,
     claimArchive: async () => null, archiveJob: async () => null, completeArchive: async () => true, failArchive: async () => true,
+    archiveNodeSettings: async () => null, saveArchiveDirectory: async (_owner, nodeId, revision, directory) => ({ node_id: nodeId, revision: revision + 1, requested_directory: directory }),
+    reportArchiveNode: async () => ({ node_id: 'mac-mini' }),
     jobRun: async () => ({ run: { status: 'running' }, items: [] }), enqueueDailyDigest: async () => '77777777-7777-4777-8777-777777777777', enqueueNotification: async () => '77777777-7777-4777-8777-777777777777',
     claimNotification: async () => null, finishNotification: async () => true, recordNotificationTarget: async () => true,
     failExtraction: async () => {}, recordFailure: async () => {}, ...overrides
@@ -437,6 +439,36 @@ test('archive readiness distinguishes missing credentials and read-only deployme
     assert.equal(JSON.stringify(result.body).includes('private-token'), false);
     assert.equal((await request('operations', { loggedIn: false })).code, 401);
   }
+});
+
+test('Mac archive directory is private, revisioned and reported by the authenticated node', async () => {
+  const active = setup({ environment: { ...env, NRGOPT_ARCHIVE_ENABLED: '1', NRGOPT_ARCHIVE_TOKEN: 'archive-secret' },
+    overrides: { archiveNodeSettings: async () => ({ node_id: 'mac-mini', revision: 2, active_revision: 1,
+      active_directory: '/Users/roger/NRGOPT', requested_directory: '/Volumes/D/NRGOPT', previous_directories: [] }) } });
+  const read = await active.request('local-archive-settings');
+  assert.equal(read.body.node.active_directory, '/Users/roger/NRGOPT');
+  assert.equal((await active.request('local-archive-settings', { loggedIn: false })).code, 401);
+  const saved = await active.request('save-local-archive-directory', { method: 'POST', body: {
+    node_id: 'mac-mini', revision: 2, directory: '/Volumes/D/New Archive' } });
+  assert.equal(saved.code, 200);
+  assert.deepEqual(active.calls.find(call => call.name === 'saveArchiveDirectory').args, [admin, 'mac-mini', 2, '/Volumes/D/New Archive']);
+  for (const directory of ['/tmp/archive', '/Volumes/D/../private', '/Volumes/D/', '/Users/roger//archive', '/Users/roger/archive\nother']) {
+    assert.equal((await active.request('save-local-archive-directory', { method: 'POST', body: { node_id: 'mac-mini', revision: 2, directory } })).code, 400);
+  }
+  assert.equal((await active.request('save-local-archive-directory', { method: 'POST', body: { node_id: 'mac-mini', revision: 2,
+    directory: '/Volumes/D/archive' }, loggedIn: false })).code, 401);
+  assert.equal((await active.request('save-local-archive-directory', { method: 'POST', body: { node_id: 'mac-mini', revision: 2,
+    directory: '/Volumes/D/archive' }, headers: { origin: 'https://other.example' } })).code, 403);
+  const auth = { authorization: 'Bearer archive-secret' };
+  const config = await active.request('archive-config', { method: 'POST', loggedIn: false, headers: auth, body: { node_id: 'mac-mini' } });
+  assert.deepEqual(config.body, { requested_directory: '/Volumes/D/NRGOPT', revision: 2 });
+  const report = await active.request('archive-report', { method: 'POST', loggedIn: false, headers: auth, body: {
+    node_id: 'mac-mini', active_directory: '/Volumes/D/NRGOPT', active_revision: 2, previous_directories: ['/Users/roger/NRGOPT'], error_code: null } });
+  assert.equal(report.code, 200);
+  assert.equal(active.calls.find(call => call.name === 'reportArchiveNode').args[2].active_revision, 2);
+  assert.equal((await active.request('archive-report', { method: 'POST', loggedIn: false, headers: auth, body: {
+    node_id: 'mac-mini', active_directory: '/tmp/not-allowed', active_revision: 2, previous_directories: [], error_code: null } })).code, 400);
+  assert.equal((await active.request('archive-config', { method: 'POST', loggedIn: false, body: { node_id: 'mac-mini' } })).code, 401);
 });
 
 test('overview login keeps allowed filters and discards unknown redirect parameters', async () => {

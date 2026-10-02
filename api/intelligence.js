@@ -26,7 +26,8 @@ const messages = {
   followup_conflict: '跟踪已在另一页面更新，请重新读取后再保存，当前输入尚未覆盖。',
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
-    archive_queue_failed: '原件已保存，但归档任务登记失败；请重试保存这条来源。',
+  archive_queue_failed: '原件已保存，但归档任务登记失败；请重试保存这条来源。',
+  archive_directory_conflict: 'Mac 目录状态已变化，请刷新后重试。当前输入尚未覆盖。',
   source_empty_document: '来源页面没有可读取的正文，未调用模型；请换用可公开读取正文的原文页面。',
   model_not_configured: '情报分析服务尚未配置。', model_auth_failed: '情报分析服务密钥无效或无权调用。', model_unavailable: '情报分析服务暂时不可用，请稍后重试。',
   extraction_invalid: '模型返回内容未通过证据校验，未保存本次结果。', discovery_not_configured: '来源发现服务尚未配置。',
@@ -70,6 +71,9 @@ const { countries, primaryHosts, discoverCountry } = require('../lib/intelligenc
 const { discoverWatch } = require('../lib/intelligence/watch-search.cjs');
 const cookieName = env => (env.NRGOPT_APP_ORIGIN || '').startsWith('https://') ? '__Host-nrgopt_session' : 'nrgopt_session';
 const archiveNode = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(value) ? value : null;
+const archiveDirectory = value => typeof value === 'string' && value.length <= 1024 &&
+  /^\/(?:Users\/[^/]+\/.+|Volumes\/[^/]+\/.+)$/.test(value) && !/[\x00-\x1f\x7f\\]/.test(value) &&
+  !value.slice(1).split('/').some(part => part === '.' || part === '..' || part === '');
 function sessionToken(req, env) {
   const prefix = `${cookieName(env)}=`;
   const cookie = (req.headers.cookie || '').split(/;\s*/).find(item => item.startsWith(prefix));
@@ -91,8 +95,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-topic', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail'].includes(action);
-      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
+      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -106,9 +110,22 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         const store = storeFactory(config);
         const body = req.body;
-        if (post && (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > 2048)) throw failure('invalid_request', 400);
+        if (post && (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > (action === 'archive-report' ? 8192 : 2048))) throw failure('invalid_request', 400);
         const nodeId = archiveNode(post ? body.node_id : req.query.node_id);
         if (!nodeId) throw failure('invalid_request', 400);
+        if (action === 'archive-config') {
+          const entry = await store.archiveNodeSettings(config.adminId, nodeId);
+          return res.status(200).json({ requested_directory: entry?.requested_directory || null, revision: entry?.revision || 0 });
+        }
+        if (action === 'archive-report') {
+          if (!archiveDirectory(body.active_directory) || !Number.isInteger(body.active_revision) || body.active_revision < 0 ||
+            !Array.isArray(body.previous_directories) || body.previous_directories.length > 5 ||
+            !body.previous_directories.every(archiveDirectory) ||
+            (body.error_code !== null && body.error_code !== undefined && !['invalid_directory', 'directory_unavailable', 'directory_not_writable', 'archive_state_failed'].includes(body.error_code))) throw failure('invalid_request', 400);
+          const reported = await store.reportArchiveNode(config.adminId, nodeId, body);
+          if (!reported) throw failure('invalid_request', 409);
+          return res.status(200).json({ ok: true });
+        }
         if (action === 'archive-claim') {
           const job = await store.claimArchive(config.adminId, nodeId);
           return res.status(200).json({ job: job ? { ...job,
@@ -351,6 +368,12 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         return res.status(200).json({ watch: await store.saveFollowup(req.query.id, user.id, value) });
       }
       if (action === 'settings-page') return html(settingsPage(user.email));
+      if (action === 'local-archive-settings') return res.status(200).json({ node: await store.archiveNodeSettings(user.id), writable: config.writes });
+      if (action === 'save-local-archive-directory') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        if (!archiveNode(body.node_id) || !Number.isInteger(body.revision) || body.revision < 0 || !archiveDirectory(body.directory)) throw failure('invalid_request', 400);
+        return res.status(200).json({ node: await store.saveArchiveDirectory(user.id, body.node_id, body.revision, body.directory) });
+      }
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id), topics: await store.topicCatalog(user.id),
