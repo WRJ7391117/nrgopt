@@ -916,17 +916,17 @@
   }
 
   function renderOperations(result) {
-    byId('scheduler-state').textContent = result.scheduler_enabled ? '已开放；每次触发推进一项发现、抓取、提取或核对任务，未完成任务可跨天续跑' : '未启用；不会自动调用来源发现服务';
+    byId('scheduler-state').textContent = result.scheduler_enabled ? '本站已开启定时搜集；实际进度以当天任务为准。' : '本站不直接执行定时搜集；实际进度以当天任务为准。';
     var countryNames = regionNames;
     var fixedCountries = result.fixed_source_countries || [];
     var missingCountries = Object.keys(countryNames).filter(function (code) { return !fixedCountries.includes(code); });
     byId('fixed-source-coverage').textContent = '已登记固定公告入口：' + (fixedCountries.map(function (code) { return countryNames[code]; }).filter(Boolean).join('、') || '暂无')
       + '。' + (missingCountries.length ? missingCountries.map(function (code) { return countryNames[code]; }).join('、') + '暂无固定入口；未接入地区不自动安排搜索；' : '已登记范围均有固定入口；')
       + '入口实际抓取结果以任务记录为准。';
-    var archiveStates = { disabled: '尚未启用云端归档入口，待归档原件继续保留在云端。',
-      missing_token: '归档凭据尚未配置，节点暂时无法连接。', read_only: '当前部署只读，不能领取或确认归档任务。',
-      enabled: '云端入口已启用；仍需归档节点实际拉取并校验，不代表原件已经完成归档。' };
-    byId('archive-state').textContent = archiveStates[result.archive_status] || '归档状态尚未确认。';
+    var archiveStates = { disabled: '尚未开启自动同步；已保存的原文仍保留在云端。',
+      missing_token: '缺少 Mac 归档凭据，暂时无法同步；已保存的原文仍在云端。', read_only: '当前网站只读，无法处理 Mac 归档；已保存的原文仍在云端。',
+      enabled: '已允许 Mac 同步原文；每篇是否成功存到本地，需查看归档记录。' };
+    byId('archive-state').textContent = archiveStates[result.archive_status] || 'Mac 归档状态暂时无法确认。';
     var symbols = { CNY: '¥', USD: '$' };
     var budgetNames = { discovery: '来源发现', analysis: '情报分析' };
     var budgets = (result.budgets || []).filter(function (budget) { return budget.enabled; });
