@@ -1338,3 +1338,20 @@ test('overview separates period evidence, current decisions, configuration and v
   assert.equal(revised.counts.discoveries,0,'New source version must not refresh first discovery');
   assert.equal(revised.distribution.total,1);assert.equal(revised.distribution.project,0);assert.equal(revised.distribution.demand,1,'Latest valid version supplies the category');
 });
+
+test('topic catalog and save use owner-scoped REST and revision RPC', async()=>{
+  const paths=[];
+  const store=createStore(CONFIG,async(input,init)=>{
+    const url=new URL(input);paths.push({url,body:init.body?JSON.parse(init.body):null});
+    if(url.pathname.endsWith('/intelligence_topics'))return Response.json([{code:'suez',name:'苏伊士运河',description:'跨境航运',active:false,revision:2}]);
+    if(url.pathname.endsWith('/save_intelligence_topic'))return Response.json({code:'suez',name:'苏伊士运河',description:'跨境航运',active:true,revision:3});
+    throw Error('unexpected request');
+  });
+  const topics=await store.topicCatalog('owner-a');
+  assert.equal(topics.length,7);
+  assert.equal(topics.find(t=>t.code==='suez').active,false);
+  assert.equal(paths[0].url.searchParams.get('owner_id'),'eq.owner-a');
+  const saved=await store.saveTopic('owner-a',{code:'suez',revision:2,name:'苏伊士运河',description:'跨境航运',active:true});
+  assert.equal(saved.revision,3);
+  assert.deepEqual(paths[1].body,{p_owner_id:'owner-a',p_code:'suez',p_revision:2,p_name:'苏伊士运河',p_description:'跨境航运',p_active:true});
+});

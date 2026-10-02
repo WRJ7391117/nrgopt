@@ -87,6 +87,7 @@
     { "source": "/intelligence/feishu", "destination": "/api/intelligence?action=feishu-page" },
     { "source": "/intelligence/library", "destination": "/api/intelligence?action=library-page" },
     { "source": "/intelligence/directions", "destination": "/api/intelligence?action=directions-page" },
+    { "source": "/intelligence/topics", "destination": "/api/intelligence?action=topics-page" },
     { "source": "/intelligence/login", "destination": "/api/intelligence?action=login-page" },
     { "source": "/intelligence/reset-password", "destination": "/api/intelligence?action=reset-password-page" },
     { "source": "/intelligence/discover", "destination": "/api/intelligence?action=discover-page" },

@@ -244,6 +244,7 @@
 .intel-discover-filters { margin: 12px 0 0; padding: 18px; }
 .intel-discover-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .intel-discover-filter-grid label { min-width: 0; margin: 0; }
+.intel-discover-topic-link { margin: 8px 0 0; font-size: .88rem; }
 .intel-discover-more { margin-top: 12px; }
 .intel-discover-more summary { width: fit-content; color: var(--accent); cursor: pointer; font-size: .85rem; }
 .intel-discover-more .intel-discover-filter-grid { margin-top: 14px; }
@@ -428,6 +429,11 @@
 
 /* Collection directions: one readable flow, with controls beside their feedback. */
 .intel-direction-list { display: grid; gap: 20px; }
+.intel-topic-card { margin: 0; min-width: 0; }
+.intel-topic-card h3 { margin: 0; }
+.intel-topic-card p { margin: 10px 0 0; }
+.intel-topic-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+#topic-editor { margin-top: 24px; scroll-margin-top: 24px; }
 .intel-direction-list > .intel-direction-card { margin: 0; min-width: 0; }
 .intel-direction-list p, .intel-direction-explainer p { overflow-wrap: anywhere; }
 .intel-direction-list summary { cursor: pointer; }

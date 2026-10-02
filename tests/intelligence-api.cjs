@@ -42,6 +42,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
   const calls = [];
   const store = {
     sourceControls: async () => [], setSourceControl: async () => 0,
+    topicCatalog: async () => require('../lib/intelligence/topics.cjs').defaults,
     login: async () => ({ user: { id: admin }, access_token: 'signed.test-token', expires_in: 7200 }),
     requestPasswordReset: async () => ({}), resetPassword: async () => ({ id: admin }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
@@ -483,7 +484,10 @@ test('model extraction reads saved evidence, records processing and persists onl
   const extraction = { summary_zh: '中文摘要', why_it_matters_zh: '为什么重要', known_facts: [], unknowns_zh: [], hypotheses: [], next_signals_zh: [], gcc_relevance_zh: '待核对', maturity: 'background', caution_zh: '待人工核对' };
   let modelInput;
   const { request, calls } = setup({
-    overrides: { evidence: async () => ({ source: saved, bytes }) },
+    overrides: { evidence: async () => ({ source: saved, bytes }), topicCatalog: async () => [
+      {code:'red-sea',name:'红海',description:'红海能源运输',active:false},
+      {code:'custom-11111111-1111-4111-8111-111111111111',name:'跨境电网',description:'跨国输电线路',active:true}
+    ] },
     modelFactory: options => {
       assert.equal(options.apiKey, env.DEEPSEEK_API_KEY);
       return async input => { modelInput = input; return { extraction, provider: 'deepseek', model: 'deepseek-flash', usage: { prompt_tokens: 10, completion_tokens: 5 } }; };
@@ -493,6 +497,7 @@ test('model extraction reads saved evidence, records processing and persists onl
   assert.equal(response.code, 200);
   assert.equal(response.body.source.extraction_status, 'extracted');
   assert.match(modelInput.sourceText, /Official source fact/);
+  assert.deepEqual(modelInput.topics.map(topic=>topic.name),['跨境电网']);
   assert.deepEqual(calls.find(call => call.name === 'beginExtraction').args, [id, admin]);
   assert.equal(calls.find(call => call.name === 'saveExtraction').args[3], saved.content_sha256);
   assert.deepEqual(calls.find(call => call.name === 'saveCandidate').args, [id, admin, extraction, saved.content_sha256]);
@@ -877,6 +882,34 @@ test('collection directions require authentication, owner scope, valid revisions
   assert.equal((await request('save-direction',{method:'POST',body:value,headers:{origin:'https://other.test'}})).code,403);
   const locked=setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'}});
   assert.equal((await locked.request('save-direction',{method:'POST',body:value})).code,403);
+});
+
+test('topic list has a visible private editor and owner-scoped save without invoking analysis', async()=>{
+  const defaults=require('../lib/intelligence/topics.cjs').defaults;
+  const saved=[];
+  const {request,calls}=setup({overrides:{
+    topicCatalog:async owner=>{assert.equal(owner,admin);return defaults;},
+    saveTopic:async (owner,value)=>{assert.equal(owner,admin);saved.push(value);return {...value,revision:1};}
+  },modelFactory:()=>{throw Error('topic edit must not invoke model');}});
+  assert.equal((await request('topics',{loggedIn:false})).code,401);
+  const redirect=await request('topics-page',{loggedIn:false});
+  assert.equal(redirect.code,303);
+  assert.match(redirect.headers.location,/topics/);
+  const page=await request('topics-page');
+  assert.match(page.body,/id="topic-new"/);
+  assert.match((await request('discover-page')).body,/管理跨境专题名单/);
+  assert.equal((await request('topics')).body.topics.length,7);
+  const input={code:null,revision:0,name:'跨境电网',description:'跨国电力互联',active:true};
+  assert.equal((await request('save-topic',{method:'POST',body:input})).code,200);
+  assert.match(saved[0].code,/^custom-/);
+  assert.equal((await request('save-topic',{method:'POST',body:{code:'suez',revision:0,active:false,name:'伪造改名'}})).code,200);
+  assert.equal(saved[1].name,'苏伊士运河');
+  assert.equal(saved[1].active,false);
+  assert.equal((await request('save-topic',{method:'POST',body:{...input,name:'红海'}})).code,409);
+  assert.equal((await request('save-topic',{method:'POST',body:{...input,revision:-1}})).code,400);
+  assert.equal((await request('save-topic',{method:'POST',body:input,headers:{origin:'https://other.example'}})).code,403);
+  assert.equal((await setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'}}).request('save-topic',{method:'POST',body:input})).code,403);
+  assert.equal(calls.filter(call=>call.name==='saveTopic').length,2);
 });
 
 test('source library routes enforce login, origin, write switch, owner directions and canonical duplicates',async()=>{
