@@ -408,10 +408,10 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, /发现情报/);
   assert.match(overviewPage.body, />工作台总览</);
   assert.match(overviewPage.body, />早期信号</);
-  assert.match(overviewPage.body, /区域变化如何影响能源韧性/);
-  assert.match(overviewPage.body, /谁需要解决什么问题/);
-  assert.match(overviewPage.body, /项目进展到哪一步/);
-  assert.match(overviewPage.body, /哪些环节可能参与/);
+  assert.match(overviewPage.body, /浏览近期变化/);
+  assert.match(overviewPage.body, /id="radar-demand-count"/);
+  assert.match(overviewPage.body, /id="radar-project-count"/);
+  assert.match(overviewPage.body, /id="opportunity-count"/);
   assert.doesNotMatch(overviewPage.body, /跨来源核对/);
   const settingsPage = await request('settings-page');
   assert.match(settingsPage.body, /系统运行状态/);
@@ -769,14 +769,15 @@ test('workflow page and data require the administrator, preserve login return an
   assert.equal(rewrite.destination, '/api/intelligence?action=workflow-page');
 });
 
-test('MENA pages use compact groups and accept only supported country, group and topic return parameters', async () => {
+test('discovery keeps one region filter and accepts only supported country, group and topic return parameters', async () => {
   const { request } = setup();
   const page = await request('discover-page');
-  assert.match(page.body, /中东和北非能源情报/);
-  assert.match(page.body, /data-region="north-africa"/);
+  assert.match(page.body, /aria-label="情报类型"/);
+  assert.equal((page.body.match(/name="group"/g) || []).length, 1);
+  assert.match(page.body, /option value="north-africa"/);
   assert.match(page.body, /option value="EG"/);
   assert.match(page.body, /西撒哈拉（地位有争议）/);
-  assert.doesNotMatch(page.body, /class="intel-country-card"/);
+  assert.doesNotMatch(page.body, /id="region-coverage"/);
   const anon = await request('overview-page', { loggedIn: false, query: { country: 'EG', group: 'north-africa', topic: 'suez' } });
   assert.equal(decodeURIComponent(anon.headers.location.split('returnTo=')[1]), '/intelligence/overview?country=EG&group=north-africa&topic=suez');
   assert.equal((await request('coverage', { loggedIn: false })).code, 401);
