@@ -1,0 +1,47 @@
+const http = require('node:http');
+const { execFile } = require('node:child_process');
+const fs = require('node:fs/promises');
+
+const PORT = 47431;
+const ORIGINS = new Set(['https://www.nrgopt.com', 'https://nrgopt.com']);
+
+function chooseFolder() {
+  return new Promise(resolve => {
+    execFile('/usr/bin/osascript', ['-e', 'POSIX path of (choose folder with prompt "选择 NRGOPT 原文归档目录")'],
+      { timeout: 300000 }, (error, stdout) => resolve(error ? '' : stdout.trim().replace(/\/$/, '')));
+  });
+}
+
+function createServer(pick = chooseFolder) {
+  let busy = false;
+  return http.createServer(async (request, response) => {
+    const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
+    const origin = url.searchParams.get('origin');
+    const nonce = url.searchParams.get('nonce');
+    if (request.method !== 'GET' || url.pathname !== '/pick' || !ORIGINS.has(origin) || !/^[a-f0-9]{32}$/.test(nonce || '')) {
+      response.writeHead(404).end(); return;
+    }
+    if (busy) { response.writeHead(409).end('已有目录选择窗口打开。'); return; }
+    busy = true;
+    let directory = '', result = 'cancelled';
+    try {
+      directory = await pick();
+      if (directory) result = 'selected';
+      if (directory && (!/^\/(?:Users\/[^/]+\/.+|Volumes\/[^/]+\/.+)$/.test(directory) || /[\x00-\x1f\x7f\\]/.test(directory))) {
+        directory = ''; result = 'unsupported';
+      }
+      if (directory) {
+        const stat = await fs.stat(directory);
+        if (!stat.isDirectory()) { directory = ''; result = 'unavailable'; }
+      }
+    } catch { directory = ''; result = 'unavailable'; }
+    finally { busy = false; }
+    const payload = JSON.stringify({ type: 'nrgopt-archive-directory', nonce, directory, result }).replace(/</g, '\\u003c');
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'" });
+    response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>选择归档目录</title><p>${directory ? '已选择目录，请返回系统设置保存。' : '未选择可用目录，请返回系统设置查看提示。'}</p><script>if(window.opener)window.opener.postMessage(${payload},${JSON.stringify(origin)});window.close()</script></html>`);
+  });
+}
+
+if (require.main === module) createServer().listen(PORT, '127.0.0.1');
+module.exports = { createServer };
