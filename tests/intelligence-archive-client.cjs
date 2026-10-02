@@ -19,6 +19,13 @@ test('archive setup failures remain actionable without exposing server response 
   }
 });
 
+test('one daily run may drain up to 500 jobs but remains bounded', async () => {
+  const config = { baseUrl: 'https://archive.example', token: 'secret', nodeId: 'test', directory: '/unused',
+    fetchImpl: async () => json({ job: null }) };
+  assert.deepEqual(await runArchivePull({ ...config, maxItems: 500 }), { archived: 0 });
+  await assert.rejects(runArchivePull({ ...config, maxItems: 501 }), { code: 'invalid_archive_config' });
+});
+
 test('archive pull verifies bytes, writes object and manifest, then acknowledges once', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-'));
   const bytes = Buffer.from('official evidence');
