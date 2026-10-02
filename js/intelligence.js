@@ -1120,7 +1120,9 @@
       status('archive-directory-status', '');
       return;
     }
-    form.elements.directory.value = node.requested_directory || node.active_directory || '';
+    form.elements.directory.value = '';
+    byId('archive-directory-selection').textContent = '尚未选择新目录';
+    form.querySelector('button[type="submit"]').disabled = true;
     var pending = node.revision > node.active_revision;
     var errors = { invalid_directory: '目录格式无效', directory_unavailable: '目录不存在、磁盘未挂载或位置已变化',
       directory_not_writable: '目录不可写', archive_state_failed: 'Mac 无法保存目录状态' };
@@ -1135,9 +1137,33 @@
   }
   if (byId('archive-directory-refresh')) {
     byId('archive-directory-refresh').addEventListener('click', loadArchiveSettings);
+    var archivePicker = null;
+    byId('archive-directory-pick').addEventListener('click', function () {
+      var nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), function (byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+      var url = 'http://127.0.0.1:47431/pick?origin=' + encodeURIComponent(location.origin) + '&nonce=' + nonce;
+      var popup = window.open(url, '_blank', 'popup,width=480,height=260');
+      if (!popup) { status('archive-directory-status', '浏览器阻止了目录选择窗口，请允许弹出窗口后重试。', 'error'); return; }
+      archivePicker = { popup: popup, nonce: nonce };
+      status('archive-directory-status', '请在弹出的 Mac 窗口中选择文件夹；若新页面无法连接，请检查本机目录选择服务。');
+    });
+    window.addEventListener('message', function (event) {
+      if (!archivePicker || event.origin !== 'http://127.0.0.1:47431' || event.source !== archivePicker.popup ||
+          event.data?.type !== 'nrgopt-archive-directory' || event.data.nonce !== archivePicker.nonce) return;
+      archivePicker = null;
+      if (!event.data.directory) {
+        status('archive-directory-status', event.data.result === 'unsupported' ? '请选择用户目录或外接磁盘中的子文件夹。' :
+          event.data.result === 'unavailable' ? '所选目录无法读取，请检查磁盘后重试。' : '已取消选择，保存目录未更改。',
+        event.data.result === 'cancelled' ? '' : 'error');
+        return;
+      }
+      byId('archive-directory-input').value = event.data.directory;
+      byId('archive-directory-selection').textContent = event.data.directory;
+      byId('archive-directory-form').querySelector('button[type="submit"]').disabled = false;
+      status('archive-directory-status', '已选择目录。点击“保存目录”后，Mac 下次检查时才会验证并切换。');
+    });
     byId('archive-directory-form').addEventListener('submit', async function (event) {
       event.preventDefault();
-      if (!archiveSettings) return;
+      if (!archiveSettings || !event.currentTarget.elements.directory.value) return;
       var form = event.currentTarget, button = form.querySelector('button[type="submit"]');
       button.disabled = true;
       status('archive-directory-status', '正在保存目录…');
@@ -1145,8 +1171,8 @@
         var result = await api('save-local-archive-directory', { node_id: archiveSettings.node_id,
           revision: archiveSettings.revision, directory: form.elements.directory.value.trim() });
         renderArchiveSettings({ node: result.node, writable: true });
-      } catch (error) { status('archive-directory-status', error.message + ' 输入内容仍保留。', 'error'); }
-      finally { button.disabled = false; }
+      } catch (error) { status('archive-directory-status', error.message + ' 所选目录仍保留。', 'error'); }
+      finally { button.disabled = !form.elements.directory.value; }
     });
   }
   async function loadSources() {
