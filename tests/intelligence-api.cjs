@@ -515,7 +515,7 @@ test('provider-neutral pages describe capabilities instead of fixed vendors', as
   assert.ok(!sources.body.includes('MiniMax'));
   assert.ok(!sources.body.includes('DeepSeek'));
   assert.ok(!detail.body.includes('DeepSeek'));
-  assert.match(settingsPage.body, /模型、预算与通知/);
+  assert.match(settingsPage.body, /模型与预算/);
   assert.match(settingsPage.body, /API Key 是只写字段/);
   assert.match(settingsPage.body, /人民币 CNY/);
   assert.match(settingsPage.body, /美元 USD/);
@@ -777,6 +777,21 @@ test('workflow page and data require the administrator, preserve login return an
   assert.ok(!calls.some(item => ['enqueueJob', 'claimJobItem', 'enqueueJobItems'].includes(item.name)));
   const rewrite = require('../vercel.json').rewrites.find(item => item.source === '/intelligence/workflow');
   assert.equal(rewrite.destination, '/api/intelligence?action=workflow-page');
+});
+
+test('daily tasks and Feishu delivery have separate workbench and settings entrances', async () => {
+  const { request } = setup();
+  const workbench = await request('overview-page');
+  assert.match(workbench.body, /<h2>今天的搜集<\/h2>/);
+  assert.match(workbench.body, /href="\/intelligence\/workflow">当天任务详情/);
+  assert.doesNotMatch(workbench.body, /workbench-notifications|最近飞书投递/);
+  const settings = await request('settings-page');
+  assert.match(settings.body, /<h1>系统设置<\/h1>/);
+  assert.match(settings.body, /href="\/intelligence\/feishu">飞书配置与推送/);
+  assert.doesNotMatch(settings.body, /href="\/intelligence\/workflow">当天任务/);
+  const feishu = await request('feishu-page');
+  assert.match(feishu.body, /<h1>飞书配置与推送<\/h1>/);
+  assert.match(feishu.body, /← 系统设置/);
 });
 
 test('discovery keeps one region filter and accepts only supported country, group and topic return parameters', async () => {

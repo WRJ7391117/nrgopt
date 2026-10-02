@@ -1266,7 +1266,7 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
       assert.ok(u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
       return Response.json(sources);
     }
-    if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities|notification_outbox)$/.test(u.pathname))return Response.json([]);
+    if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities)$/.test(u.pathname))return Response.json([]);
     throw Error('unexpected');
   });
   const result=await store.workbench('owner-a','2026-09-27');
@@ -1326,7 +1326,7 @@ test('overview separates period evidence, current decisions, configuration and v
   const candidate={id:'c',source_id:'s',source_sha256:'a',created_at:'2026-09-27T16:00:00+00:00',radars:['project']};
   const watch={id:'w',candidate_id:'c',candidate:{...candidate,evidence_status:'conflict'},followup:{review_on:'2099-01-01'},changes:[{created_at:'2026-09-26T00:00:00Z'},{created_at:'2026-09-28T00:00:00Z'}]};
   const ref={source_id:'s',direction_id:'d',analysis_sha256:'a',analysis_extracted_at:source.extracted_at,match:{relevant:true}};
-  const input={day:'2026-09-28',period:1,candidates:[candidate],sources:[source],watches:[watch],followed:[watch],directions:[{id:'d',effective_on:'2026-09-29',config:{name:'Future config',enabled:true,countries:['SA','AE'],industries:'Energy'}}],runs:[],tasks:[{status:'failed',checkpoint:{country:'SA',direction:{id:'d'}}}],refs:[ref,{...ref,analysis_sha256:'old'}],library:[],opportunities:[{candidate_id:'c',source_sha256:'old'}],notifications:[],currentTasks:[]};
+  const input={day:'2026-09-28',period:1,candidates:[candidate],sources:[source],watches:[watch],followed:[watch],directions:[{id:'d',effective_on:'2026-09-29',config:{name:'Future config',enabled:true,countries:['SA','AE'],industries:'Energy'}}],runs:[],tasks:[{status:'failed',checkpoint:{country:'SA',direction:{id:'d'}}}],refs:[ref,{...ref,analysis_sha256:'old'}],library:[],opportunities:[{candidate_id:'c',source_sha256:'old'}],currentTasks:[]};
   const result=summarize(input);
   assert.equal(result.counts.discoveries,1);assert.equal(result.discoveries.length,0);assert.equal(result.counts.active,1);assert.equal(result.counts.due,1);
   assert.deepEqual(result.highlights,[],'Followed evidence belongs to the action section, not new discoveries');

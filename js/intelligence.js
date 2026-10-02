@@ -597,7 +597,7 @@
       Object.keys(data.counts).forEach(function(key){byId('workbench-count-'+key).textContent=data.counts[key];});
       var run=data.runtime,failed=run.counts.failed||0,paused=(run.counts.budget_paused||0)+(run.counts.manual_paused||0);
       var alert=byId('workbench-alert');alert.hidden=!failed&&!paused&&!!run.run;
-      alert.textContent=!run.run?'今天暂无搜集计划记录 · 查看运行状态 →':'今天 '+failed+' 项失败、'+paused+' 项暂停 · 查看运行状态 →';
+      alert.textContent=!run.run?'今天暂无搜集计划记录 · 查看当天任务 →':'今天 '+failed+' 项失败、'+paused+' 项暂停 · 查看当天任务 →';
       var highlights=byId('workbench-highlights');highlights.replaceChildren();
       data.highlights.forEach(function(candidate){highlights.append(overviewDiscovery(candidate,true));});
       if(!data.highlights.length)emptyWorkList(highlights,'本期暂无未跟踪的新情报。');
@@ -644,10 +644,6 @@
       var failures=byId('workbench-failures');failures.replaceChildren();
       run.failures.forEach(function(f){var name=f.name;if(f.url){try{name=new URL(f.url).hostname;}catch{}}var reason=/tls/.test(f.error_code)?'来源连接验证失败':/empty/.test(f.error_code)?'未取得有效正文':/large/.test(f.error_code)?'原文超过抓取大小限制':/extraction/.test(f.error_code)?'原文分析未通过核验':'执行失败';directionText(failures,'li',name+'：'+reason);});
       if(failed>run.failures.length)directionText(failures,'li','其余失败与具体影响请查看当天任务详情。');
-      var notifications=byId('workbench-notifications');notifications.replaceChildren();
-      var notifyStates={retry:'等待重试',accepted:'飞书已接收',failed:'发送失败',pending:'等待发送',queued:'等待发送',unknown:'结果未知，未自动重发',sending:'发送中',paused:'已暂停'};
-      data.notifications.forEach(function(n){directionText(notifications,'li',({daily:'日报',flash:'重大提醒',system:'系统告警'}[n.notification_type]||'通知')+' · '+(n.error_code==='not_sent_before_production_enablement'?'接通前历史通知，未补发':notifyStates[n.status]||'状态待核对')+' · '+dateLabel(n.updated_at));});
-      if(!data.notifications.length)directionText(notifications,'li','尚无投递记录。');
       byId('workbench-content').hidden=false;status('page-status','');
     } catch(error){range.value=workbenchRenderedPeriod;status('page-status',error.message+' 本次读取未完成，已有内容仍是上次快照，不能据此判断没有新情报。','error');}
     finally{button.disabled=false;range.disabled=false;}
