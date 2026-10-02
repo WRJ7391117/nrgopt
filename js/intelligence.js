@@ -570,8 +570,8 @@
     paragraph(item,'与你的关注有关：'+(candidate.direction_names.length?candidate.direction_names.join('、')+'。':'尚无已核验的方向归属。')+(candidate.why_it_matters_zh||''),'intel-overview-impact');
     if(compact) {
       paragraph(item,'关键未知：'+(candidate.unknowns_zh[0]||'当前未列出具体核实点，不代表全部证实。'),'intel-muted');
+      paragraph(item,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta');
       var details=directionText(item,'details','');directionText(details,'summary','查看全部核实点与依据');details.append(reviewPointsSection(candidate,candidate));
-      paragraph(details,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta');
     } else { item.append(reviewPointsSection(candidate,candidate));paragraph(item,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta'); }
     var action=directionText(item,'a','查看证据与跟踪计划 →','intel-evidence-link');action.href=link.href;
     return item;
