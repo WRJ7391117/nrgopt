@@ -55,6 +55,27 @@ test('archive pull verifies bytes, writes object and manifest, then acknowledges
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 
+test('official JSON originals pass the same local archive verification', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-json-'));
+  const bytes = Buffer.from('{"data":{"documentId":"official"}}');
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  const job = { id: randomUUID(), source_id: randomUUID(), content_type: 'application/json',
+    byte_size: bytes.length, content_sha256: hash, download_url: '/api/intelligence?action=archive-object' };
+  let acknowledged = false;
+  const fetchImpl = async input => {
+    const action = new URL(input).searchParams.get('action');
+    if (action === 'archive-claim') return json({ job });
+    if (action === 'archive-object') return new Response(bytes);
+    if (action === 'archive-ack') { acknowledged = true; return json({ ok: true }); }
+    throw new Error('unexpected request');
+  };
+  try {
+    assert.deepEqual(await runArchivePull({ baseUrl: 'https://archive.example', token: 'fixture', nodeId: 'test', directory, fetchImpl, maxItems: 1 }), { archived: 1 });
+    assert.equal(acknowledged, true);
+    assert.deepEqual(await verifyArchive(directory), { verified: 1, failures: [] });
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
 test('hash mismatch reports failure and never acknowledges or leaves an archive object', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nrgopt-archive-'));
   const job = { id: randomUUID(), source_id: randomUUID(), content_type: 'text/plain', byte_size: 3,
