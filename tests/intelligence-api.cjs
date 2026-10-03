@@ -417,8 +417,10 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, /id="opportunity-count"/);
   assert.doesNotMatch(overviewPage.body, /跨来源核对/);
   const settingsPage = await request('settings-page');
-  assert.match(settingsPage.body, /系统运行状态/);
-  assert.match(settingsPage.body, /查看最近计划日和故障诊断明细/);
+  assert.match(settingsPage.body, /id="operations-title">运行状态/);
+  assert.match(settingsPage.body, /<summary>最近任务与故障<\/summary>/);
+  assert.match(settingsPage.body, /<summary>更改目录<\/summary>/);
+  assert.match(settingsPage.body, /<summary>调用预算与余额<\/summary>/);
   const page = await request('detail-page');
   assert.match(page.body, /中文注释/);
   assert.match(page.body, /区域变化与能源韧性路径/);
