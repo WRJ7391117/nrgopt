@@ -17,10 +17,19 @@ function createServer(pick = chooseFolder) {
   let busy = false;
   return http.createServer(async (request, response) => {
     const url = new URL(request.url, `http://127.0.0.1:${PORT}`);
-    const origin = url.searchParams.get('origin');
+    const direct = url.pathname === '/choose-direct';
+    const origin = direct ? request.headers.origin : url.searchParams.get('origin');
     const nonce = url.searchParams.get('nonce');
-    if (request.method !== 'GET' || !['/pick', '/choose'].includes(url.pathname) || !ORIGINS.has(origin) || !/^[a-f0-9]{32}$/.test(nonce || '')) {
+    if ((!direct && (request.method !== 'GET' || !['/pick', '/choose'].includes(url.pathname))) ||
+        (direct && !['OPTIONS', 'POST'].includes(request.method)) ||
+        !ORIGINS.has(origin) || !/^[a-f0-9]{32}$/.test(nonce || '')) {
       response.writeHead(404).end(); return;
+    }
+    const cors = direct ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Private-Network': 'true',
+      'Vary': 'Origin', 'Cache-Control': 'no-store' } : {};
+    if (direct && request.method === 'OPTIONS') {
+      if (request.headers['access-control-request-method'] !== 'POST') { response.writeHead(404).end(); return; }
+      response.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'POST' }).end(); return;
     }
     if (url.pathname === '/pick') {
       const query = new URLSearchParams({ origin, nonce });
@@ -29,7 +38,7 @@ function createServer(pick = chooseFolder) {
       response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>选择归档目录</title><style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:32px;color:#172338;background:#f6f8fb}main{max-width:420px;margin:24px auto}h1{font-size:21px;margin:0 0 12px}p{margin:0;color:#526178}</style><main><h1>请选择归档文件夹</h1><p id="status">请在前方的 Mac 文件夹窗口中选择。完成或取消后，此窗口会自动关闭。</p></main><script>(async()=>{try{const response=await fetch('/choose?${query}');if(!response.ok)throw Error();const result=await response.json();if(window.opener){window.opener.postMessage(result,${JSON.stringify(origin)});window.opener.focus()}window.close()}catch{document.getElementById('status').textContent='无法打开文件夹选择窗口，请返回系统设置重试。'}})()</script></html>`);
       return;
     }
-    if (busy) { response.writeHead(409).end('已有目录选择窗口打开。'); return; }
+    if (busy) { response.writeHead(409, cors).end('已有目录选择窗口打开。'); return; }
     busy = true;
     let directory = '', result = 'cancelled';
     try {
@@ -44,7 +53,7 @@ function createServer(pick = chooseFolder) {
       }
     } catch { directory = ''; result = 'unavailable'; }
     finally { busy = false; }
-    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    response.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     response.end(JSON.stringify({ type: 'nrgopt-archive-directory', nonce, directory, result }));
   });
 }
