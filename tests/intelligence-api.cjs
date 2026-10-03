@@ -953,7 +953,8 @@ test('topic list has a visible private editor and owner-scoped save without invo
   assert.match(redirect.headers.location,/topics/);
   const page=await request('topics-page');
   assert.match(page.body,/id="topic-new"/);
-  assert.match((await request('discover-page')).body,/管理跨境专题名单/);
+  assert.doesNotMatch((await request('directions-page')).body,/管理跨境专题名单/);
+  assert.match((await request('discover-page')).body,/<select name="topic">[\s\S]*?<\/select><\/label><p class="intel-discover-topic-link"><a href="\/intelligence\/topics">管理专题/);
   assert.equal((await request('topics')).body.topics.length,7);
   const input={code:null,revision:0,name:'跨境电网',description:'跨国电力互联',active:true};
   assert.equal((await request('save-topic',{method:'POST',body:input})).code,200);
