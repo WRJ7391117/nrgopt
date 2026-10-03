@@ -916,16 +916,10 @@
   }
 
   function renderOperations(result) {
-    byId('scheduler-state').textContent = result.scheduler_enabled ? '本站已开启定时搜集；实际进度以当天任务为准。' : '本站不直接执行定时搜集；实际进度以当天任务为准。';
-    var countryNames = regionNames;
-    var fixedCountries = result.fixed_source_countries || [];
-    var missingCountries = Object.keys(countryNames).filter(function (code) { return !fixedCountries.includes(code); });
-    byId('fixed-source-coverage').textContent = '已登记固定公告入口：' + (fixedCountries.map(function (code) { return countryNames[code]; }).filter(Boolean).join('、') || '暂无')
-      + '。' + (missingCountries.length ? missingCountries.map(function (code) { return countryNames[code]; }).join('、') + '暂无固定入口；未接入地区不自动安排搜索；' : '已登记范围均有固定入口；')
-      + '入口实际抓取结果以任务记录为准。';
-    var archiveStates = { disabled: '尚未开启自动同步；已保存的原文仍保留在云端。',
-      missing_token: '缺少 Mac 归档凭据，暂时无法同步；已保存的原文仍在云端。', read_only: '当前网站只读，无法处理 Mac 归档；已保存的原文仍在云端。',
-      enabled: '已允许 Mac 同步原文；每篇是否成功存到本地，需查看归档记录。' };
+    byId('scheduler-state').textContent = result.scheduler_enabled ? '本站定时搜集已开启。' : '本站不执行定时搜集。';
+    var archiveStates = { disabled: '未开启；原文保留在云端。',
+      missing_token: '缺少归档凭据，暂无法同步。', read_only: '网站只读，暂无法同步。',
+      enabled: '已开启；每天 23:30 检查。' };
     byId('archive-state').textContent = archiveStates[result.archive_status] || 'Mac 归档状态暂时无法确认。';
     var symbols = { CNY: '¥', USD: '$' };
     var budgetNames = { discovery: '来源发现', analysis: '情报分析' };
@@ -1005,7 +999,7 @@
       list.append(item);
     });
     byId('job-empty').hidden = result.runs.length !== 0;
-    status('automation-status', result.runs.length ? '最近 ' + result.runs.length + ' 个计划任务。失败、重试和预算暂停会在下方保留。' : '尚无自动扫描记录。');
+    status('automation-status', result.runs.length ? '' : '尚无自动扫描记录。');
   }
   function moneyInput(value) {
     if (!Number.isSafeInteger(Number(value)) || Number(value) <= 0) return '';
@@ -1057,7 +1051,7 @@
     try {
       var result = await api('provider-settings');
       result.profiles.forEach(function (profile) { fillProviderForm(profile, result.writable); });
-      status('settings-page-status', result.writable ? '当前配置已读取。修改后保存，下一次调用立即生效。' : '当前环境禁止写入，配置仅供查看。', result.writable ? 'success' : '');
+      status('settings-page-status', result.writable ? '' : '当前环境禁止写入，配置仅供查看。');
     } catch (error) { status('settings-page-status', error.message, 'error'); }
   }
   function updateNotificationSummary() {
@@ -1115,8 +1109,11 @@
     var node = result.node, form = byId('archive-directory-form');
     byId('archive-directory-current').textContent = node?.active_directory || 'Mac 尚未回报保存目录';
     form.hidden = !node || !result.writable;
+    byId('archive-directory-edit-details').hidden = form.hidden;
     if (!node) {
       byId('archive-directory-meta').textContent = 'Mac 下次连接后会显示实际目录；目前无法从网站确认本地路径。';
+      byId('archive-directory-pending').hidden = true;
+      byId('archive-directory-history').hidden = true;
       status('archive-directory-status', '');
       return;
     }
@@ -1124,12 +1121,16 @@
     byId('archive-directory-selection').textContent = '尚未选择新目录';
     form.querySelector('button[type="submit"]').disabled = true;
     var pending = node.revision > node.active_revision;
+    byId('archive-directory-pending').hidden = !pending;
+    byId('archive-directory-requested').textContent = pending ? node.requested_directory : '';
+    byId('archive-directory-history').hidden = !node.previous_directories?.length;
+    byId('archive-directory-history').textContent = node.previous_directories?.length ? '旧原件仍在：' + node.previous_directories.join('；') : '';
     var errors = { invalid_directory: '目录格式无效', directory_unavailable: '目录不存在、磁盘未挂载或位置已变化',
       directory_not_writable: '目录不可写', archive_state_failed: 'Mac 无法保存目录状态' };
     byId('archive-directory-meta').textContent = 'Mac 最近检查：' + dateLabel(node.last_seen_at) +
-      (node.previous_directories?.length ? ' · 旧原件仍在：' + node.previous_directories.join('；') : '');
+      (node.previous_directories?.length ? ' · 另有 ' + node.previous_directories.length + ' 个旧目录' : '');
     status('archive-directory-status', node.error_code ? '切换未完成：' + (errors[node.error_code] || '请检查 Mac 归档日志') + '。原件没有写入所填新目录。' :
-      pending ? '已保存新目录：' + node.requested_directory + '。Mac 将在下次 23:30 自动检查并切换；确认前仍使用当前目录。' : '当前目录已由 Mac 确认。', node.error_code ? 'error' : pending ? '' : 'success');
+      pending ? '下次 23:30 检查；切换前继续使用当前目录。' : '', node.error_code ? 'error' : '');
   }
   async function loadArchiveSettings() {
     try { renderArchiveSettings(await api('local-archive-settings')); }

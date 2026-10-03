@@ -283,13 +283,18 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-settings-help > summary { cursor: pointer; font-weight: 700; }
 .intel-settings-help .intel-notice { margin-top: 16px; }
 .intel-settings-help .intel-notice h3 { margin: 0 0 8px; font-size: 1rem; }
+.intel-settings-form-details > .intel-provider-form { margin: 16px 0 0; }
 .intel-job-details[open] > summary { margin-bottom: 18px; }
 .intel-operation-facts { margin-top: 18px; }
-.intel-operation-help { margin: 10px 0 0; font-size: .9rem; line-height: 1.6; }
-.intel-archive-directory { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; }
-.intel-archive-directory p { margin: 0 0 10px; }
-.intel-archive-directory p:first-child strong, .intel-archive-directory code { display: block; }
+.intel-archive-directory { margin-top: 12px; }
+.intel-archive-directory p { margin: 0 0 8px; }
+.intel-archive-directory strong, .intel-archive-directory code { display: block; }
 .intel-archive-directory code { margin-top: 4px; overflow-wrap: anywhere; }
+.intel-archive-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 10px; }
+.intel-settings-inline-details { min-width: 0; }
+.intel-settings-inline-details > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.intel-settings-inline-details[open] { flex-basis: 100%; }
+.intel-settings-inline-details[open] > summary { margin-bottom: 10px; }
 .intel-archive-directory-edit { display: flex; gap: 10px; margin: 8px 0; }
 .intel-archive-directory-edit output { flex: 1; min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 6px; overflow-wrap: anywhere; }
 .intel-archive-directory-edit button { flex: none; }
