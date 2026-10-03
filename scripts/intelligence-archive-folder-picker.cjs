@@ -25,8 +25,8 @@ function createServer(pick = chooseFolder) {
     if (url.pathname === '/pick') {
       const query = new URLSearchParams({ origin, nonce });
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
-        'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'" });
-      response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>选择归档目录</title><p id="status">正在打开 Mac 文件夹选择窗口…</p><script>(async()=>{try{const response=await fetch('/choose?${query}');if(!response.ok)throw Error();const result=await response.json();if(window.opener)window.opener.postMessage(result,${JSON.stringify(origin)});window.close()}catch{document.getElementById('status').textContent='无法打开文件夹选择窗口，请返回系统设置重试。'}})()</script></html>`);
+        'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'" });
+      response.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>选择归档目录</title><style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:32px;color:#172338;background:#f6f8fb}main{max-width:420px;margin:24px auto}h1{font-size:21px;margin:0 0 12px}p{margin:0;color:#526178}</style><main><h1>请选择归档文件夹</h1><p id="status">请在前方的 Mac 文件夹窗口中选择。完成或取消后，此窗口会自动关闭。</p></main><script>(async()=>{try{const response=await fetch('/choose?${query}');if(!response.ok)throw Error();const result=await response.json();if(window.opener){window.opener.postMessage(result,${JSON.stringify(origin)});window.opener.focus()}window.close()}catch{document.getElementById('status').textContent='无法打开文件夹选择窗口，请返回系统设置重试。'}})()</script></html>`);
       return;
     }
     if (busy) { response.writeHead(409).end('已有目录选择窗口打开。'); return; }

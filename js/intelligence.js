@@ -1129,7 +1129,7 @@
     byId('archive-directory-meta').textContent = 'Mac 最近检查：' + dateLabel(node.last_seen_at) +
       (node.previous_directories?.length ? ' · 旧原件仍在：' + node.previous_directories.join('；') : '');
     status('archive-directory-status', node.error_code ? '切换未完成：' + (errors[node.error_code] || '请检查 Mac 归档日志') + '。原件没有写入所填新目录。' :
-      pending ? '等待 Mac 验证新目录：' + node.requested_directory : '当前目录已由 Mac 确认。', node.error_code ? 'error' : pending ? '' : 'success');
+      pending ? '已保存新目录：' + node.requested_directory + '。Mac 将在下次 23:30 自动检查并切换；确认前仍使用当前目录。' : '当前目录已由 Mac 确认。', node.error_code ? 'error' : pending ? '' : 'success');
   }
   async function loadArchiveSettings() {
     try { renderArchiveSettings(await api('local-archive-settings')); }
@@ -1159,7 +1159,7 @@
       byId('archive-directory-input').value = event.data.directory;
       byId('archive-directory-selection').textContent = event.data.directory;
       byId('archive-directory-form').querySelector('button[type="submit"]').disabled = false;
-      status('archive-directory-status', '已选择目录。点击“保存目录”后，Mac 下次检查时才会验证并切换。');
+      status('archive-directory-status', '已选择目录。点击“保存目录”后，Mac 将在下次 23:30 自动检查并切换。');
     });
     byId('archive-directory-form').addEventListener('submit', async function (event) {
       event.preventDefault();
