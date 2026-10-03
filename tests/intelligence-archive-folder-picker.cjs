@@ -26,5 +26,20 @@ test('Mac folder picker returns only to the NRGOPT opener', async () => {
     assert.equal(result.status, 200);
     assert.deepEqual(await result.json(), { type: 'nrgopt-archive-directory', nonce, directory, result: 'selected' });
     assert.equal(picks, 1);
+    const direct = base.replace('/pick', '/choose-direct') + `?nonce=${nonce}`;
+    const denied = await fetch(direct, { method: 'POST', headers: { Origin: 'https://other.example' } });
+    assert.equal(denied.status, 404);
+    const preflight = await fetch(direct, { method: 'OPTIONS', headers: {
+      Origin: 'https://www.nrgopt.com', 'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Private-Network': 'true'
+    } });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://www.nrgopt.com');
+    assert.equal(preflight.headers.get('access-control-allow-private-network'), 'true');
+    assert.equal(picks, 1);
+    const selected = await fetch(direct, { method: 'POST', headers: { Origin: 'https://www.nrgopt.com' } });
+    assert.equal(selected.headers.get('access-control-allow-origin'), 'https://www.nrgopt.com');
+    assert.deepEqual(await selected.json(), { type: 'nrgopt-archive-directory', nonce, directory, result: 'selected' });
+    assert.equal(picks, 2);
   } finally { server.close(); await fs.rm(directory, { recursive: true }); }
 });

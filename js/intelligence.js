@@ -1137,29 +1137,30 @@
   }
   if (byId('archive-directory-refresh')) {
     byId('archive-directory-refresh').addEventListener('click', loadArchiveSettings);
-    var archivePicker = null;
-    byId('archive-directory-pick').addEventListener('click', function () {
+    byId('archive-directory-pick').addEventListener('click', async function () {
       var nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), function (byte) { return byte.toString(16).padStart(2, '0'); }).join('');
-      var url = 'http://127.0.0.1:47431/pick?origin=' + encodeURIComponent(location.origin) + '&nonce=' + nonce;
-      var popup = window.open(url, '_blank', 'popup,width=480,height=260');
-      if (!popup) { status('archive-directory-status', '浏览器阻止了目录选择窗口，请允许弹出窗口后重试。', 'error'); return; }
-      archivePicker = { popup: popup, nonce: nonce };
-      status('archive-directory-status', '请在弹出的 Mac 窗口中选择文件夹；若新页面无法连接，请检查本机目录选择服务。');
-    });
-    window.addEventListener('message', function (event) {
-      if (!archivePicker || event.origin !== 'http://127.0.0.1:47431' || event.source !== archivePicker.popup ||
-          event.data?.type !== 'nrgopt-archive-directory' || event.data.nonce !== archivePicker.nonce) return;
-      archivePicker = null;
-      if (!event.data.directory) {
-        status('archive-directory-status', event.data.result === 'unsupported' ? '请选择用户目录或外接磁盘中的子文件夹。' :
-          event.data.result === 'unavailable' ? '所选目录无法读取，请检查磁盘后重试。' : '已取消选择，保存目录未更改。',
-        event.data.result === 'cancelled' ? '' : 'error');
-        return;
+      this.disabled = true;
+      status('archive-directory-status', '请在 Mac 文件夹窗口中选择目录…');
+      try {
+        var response = await fetch('http://127.0.0.1:47431/choose-direct?nonce=' + nonce, { method: 'POST', mode: 'cors', cache: 'no-store' });
+        if (!response.ok) throw new Error('folder_picker_failed');
+        var result = await response.json();
+        if (result.type !== 'nrgopt-archive-directory' || result.nonce !== nonce) throw new Error('folder_picker_failed');
+        if (!result.directory) {
+          status('archive-directory-status', result.result === 'unsupported' ? '请选择用户目录或外接磁盘中的子文件夹。' :
+            result.result === 'unavailable' ? '所选目录无法读取，请检查磁盘后重试。' : '已取消选择，保存目录未更改。',
+          result.result === 'cancelled' ? '' : 'error');
+          return;
+        }
+        byId('archive-directory-input').value = result.directory;
+        byId('archive-directory-selection').textContent = result.directory;
+        byId('archive-directory-form').querySelector('button[type="submit"]').disabled = false;
+        status('archive-directory-status', '已选择目录。点击“保存目录”后，Mac 将在下次 23:30 自动检查并切换。');
+      } catch {
+        status('archive-directory-status', '无法连接这台 Mac 的目录选择服务，请确认本机服务正在运行后重试。', 'error');
+      } finally {
+        this.disabled = false;
       }
-      byId('archive-directory-input').value = event.data.directory;
-      byId('archive-directory-selection').textContent = event.data.directory;
-      byId('archive-directory-form').querySelector('button[type="submit"]').disabled = false;
-      status('archive-directory-status', '已选择目录。点击“保存目录”后，Mac 将在下次 23:30 自动检查并切换。');
     });
     byId('archive-directory-form').addEventListener('submit', async function (event) {
       event.preventDefault();
