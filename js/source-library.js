@@ -27,7 +27,7 @@
   function nextStep(e){
     if(e.status==='removed')return '已移除；历史原文和情报仍保留。';
     if(e.host_paused)return e.config.scope==='site'?'该网站已暂停自动抓取；先恢复网站抓取。':'该网站已暂停自动抓取；请从同站固定渠道恢复网站抓取。';
-    if(e.status==='candidate')return e.access.status==='failed'?'入口读取失败：'+accessReason(e.access.error_code)+'。请核对网址后重新验证。':e.access.status==='readable'?(e.id.startsWith('reference:')&&e.access.review==='recent_source_missing'?'入口可读，但还没有近30天通过分析的原文；系统会复查，你也可决定启用轮转。':'入口可读；尚未证明近期产出，你可决定是否启用轮转。'):'尚未检查入口；请先验证。';
+    if(e.status==='candidate')return e.access.status==='failed'?'入口读取失败：'+accessReason(e.access.error_code)+'。请核对网址后重新验证。':e.access.status==='readable'?(e.id.startsWith('reference:')&&e.access.review==='recent_validated_source'?'已有近30天通过分析的原文；等待自动复查，或立即启用轮转。':e.id.startsWith('reference:')&&e.access.review==='recent_source_missing'?'入口可读，缺少近30天通过分析的原文；系统会限量搜索、复查，你也可启用轮转。':'入口可读；尚未证明近期产出，你可决定是否启用轮转。'):'尚未检查入口；请先验证。';
     if(e.status==='paused')return '已暂停；恢复后只参与后续搜集。';
     if(e.execution)return data.day+' 入口任务'+({queued:'排队中',running:'运行中',succeeded:'已完成',failed:'失败',retry:'等待重试',manual_paused:'已暂停',budget_paused:'预算暂停'}[e.execution.status]||e.execution.status)+' · 返回链接 '+(e.execution.result_urls||[]).length+' 条';
     return e.config.mode==='fixed'?'固定监测中；今天暂无入口任务记录。':'已启用轮转；今天尚未轮到。';

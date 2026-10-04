@@ -28,6 +28,18 @@ test('channel selection alternates open discovery, honors direction and status, 
  assert.match(discoveryQuery('SA',1,null,selections.find(Boolean)),/site:example.org\/authors\/alice\//);
  assert.doesNotMatch(discoveryQuery('SA'),/site:/);
 });
+test('readable reference candidates get a bounded trial in an existing targeted slot',()=>{
+ const active={...entry(),status:'active',access:{status:'readable'}};
+ const reference={...entry(),id:'reference:example.org',status:'candidate',access:{status:'readable',review:'recent_source_missing'}};
+ const trial=selectChannel([active,reference],'SA',null,'2026-09-21');
+ assert.equal(trial.id,reference.id);assert.equal(trial.trial,true);
+ assert.equal(selectChannel([active,reference],'SA',null,'2026-09-22'),null);
+ assert.equal(selectChannel([active,reference],'SA',null,'2026-09-23').id,active.id);
+ assert.equal(selectChannel([{...reference,access:{status:'failed'}}],'SA',null,'2026-09-21'),null);
+ assert.equal(selectChannel([{...reference,host_paused:true}],'SA',null,'2026-09-21'),null);
+ assert.equal(selectChannel([{...reference,id:active.id}],'SA',null,'2026-09-21'),null);
+ assert.match(discoveryQuery('SA',1,null,trial),/site:example.org\/authors\/alice\//);
+});
 test('store combines fixed references without promoting unknown identity and persists owner-scoped revisions',async()=>{
  const e=entry(),requests=[];const store=createStore({url:'https://db.test',serviceKey:'x'},async(url,init)=>{requests.push({url,init});if(url.includes('/rpc/'))return new Response(JSON.stringify({error:'library_conflict'}));if(url.includes('intelligence_source_library?'))return new Response(JSON.stringify([{...e,status:'removed',revision:2,access:{status:'unchecked'}}]));return new Response('[]');});
  assert.equal(await store.sourcePaused('owner','https://example.org/authors/alice/new'),true);
