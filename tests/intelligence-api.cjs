@@ -409,7 +409,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('discover-page');
   assert.match(overviewPage.body, /发现情报/);
-  assert.match(overviewPage.body, />工作台总览</);
+  assert.match(overviewPage.body, />总工作台</);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /浏览近期变化/);
   assert.match(overviewPage.body, /id="radar-demand-count"/);
