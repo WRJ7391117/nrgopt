@@ -55,7 +55,7 @@
 .intel-engine-figure { position: relative; margin: 20px 0 0; }
 .intel-engine-native { padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: #111827; color: #dbeafe; }
 .intel-engine-native > :not(.intel-diagram-wires) { position: relative; z-index: 1; }
-.intel-diagram-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.intel-diagram-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; color: #9fb7cc; }
 .intel-engine-native a { color: #7dd3fc; text-underline-offset: 4px; }
 .intel-diagram-node { min-width: 0; padding: 16px; border: 1px solid #345570; border-radius: 10px; background: #062b4b; overflow-wrap: anywhere; }
 .intel-diagram-node strong, .intel-diagram-node span { display: block; }
@@ -81,7 +81,7 @@
 .intel-diagram-vercel { order: 3; }
 .intel-diagram-external-link { order: 4; }
 .intel-diagram-external { order: 5; }
-.intel-diagram-group { flex: 1 1 0; min-width: 0; padding: 16px; border: 1px solid #344253; border-radius: 10px; background: #182230; }
+.intel-engine-native .intel-diagram-group { flex: 1 1 0; min-width: 0; padding: 16px; border: 1px solid #344253; border-radius: 10px; background: #182230; }
 .intel-diagram-group h3 { margin: 0 0 14px; color: #e2f1ff; font-size: 1.125rem; }
 .intel-diagram-group h3 small { display: block; margin-top: 2px; color: #c6d9eb; font-size: .875rem; font-weight: 400; }
 .intel-diagram-group > .intel-diagram-node + .intel-diagram-node { margin-top: 10px; }
@@ -95,6 +95,16 @@
 .intel-diagram-delivery-line .intel-diagram-node, .intel-diagram-release .intel-diagram-node { width: 180px; }
 .intel-diagram-release { margin-top: 32px; border-top: 1px dashed #67819b; }
 .intel-engine-native figcaption { margin-top: 20px; padding-top: 14px; border-top: 1px solid #344253; color: #c6d9eb; font-size: .9375rem; line-height: 1.75; }
+[data-theme="light"] .intel-engine-native { background: #fff; color: #334155; }
+[data-theme="light"] .intel-engine-native a, [data-theme="light"] .intel-diagram-node small { color: #0369a1; }
+[data-theme="light"] .intel-diagram-wires { color: #64748b; }
+[data-theme="light"] .intel-diagram-node { background: #e8f4fc; border-color: #a6c8df; }
+[data-theme="light"] .intel-diagram-node strong, [data-theme="light"] .intel-diagram-group h3 { color: #16324f; }
+[data-theme="light"] .intel-diagram-node span, [data-theme="light"] .intel-diagram-loop, [data-theme="light"] .intel-diagram-return, [data-theme="light"] .intel-diagram-access-line, [data-theme="light"] .intel-diagram-group-link, [data-theme="light"] .intel-diagram-delivery-line, [data-theme="light"] .intel-diagram-release, [data-theme="light"] .intel-engine-native figcaption { color: #475569; }
+[data-theme="light"] .intel-diagram-loop span, [data-theme="light"] .intel-diagram-access-line, [data-theme="light"] .intel-diagram-group-link span { background: #fff; }
+[data-theme="light"] .intel-engine-native .intel-diagram-group { background: #f1f5f9; border-color: #cbd5e1; }
+[data-theme="light"] .intel-diagram-group h3 small { color: #475569; }
+[data-theme="light"] .intel-diagram-return, [data-theme="light"] .intel-diagram-release, [data-theme="light"] .intel-engine-native figcaption { border-color: #cbd5e1; }
 .intel-engine-details { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; font-size: 1rem; }
 .intel-engine-details summary { cursor: pointer; padding: 8px 0; }
 .intel-engine-links { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 12px; font-size: .9375rem; }

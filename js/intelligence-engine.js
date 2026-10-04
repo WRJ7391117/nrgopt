@@ -20,7 +20,7 @@
     var head = document.createElementNS(ns, 'path');
     head.setAttribute('d', 'M1 1 L9 5 L1 9');
     head.setAttribute('fill', 'none');
-    head.setAttribute('stroke', '#9fb7cc');
+    head.setAttribute('stroke', 'currentColor');
     head.setAttribute('stroke-width', '1.6');
     marker.appendChild(head);
     defs.appendChild(marker);
@@ -35,7 +35,7 @@
       var path = document.createElementNS(ns, 'path');
       path.setAttribute('d', d);
       path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#9fb7cc');
+      path.setAttribute('stroke', 'currentColor');
       path.setAttribute('stroke-width', '1.8');
       path.setAttribute('stroke-linejoin', 'round');
       path.setAttribute('stroke-linecap', 'round');
