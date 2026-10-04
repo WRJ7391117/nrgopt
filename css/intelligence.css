@@ -531,10 +531,12 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-review-points li { margin: 4px 0; padding: 0; border: 0; color: var(--text-dim); font-size: .84rem; line-height: 1.65; }
 
 .intel-library-overview { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin: 24px 0; }
-.intel-library-overview > div { padding: 16px; border-left: 2px solid var(--accent); background: var(--surface); }
+.intel-library-metric { padding: 16px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.intel-library-metric:hover, .intel-library-metric[aria-pressed="true"] { background: var(--form-bg); border-color: var(--accent); }
 .intel-library-overview strong, .intel-library-overview span { display: block; }
 .intel-library-overview strong { font-size: 1.7rem; }
 .intel-library-overview span { color: var(--text-dim); font-size: .85rem; }
+.intel-library-shortcuts { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0 0 18px; font-size: .88rem; }
 .intel-library-fields, .intel-library-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
 .intel-library-fields label, .intel-library-filters label { display: grid; gap: 8px; }
 .intel-library-filters { grid-template-columns: repeat(5,minmax(0,1fr)); }
@@ -542,8 +544,14 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #library-form input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; }
 .intel-library-card { margin: 0; overflow-wrap: anywhere; }
 .intel-library-card h3 { margin: 0; }
-.intel-library-card p { font-size: .85rem; line-height: 1.8; }
-.intel-library-card details { border-top: 1px solid var(--border); padding-top: 16px; }
+.intel-library-card p { margin: 8px 0; font-size: .85rem; line-height: 1.6; }
+.intel-library-card .intel-library-next { color: var(--text); font-size: .92rem; }
+.intel-library-card > details { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; }
+.intel-library-card details details { margin-top: 16px; }
+.intel-library-card > .intel-direction-buttons { margin-top: 10px; }
+.intel-library-card summary, .intel-library-optional summary { cursor: pointer; }
+.intel-library-optional { margin-top: 18px; }
+.intel-library-optional > .intel-library-fields { margin-top: 18px; }
 .intel-library-access { color: var(--text-dim); }
 .intel-library-table { overflow-x: auto; }
 .intel-library-table table { border-collapse: collapse; min-width: 900px; width: 100%; font-size: .8rem; }
