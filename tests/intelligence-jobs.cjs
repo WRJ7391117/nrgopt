@@ -563,6 +563,16 @@ test('a frozen direction is attached to the same eight daily country slots', asy
   assert.equal(searches.length,8);assert.ok(searches.every(i=>i.checkpoint.direction.id==='d'));
   assert.ok(items.filter(i=>i.item_key.startsWith('registry:')).every(i=>!i.checkpoint.direction));
 });
+test('a candidate trial changes one planned query without adding search items',async()=>{
+  const direction={id:'d',revision:1,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
+  const store=fakeStore();store.snapshotDirections=async()=>[direction];
+  store.sourceLibrary=async()=>[{id:'reference:example.org',revision:1,status:'candidate',access:{status:'readable'},config:{name:'Example',url:'https://example.org/',scope:'site',mode:'search',countries:['SA'],direction_ids:[],priority:'normal'}}];
+  await enqueueDailyScan({store,owner:'owner-a',now:new Date('2026-10-07T00:00:00Z')});
+  const items=store.calls.find(c=>c[0]==='enqueueJobItems')[3],searches=items.filter(i=>i.item_key.startsWith('discover:'));
+  assert.equal(searches.length,8);
+  assert.equal(searches.find(i=>i.item_key==='discover:SA').checkpoint.channel.trial,true);
+  assert.equal(searches.filter(i=>i.checkpoint.channel).length,1);
+});
 test('no applicable enabled direction finishes without paying and retry retains the original direction',async()=>{
   const direction={id:'d',revision:1,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
   for(const chosen of [null,direction]) {
@@ -580,4 +590,16 @@ test('removed channel in a frozen search plan stops before paid discovery withou
  store.sourceLibrary=async()=>[{id:'channel-1',status:'removed',config:{url:'https://example.org/',scope:'site'}}];
  let called=false;const result=await runDailyJobItem({store,owner:'owner',jobId:'job',discover:async()=>{called=true;},...dependencies});
  assert.equal(called,false);assert.equal(result.status,'manual_paused');assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),false);
+});
+
+test('reference trial rechecks candidate state before using the original discovery slot',async()=>{
+ const channel={id:'reference:example.org',url:'https://example.org/',scope:'site',trial:true};
+ for(const status of ['candidate','paused','removed']){
+  const store=fakeStore({item:{id:'item-1',item_key:'discover:SA',attempts:1,checkpoint:{channel}}});
+  store.sourceLibrary=async()=>[{id:channel.id,status,access:{status:'readable'},config:{url:channel.url,scope:channel.scope}}];
+  let called=false;
+  const result=await runDailyJobItem({...dependencies,store,owner:'owner',jobId:'job',env:{NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO:'10000000',NRGOPT_DISCOVERY_BILLING_MODE:'included'},discover:async()=>{called=true;return {sources:[]};}});
+  assert.equal(called,status==='candidate');assert.equal(result.status,status==='candidate'?'succeeded':'manual_paused');
+  assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),status==='candidate');
+ }
 });
