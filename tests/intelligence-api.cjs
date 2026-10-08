@@ -416,7 +416,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, />工作台</);
   const moduleNav = overviewPage.body.match(/<nav class="intel-nav"[^>]*>(.*?)<\/nav>/s)[1];
   assert.deepEqual([...moduleNav.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(match => match[1]),
-    ['搜集方向', '渠道库', '情报库', '工作台', '我的跟踪', '运行机制', '系统设置']);
+    ['搜集方向', '渠道库', '情报库', '工作台', '我的跟踪', '运行机制', '系统设置', '市场调研']);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /查阅已保存的情报/);
   assert.match(overviewPage.body, /id="radar-demand-count"/);

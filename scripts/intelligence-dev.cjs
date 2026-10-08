@@ -3,6 +3,7 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const handler = require('../api/intelligence.js');
+const researchHandler = require('../api/research.js');
 const root = path.resolve(__dirname, '..');
 const mime = { '.css': 'text/css', '.js': 'text/javascript', '.html': 'text/html', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' };
 
@@ -30,18 +31,20 @@ http.createServer(async (req, res) => {
     else if (url.pathname.startsWith('/intelligence/sources/')) {
       req.query.action = 'detail-page'; req.query.id = url.pathname.slice('/intelligence/sources/'.length);
     }
-    if (url.pathname === '/api/intelligence' || url.pathname === '/intelligence' || url.pathname.startsWith('/intelligence/')) {
+    const research = url.pathname === '/research' || url.pathname === '/api/research';
+    if (url.pathname === '/research') req.query.action = 'page';
+    if (research || url.pathname === '/api/intelligence' || url.pathname === '/intelligence' || url.pathname.startsWith('/intelligence/')) {
       const chunks = []; let size = 0;
       for await (const chunk of req) {
         size += chunk.length;
-        if (size > 8192) { res.status(413).json({ message: '请求内容过长。' }); return; }
+        if (size > (research ? 3300000 : 8192)) { res.status(413).json({ message: '请求内容过长。' }); return; }
         chunks.push(chunk);
       }
       if (size) {
         try { req.body = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
         catch { res.status(400).json({ message: '请求格式无效。' }); return; }
       }
-      return await handler(req, res);
+      return await (research ? researchHandler : handler)(req, res);
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.status(405).end(); return; }
     const relative = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
