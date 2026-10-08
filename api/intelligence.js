@@ -332,7 +332,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'directions-page') return html(directionsPage(user.email));
       if (action === 'topics-page') return html(topicsPage(user.email));
-      if (action === 'topics') return res.status(200).json({ topics: await store.topicCatalog(user.id), writable: config.writes });
+      if (action === 'topics') {
+        const [topics, directions] = await Promise.all([store.topicCatalog(user.id), store.directionList(user.id)]);
+        return res.status(200).json({ topics, directions: directions.map(d => ({ id:d.id,
+          config:{ name:d.config.name, topic_codes:d.config.topic_codes || [] } })), writable:config.writes });
+      }
       if (action === 'save-topic') {
         if (!config.writes) throw failure('writes_disabled', 403);
         const topics = await store.topicCatalog(user.id);

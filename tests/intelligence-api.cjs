@@ -56,7 +56,8 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
-    sourceLibrary: async () => [], directionList: async () => [], collectionDirections: async () => ({directions:[],versions:[],tasks:[],effective:[]}), snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
+    sourceLibrary: async () => [], directionList: async () => [], collectionDirections: async () => ({directions:[],versions:[],tasks:[],effective:[]}), snapshotDirections: async () => null,
+    snapshotSearchPlan: async () => ({directions:null,topics:null,legacy:true}), jobTopics: async () => null, directionQueryCounts: async () => [], bindDirectionSource: async () => {}, sourceDirections: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -952,6 +953,7 @@ test('topic list has a visible private editor and owner-scoped save without invo
   const saved=[];
   const {request,calls}=setup({overrides:{
     topicCatalog:async owner=>{assert.equal(owner,admin);return defaults;},
+    directionList:async owner=>{assert.equal(owner,admin);return [{id,config:{name:'能源方向',topic_codes:['suez'],why:'private draft'}}];},
     saveTopic:async (owner,value)=>{assert.equal(owner,admin);saved.push(value);return {...value,revision:1};}
   },modelFactory:()=>{throw Error('topic edit must not invoke model');}});
   assert.equal((await request('topics',{loggedIn:false})).code,401);
@@ -960,9 +962,11 @@ test('topic list has a visible private editor and owner-scoped save without invo
   assert.match(redirect.headers.location,/topics/);
   const page=await request('topics-page');
   assert.match(page.body,/id="topic-new"/);
-  assert.doesNotMatch((await request('directions-page')).body,/管理跨境专题名单/);
-  assert.match((await request('discover-page')).body,/<select name="topic">[\s\S]*?<\/select><\/label><p class="intel-discover-topic-link"><a href="\/intelligence\/topics">管理专题/);
-  assert.equal((await request('topics')).body.topics.length,7);
+  assert.match((await request('directions-page')).body,/管理主题/);
+  assert.doesNotMatch((await request('discover-page')).body,/管理专题/);
+  const topicList=(await request('topics')).body;
+  assert.equal(topicList.topics.length,7);
+  assert.deepEqual(topicList.directions,[{id,config:{name:'能源方向',topic_codes:['suez']}}]);
   const input={code:null,revision:0,name:'跨境电网',description:'跨国电力互联',active:true};
   assert.equal((await request('save-topic',{method:'POST',body:input})).code,200);
   assert.match(saved[0].code,/^custom-/);

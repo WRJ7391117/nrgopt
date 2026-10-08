@@ -15,6 +15,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   const source = { id: sourceId, title: 'Official notice', final_url: 'https://official.example/a', content_type: 'text/plain', content_sha256: 'a'.repeat(64) };
   const methods = {
     snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
+    directionQueryCounts: async () => [], jobTopics: async () => null,
     topicCatalog: async () => require('../lib/intelligence/topics.cjs').defaults,
     sourcePaused: async () => false, sourceLibrary: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
@@ -29,6 +30,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
   };
   const store = { calls };
   for (const [name, fn] of Object.entries(methods)) store[name] = async (...args) => { calls.push([name, ...args]); return fn(...args); };
+  store.snapshotSearchPlan = async (...args) => ({ directions: await store.snapshotDirections(...args), topics: null, legacy: false });
   return store;
 }
 
@@ -562,6 +564,104 @@ test('a frozen direction is attached to the same eight daily country slots', asy
   const searches=items.filter(i=>i.item_key.startsWith('discover:'));
   assert.equal(searches.length,8);assert.ok(searches.every(i=>i.checkpoint.direction.id==='d'));
   assert.ok(items.filter(i=>i.item_key.startsWith('registry:')).every(i=>!i.checkpoint.direction));
+});
+
+test('enabled direction countries narrow discovery while fixed monitoring and user tracking remain separate', async () => {
+  const base = structuredClone(require('../lib/intelligence/directions.cjs').defaults[0].config);
+  const plan = [
+    { id: 'sa', revision: 1, config: { ...base, countries: ['SA'], topic_codes: [] } },
+    { id: 'qa', revision: 1, config: { ...base, countries: ['QA'], topic_codes: [] } },
+    { id: 'paused', revision: 1, config: { ...base, countries: ['AE', 'TR'], enabled: false, topic_codes: [] } }
+  ];
+  const store = fakeStore();
+  store.snapshotDirections = async () => plan;
+  store.watchedSources = async () => [{ url: 'https://official.example/independent-watch' }];
+  await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-10-09T00:00:00Z') });
+  const entries = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  assert.deepEqual(entries.filter(item => item.item_key.startsWith('discover:')).map(item => item.item_key), ['discover:SA', 'discover:QA']);
+  assert.deepEqual(entries.filter(item => item.item_key.startsWith('registry:')).map(item => item.item_key), registry.map(entry => `registry:${entry.id}`));
+  assert.ok(store.calls.some(call => call[0] === 'enqueueJobItems' && call[3].some(item => item.checkpoint.watch && item.checkpoint.url === 'https://official.example/independent-watch')));
+});
+
+test('direction country union deduplicates overlaps and rotates at most two selected non-GCC regions', () => {
+  const base = structuredClone(require('../lib/intelligence/directions.cjs').defaults[0].config);
+  const plan = [
+    { id: 'one', config: { ...base, countries: ['SA', 'TR', 'EG', 'MA'] } },
+    { id: 'two', config: { ...base, countries: ['SA', 'QA', 'MA', 'TN'] } },
+    { id: 'paused', config: { ...base, countries: ['AE', 'BH', 'IR'], enabled: false } }
+  ];
+  const seen = new Set();
+  for (let offset = 0; offset < 12; offset++) {
+    const day = new Date(Date.UTC(2026, 9, 9 + offset)).toISOString().slice(0, 10);
+    const countries = dailySearchCountries(day, plan);
+    assert.deepEqual(countries.slice(0, 2), ['SA', 'QA']);
+    assert.equal(new Set(countries).size, countries.length);
+    assert.ok(countries.length <= 4, 'the selected subset cannot expand the six GCC plus two other regions ceiling');
+    const extra = countries.slice(2);
+    assert.ok(extra.length <= 2 && extra.every(country => ['TR', 'EG', 'MA', 'TN'].includes(country)));
+    extra.forEach(country => seen.add(country));
+  }
+  assert.deepEqual([...seen].sort(), ['EG', 'MA', 'TN', 'TR']);
+  assert.deepEqual(dailySearchCountries('2026-10-09', []), []);
+  assert.deepEqual(dailySearchCountries('2026-10-09', plan.map(direction => ({ ...direction, config: { ...direction.config, enabled: false } }))), []);
+  assert.deepEqual(dailySearchCountries('2026-10-09', null), dailySearchCountries('2026-10-09'), 'legacy runs retain the original region selection');
+});
+
+test('a changed direction scope never replaces the country selection already persisted for today', async () => {
+  const store = fakeStore();
+  const selected = ['SA', 'TR'];
+  store.jobRun = async () => ({ items: selected.map(country => ({ item_key: `discover:${country}`, checkpoint: { direction_plan_applied: true }, status: 'succeeded' })) });
+  store.snapshotDirections = async () => [{ id: 'changed', revision: 3, config: { ...structuredClone(require('../lib/intelligence/directions.cjs').defaults[0].config), countries: ['QA'], topic_codes: [] } }];
+  await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-10-09T03:00:00Z') });
+  const entries = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  assert.deepEqual(entries.filter(item => item.item_key.startsWith('discover:')).map(item => item.item_key), selected.map(country => `discover:${country}`));
+});
+
+test('topic search replaces an existing region query and consecutive turns of one direction keep ordinary searches', async () => {
+  const topic = { code: 'red-sea', name: '红海', description: '跨境能源运输', revision: 2, active: true };
+  const direction = { id: 'topic-direction', revision: 4, config: { ...structuredClone(require('../lib/intelligence/directions.cjs').defaults[0].config), countries: ['SA', 'QA'], topic_codes: [topic.code] } };
+  const store = fakeStore();
+  store.snapshotSearchPlan = async () => ({ directions: [direction], topics: [topic], legacy: false });
+  store.directionQueryCounts = async () => [{ direction_id: direction.id, query_count: 1 }];
+  await enqueueDailyScan({ store, owner: 'owner-a', now: new Date('2026-10-09T00:00:00Z') });
+  const entries = store.calls.find(call => call[0] === 'enqueueJobItems')[3];
+  const searches = entries.filter(item => item.item_key.startsWith('discover:'));
+  assert.deepEqual(searches.map(item => item.item_key), ['discover:SA', 'discover:QA']);
+  assert.deepEqual(searches[0].checkpoint.direction.search_topic, { code: topic.code, name: topic.name, description: topic.description, revision: topic.revision });
+  assert.equal(searches[1].checkpoint.direction.search_topic, null);
+  assert.ok(!entries.some(item => item.item_key.startsWith('topic:')), 'a topic must not add separate searches or a new paid queue');
+  assert.equal(entries.filter(item => item.item_key.startsWith('registry:')).length, registry.length);
+});
+
+test('a topic retry uses its persisted direction definition instead of current catalog changes', async () => {
+  const topic = { code: 'red-sea', name: '旧名称', description: '旧跨境运输范围', revision: 2 };
+  const direction = { id: 'direction-a', revision: 4, config: { ...structuredClone(require('../lib/intelligence/directions.cjs').defaults[0].config), topic_codes: [topic.code] }, search_topic: topic };
+  const checkpoint = { direction_plan_applied: true, direction };
+  const store = fakeStore({ item: { id: 'topic-retry', item_key: 'discover:SA', attempts: 2, checkpoint } });
+  store.topicCatalog = async () => { throw Error('retry must not reread current topic catalog'); };
+  store.snapshotSearchPlan = async () => { throw Error('retry must not replace a frozen plan'); };
+  let seen;
+  const result = await runDailyJobItem({ ...dependencies, store, owner: 'owner-a', env: {
+    NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO: '10000000', NRGOPT_DISCOVERY_BILLING_MODE: 'included'
+  }, discover: async (_country, _profile, _attempt, current) => { seen = structuredClone(current); throw Error('temporary provider failure'); } });
+  assert.equal(result.status, 'retry');
+  assert.deepEqual(seen, direction);
+  assert.deepEqual(store.calls.find(call => call[0] === 'finishJobItem')[4].direction, direction);
+});
+
+test('extraction uses the run frozen topic catalog while legacy jobs keep current catalog behavior', async () => {
+  const frozen = [{ code: 'red-sea', name: '冻结名称', description: '冻结范围', revision: 2 }];
+  const current = [{ code: 'hormuz', name: '修改后的名单', description: '后续轮次范围', revision: 3, active: true }];
+  for (const topics of [frozen, null, []]) {
+    const store = fakeStore({ item: { id: 'extract-frozen', job_run_id: 'job-1', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } } });
+    store.jobTopics = async (owner, job) => { assert.equal(owner, 'owner-a'); assert.equal(job, 'job-1'); return topics; };
+    store.topicCatalog = async () => { assert.equal(topics, null, 'an intentionally empty frozen catalog is not permission to load current topics'); return current; };
+    let received;
+    const result = await runDailyJobItem({ ...dependencies, store, owner: 'owner-a', env: { NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' },
+      modelFactory: () => async input => { received = input.topics; return { extraction: groundedExtraction, provider: 'test', model: 'test-only' }; } });
+    assert.equal(result.status, 'succeeded');
+    assert.deepEqual(received, topics === null ? require('../lib/intelligence/topics.cjs').activeTopics(current) : topics);
+  }
 });
 test('a candidate trial changes one planned query without adding search items',async()=>{
   const direction={id:'d',revision:1,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
