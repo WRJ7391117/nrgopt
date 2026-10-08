@@ -15,9 +15,9 @@ function setup({ user = admin, environment = env } = {}) {
     saveEntry: async (owner, value, file) => { calls.push(['saveEntry', owner, value, file]); return { id, ...value }; },
     file: async owner => { calls.push(['file', owner]); return { entry: { file_name: '行动计划.html', file_type: 'text/html' }, bytes: Buffer.from('<script>parent.document.body.innerHTML="bad"</script>') }; } };
   const handler = createHandler({ env: environment, authFactory: () => ({ user: async () => { calls.push(['auth']); return { id: user }; } }), storeFactory: () => store });
-  async function request(action, { method = 'GET', body, cookie = '__Host-nrgopt_session=valid.token', origin = env.NRGOPT_APP_ORIGIN } = {}) {
+  async function request(action, { method = 'GET', body, preview, cookie = '__Host-nrgopt_session=valid.token', origin = env.NRGOPT_APP_ORIGIN } = {}) {
     const res = { code: 200, headers: {}, setHeader(key, value) { this.headers[key.toLowerCase()] = value; }, status(code) { this.code = code; return this; }, json(value) { this.body = value; }, end(value) { this.body = value; } };
-    await handler({ method, query: { action, id }, body, headers: { cookie, origin, 'content-type': 'application/json' } }, res);
+    await handler({ method, query: { action, id, preview }, body, headers: { cookie, origin, 'content-type': 'application/json' } }, res);
     assert.equal(res.headers['cache-control'], 'private, no-store'); return res;
   }
   return { calls, request };
@@ -63,6 +63,16 @@ test('downloaded HTML is an attachment by default and has a sandbox with no same
   assert.doesNotMatch(response.headers['content-security-policy'], /allow-same-origin/);
   assert.match(response.headers['content-security-policy'], /connect-src 'none'/);
   assert.equal(response.headers['x-frame-options'], 'SAMEORIGIN');
+});
+test('HTML preview adds page sizing while original downloads remain byte-identical and sandboxed', async () => {
+  const { request } = setup();
+  const original = await request('file');
+  const preview = await request('file', { preview: '1' });
+  assert.equal(original.body.toString(), '<script>parent.document.body.innerHTML="bad"</script>');
+  assert.match(preview.body, /nrgopt-research-height/);
+  assert.match(preview.body, /nrgopt-research-scroll/);
+  assert.match(preview.headers['content-disposition'], /^inline/);
+  assert.doesNotMatch(preview.headers['content-security-policy'], /allow-same-origin/);
 });
 test('stale revision cannot overwrite a newer entry', async () => {
   const calls = [];

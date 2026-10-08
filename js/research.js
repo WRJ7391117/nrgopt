@@ -54,16 +54,20 @@
     try {
       var data = await api('entries', null, project.id);
       activeProject = project; entries = data.entries; activeEntry = null;
+      document.querySelector('.research-layout').classList.remove('research-expanded');
       byId('entry-detail').hidden = true; byId('detail-preview').replaceChildren(); byId('entry-search').value = ''; byId('entry-kind-filter').value = '';
       byId('active-title').textContent = project.title; byId('active-region').textContent = project.region || '地区待填'; byId('active-summary').textContent = project.summary;
       byId('project-workspace').hidden = false; byId('research-empty').hidden = true; renderProjects(); renderEntries();
       status(writable ? '资料已同步 · ' + entries.length + '份资料' : '当前环境只读，暂不能保存。');
     } finally { loading = false; controls(); }
+    if (entries.length === 1 && entries[0].file_type === 'text/html') await openEntry(entries[0].id, false);
   }
-  async function openEntry(id) {
+  async function openEntry(id, scroll) {
     loading = true; controls(); status('正在读取资料…');
     try {
       activeEntry = (await api('entry', null, id)).entry;
+      document.querySelector('.research-layout').classList.toggle('research-expanded', activeEntry.file_type === 'text/html');
+      byId('entry-detail').dataset.format = activeEntry.file_type === 'text/html' ? 'html' : '';
       byId('detail-title').textContent = activeEntry.title;
       byId('detail-meta').textContent = kinds[activeEntry.kind] + ' · 更新于 ' + date(activeEntry.updated_at);
       byId('detail-content').textContent = activeEntry.content || '';
@@ -74,12 +78,13 @@
         var link = node('a', '下载原件 · ' + activeEntry.file_name); link.href = url; links.append(link);
         if (['text/html', 'text/plain', 'application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(activeEntry.file_type)) {
           var preview = node('iframe'); preview.title = activeEntry.file_name;
+          if (activeEntry.file_type === 'text/html') preview.dataset.expanded = 'true';
           preview.setAttribute('sandbox', 'allow-scripts allow-downloads'); preview.src = url + '&preview=1'; byId('detail-preview').append(preview);
           if (activeEntry.file_type === 'text/html') links.append(node('p', '手册中的填写记录需导出备份；如需更新云端附件，请保存副本后添加新版。', 'intel-muted'));
         }
       }
       byId('entry-detail').hidden = false; renderEntries(); status('已打开资料。');
-      byId('entry-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (scroll !== false) byId('entry-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } finally { loading = false; controls(); }
   }
   function projectForm(project) {
@@ -136,7 +141,17 @@
     save(this, 'save-entry', body, async function (result) { await selectProject(activeProject); await openEntry(result.entry.id); });
   });
   byId('entry-search').addEventListener('input', renderEntries); byId('entry-kind-filter').addEventListener('change', renderEntries);
-  byId('close-entry').addEventListener('click', function () { if (discard()) { activeEntry = null; byId('entry-detail').hidden = true; byId('detail-preview').replaceChildren(); renderEntries(); } });
+  byId('close-entry').addEventListener('click', function () { if (discard()) { activeEntry = null; byId('entry-detail').hidden = true; byId('detail-preview').replaceChildren(); document.querySelector('.research-layout').classList.remove('research-expanded'); renderEntries(); } });
+  window.addEventListener('message', function (event) {
+    var preview = byId('detail-preview').querySelector('iframe[data-expanded]'), data = event.data;
+    if (!preview || event.source !== preview.contentWindow || !data) return;
+    if (data.type === 'nrgopt-research-height' && Number.isFinite(data.height) && data.height > 0) {
+      preview.style.height = Math.ceil(data.height) + 'px';
+    }
+    if (data.type === 'nrgopt-research-scroll' && Number.isFinite(data.top) && data.top >= 0) {
+      window.scrollTo({ top:preview.getBoundingClientRect().top + window.scrollY + data.top, behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  });
   byId('research-logout').addEventListener('click', async function () {
     if (!discard()) return;
     try { var response = await fetch('/api/intelligence?action=logout', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' }); if (!response.ok) throw new Error('退出失败，请重试。'); location.assign(login); }

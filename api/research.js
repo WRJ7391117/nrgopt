@@ -1,6 +1,6 @@
 const { settings, createStore, failure } = require('../lib/intelligence/store.cjs');
 const { createResearchStore } = require('../lib/research/store.cjs');
-const { researchPage } = require('../lib/research/pages.cjs');
+const { researchPage, htmlPreview } = require('../lib/research/pages.cjs');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TYPES = { html: 'text/html', htm: 'text/html', md: 'text/plain', txt: 'text/plain',
@@ -68,7 +68,7 @@ function createHandler({ env = process.env, authFactory = createStore, storeFact
         res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="research-file"; filename*=UTF-8''${encodeURIComponent(entry.file_name).replace(/'/g, '%27')}`);
         res.setHeader('X-Frame-Options', 'SAMEORIGIN');
         res.setHeader('Content-Security-Policy', "sandbox allow-scripts allow-downloads; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
-        return res.status(200).end(bytes);
+        return res.status(200).end(inline && entry.file_type === 'text/html' ? htmlPreview(bytes) : bytes);
       }
       if (!config.writes) throw failure('writes_disabled', 403);
       const body = req.body;
