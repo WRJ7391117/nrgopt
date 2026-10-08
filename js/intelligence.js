@@ -62,7 +62,7 @@
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
-    return value === '/intelligence/engine' || value === '/intelligence/library' || value === '/intelligence/directions' || value === '/intelligence/topics' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
+    return value === '/research' || value === '/intelligence/engine' || value === '/intelligence/library' || value === '/intelligence/directions' || value === '/intelligence/topics' || value === '/intelligence/overview' || value === '/intelligence/discover' || value === '/intelligence/followups' || value === '/intelligence/sources' || value === '/intelligence/settings' || value === '/intelligence/workflow' || detailPath.test(value || '') ? value : '/intelligence/overview';
   }
   function loginLocation() {
     return '/intelligence/login?returnTo=' + encodeURIComponent(safeReturnTo(location.pathname + (['/intelligence/overview', '/intelligence/discover'].includes(location.pathname) ? location.search : '')));

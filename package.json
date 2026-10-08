@@ -2,7 +2,7 @@
   "name": "nrgopt",
   "private": true,
   "scripts": {
-    "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js && npm run test:intelligence",
+    "test": "node tests/model-regression.js && node tests/api-regression.js && node tests/carbon-regression.js && npm run test:intelligence && node --test tests/research.cjs",
     "test:intelligence": "node tests/intelligence-source.cjs && node --test tests/intelligence-source-library.cjs tests/intelligence-directions.cjs tests/intelligence-directions-speed.cjs tests/intelligence-topics.cjs tests/intelligence-api.cjs tests/intelligence-archive-client.cjs tests/intelligence-archive-folder-picker.cjs tests/intelligence-crosscheck.cjs tests/intelligence-deepseek.cjs tests/intelligence-feishu.cjs tests/intelligence-feishu-config.cjs tests/intelligence-hypotheses.cjs tests/intelligence-jobs.cjs tests/intelligence-minimax.cjs tests/intelligence-provider-billing.cjs tests/intelligence-publication.cjs tests/intelligence-quality-fixtures.cjs tests/intelligence-registry.cjs tests/intelligence-store.cjs tests/intelligence-read-performance.cjs tests/intelligence-watch-search.cjs",
     "dev:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-dev.cjs",
     "archive:intelligence": "node --env-file-if-exists=.env.local scripts/intelligence-archive-pull.cjs",

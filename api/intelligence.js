@@ -101,7 +101,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
       }
-      if (action === 'login-page') return html(loginPage());
+      if (action === 'login-page') return html(loginPage(req.query?.returnTo === '/research'));
       if (action === 'reset-password-page') return html(resetPasswordPage());
       if (action.startsWith('archive-')) {
         if (env.NRGOPT_ARCHIVE_ENABLED !== '1') throw failure('archive_disabled', 503);
