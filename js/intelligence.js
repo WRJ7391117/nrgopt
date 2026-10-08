@@ -468,7 +468,7 @@
   }
   var navigationPath = location.pathname;
   var navigationTarget = navigationPath === '/intelligence/overview' && !location.search || navigationPath === '/intelligence' ? '/intelligence/overview'
-    : navigationPath === '/intelligence/engine' || navigationPath === '/intelligence/followups' || navigationPath === '/intelligence/directions' ? navigationPath
+    : navigationPath === '/intelligence/engine' || navigationPath === '/intelligence/followups' || navigationPath === '/intelligence/directions' || navigationPath === '/intelligence/library' ? navigationPath
       : navigationPath === '/intelligence/discover' || navigationPath === '/intelligence/topics' || navigationPath === '/intelligence/overview' || /^\/intelligence\/sources\//.test(navigationPath) ? '/intelligence/discover' : '/intelligence/settings';
   document.querySelectorAll('.intel-nav a').forEach(function (link) { if (link.getAttribute('href') === navigationTarget) link.setAttribute('aria-current', 'page'); });
   function emptyWorkList(list, message) {
@@ -607,7 +607,7 @@
       var directionList=byId('workbench-directions');directionList.replaceChildren();
       var coverage=byId('workbench-coverage');
       coverage.replaceChildren(document.createTextNode('已保存 '+data.directions.length+' 个方向 · 当前启用渠道 '+data.library.active+' / '+data.library.total+' · '));
-      var libraryLink=directionText(coverage,'a','查看情报渠道库 →');libraryLink.href='/intelligence/library';
+      var libraryLink=directionText(coverage,'a','查看渠道库 →');libraryLink.href='/intelligence/library';
       data.directions.forEach(function(d){
         var row=directionText(directionList,'article','','intel-overview-direction');
         var title=directionText(row,'div','','intel-overview-direction-title'),link=directionText(title,'a',d.name);link.href='/intelligence/directions?direction='+encodeURIComponent(d.id);
@@ -630,7 +630,7 @@
       byId('workbench-corpus-note').textContent='累计 '+data.distribution.total+' 条有效情报来源，包含历史资料。';
       [['trigger','早期信号'],['demand','需求'],['project','项目'],['procurement','采购机会来源']].forEach(function(pair){var a=directionText(distribution,'a','');a.href='/intelligence/discover?view='+(pair[0]==='procurement'?'opportunity':pair[0]==='trigger'?'signal':pair[0])+'&period=all';directionText(a,'strong',String(data.distribution[pair[0]]));directionText(a,'span',pair[1]);});
       var visibleDue=new Set(data.due.map(function(w){return w.candidate.id;}));
-      [['due','当前没有到期或存在原文冲突的活跃跟踪。'],['updates','本期没有新的跟踪证据判断。'],['active','尚未建立跟踪计划，可从发现情报中选择值得跟进的事项。']].forEach(function(entry){
+      [['due','当前没有到期或存在原文冲突的活跃跟踪。'],['updates','本期没有新的跟踪证据判断。'],['active','尚未建立跟踪计划，可从情报库中选择值得跟进的事项。']].forEach(function(entry){
         var list=byId('workbench-'+entry[0]);list.replaceChildren();
         var items=entry[0]==='updates'?data.updates.filter(function(w){return !visibleDue.has(w.candidate.id);}):data[entry[0]];
         items.forEach(function(w){list.append(overviewWatch(w));});
@@ -667,7 +667,7 @@
     }
     byId('overview-period').textContent = range;
     var viewCopy = {
-      overview: ['全部变化', '浏览近期变化，按地区和原文日期缩小范围；打开详情核对证据，再决定是否跟踪。'],
+      overview: ['全部情报', '按类型、地区和原文日期查阅已保存的情报，打开详情查看分析与证据，再选择是否跟踪。'],
       signal: ['早期信号', '查看区域变化如何传导到能源需求。'],
       demand: ['需求', '查看哪些业主或设施需要解决供能问题。'],
       project: ['项目', '查看有项目级原文证据的进展。'],
