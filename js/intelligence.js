@@ -1898,7 +1898,7 @@
       toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
       var task = directionData.tasks.find(function (t) { return t.checkpoint.direction.id === d.id; });
       var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
-      directionText(body, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_urls || []).length + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
+      directionText(body, 'p', task ? '最近搜索：' + dateLabel(task.updated_at) + ' · ' + regionNames[task.checkpoint.country] + ' · ' + (states[task.status] || task.status) + ' · 使用版本 ' + task.checkpoint.direction.revision + (task.status === 'succeeded' ? ' · 找到 ' + (task.checkpoint.result_count || 0) + ' 条线索' : '') : '尚无搜索记录，等待生效或地区轮转。', 'intel-source-meta');
       if (task?.error_code) directionText(body, 'p', '本次搜索未完成，可在“当天任务”查看原因。', 'intel-muted');
       var details = document.createElement('details'); body.appendChild(details);
       directionText(details, 'summary', '查看完整设置、来源网站与修改记录');
@@ -1943,7 +1943,13 @@
     byId('direction-editor').scrollIntoView({block:'start'});
   }
   async function loadDirections() {
-    directionData=await api('directions'); renderDirections();
+    var initial = byId('intelligence-initial-directions');
+    if (initial) {
+      var data = JSON.parse(initial.textContent); initial.remove();
+      if (data.error_zh) throw new Error(data.error_zh);
+      directionData = data;
+    } else directionData=await api('directions');
+    renderDirections();
     status('page-status',directionData.writable?'':'当前为只读模式。');
   }
   async function loadDirectionResults(direction) {

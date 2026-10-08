@@ -327,7 +327,12 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const checkedEntry = access.status==='failed' && entry.status==='active' && entry.config.mode!=='fixed' ? {...entry,status:'candidate'} : entry;
         return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
       }
-      if (action === 'directions-page') return html(directionsPage(user.email));
+      if (action === 'directions-page') {
+        let initial;
+        try { initial = { ...(await store.collectionDirections(user.id, scheduleDate())), writable:config.writes, websites:primaryHosts }; }
+        catch (error) { initial = { error_zh:messages[error.code] || '方向数据暂时无法读取，请刷新重试。' }; }
+        return html(directionsPage(user.email, initial));
+      }
       if (action === 'topics-page') return html(topicsPage(user.email));
       if (action === 'topics') return res.status(200).json({ topics: await store.topicCatalog(user.id), writable: config.writes });
       if (action === 'save-topic') {
