@@ -1851,7 +1851,7 @@
       finally { extractButton.disabled = false; }
     });
   }
-  var directionData, editingDirection, directionResults = [], directionResultId = null, directionDirty = false, directionSaving = false, directionTopicCodes = [], topicsReturnView = 'home';
+  var directionData, editingDirection, directionResults = [], directionResultId = null, directionDirty = false, directionSaving = false, directionTopicCodes = [], topicsReturnView = 'home', directionHomeModule = 'goal';
   function directionText(parent, tag, text, className) {
     var node = document.createElement(tag); node.textContent = text;
     if (className) node.className = className;
@@ -1863,21 +1863,32 @@
     byId('direction-results-panel').hidden = view !== 'results';
     byId('direction-topics').hidden = view !== 'topics';
   }
+  function selectDirectionModule(module) {
+    directionHomeModule = module;
+    document.querySelectorAll('[data-direction-module]').forEach(function(button){
+      var selected = button.dataset.directionModule === module;
+      button.setAttribute('aria-pressed', String(selected));
+      byId('direction-module-' + button.dataset.directionModule).hidden = !selected;
+    });
+  }
   function returnToDirections(id) {
     directionResultId = null; editingDirection = null; directionDirty = false;
     directionView('home');
-    var button = Array.from(document.querySelectorAll('[data-direction-edit]')).find(function(n){return n.dataset.directionEdit === id;});
-    var target = button && !button.disabled ? button : Array.from(document.querySelectorAll('[data-direction-results]')).find(function(n){return n.dataset.directionResults===id;}) || byId('direction-new');
+    var panel = byId('direction-module-' + directionHomeModule);
+    var button = Array.from(panel.querySelectorAll('[data-direction-edit]')).find(function(n){return n.dataset.directionEdit === id;});
+    var target = button && !button.disabled ? button : Array.from(panel.querySelectorAll('[data-direction-results]')).find(function(n){return n.dataset.directionResults===id;}) || byId('direction-module-' + directionHomeModule + '-title');
     var card = target.closest('.intel-direction-card');
     if (card) card.open = true;
     target.focus();
   }
   function renderDirections() {
-    var list = byId('direction-list'); list.replaceChildren();
     byId('direction-new').disabled = !directionData.writable;
     var priority = { high: '高', normal: '普通', low: '低' };
+    var modules = { goal:'目标', countries:'国家与地区', topics:'搜集主题', industries:'重点行业与机构', rules:'搜集规则' };
     var active = directionData.effective.filter(function(d){return d.config.enabled;}).length;
     byId('direction-count').textContent = '共 ' + directionData.directions.length + ' 个方向 · 今天已启用 ' + active + ' 个';
+    Object.keys(modules).forEach(function(module){
+    var list = byId(module === 'goal' ? 'direction-list' : 'direction-' + module + '-list'); list.replaceChildren();
     directionData.directions.forEach(function (d, index) {
       var card = directionText(list, 'details', '', 'intel-panel intel-direction-card');
       var summary = directionText(card, 'summary', '');
@@ -1885,55 +1896,60 @@
       directionText(heading, 'span', String(index + 1).padStart(2, '0'), 'intel-direction-number');
       var title = directionText(heading, 'span', '', 'intel-direction-title');
       directionText(title, 'strong', d.config.name);
-      directionText(title, 'small', d.config.countries.length + ' 个国家/地区 · ' + (d.config.topic_codes || []).length + ' 个主题', 'intel-direction-range');
+      var targets = d.config.targets.map(function(t){return ({signal:'变化线索',investment:'投资动向',procurement:'采购机会'})[t];}).join('、');
+      var range = module === 'goal' ? targets : module === 'countries' ? d.config.countries.length + ' 个国家/地区' : module === 'topics' ? ((d.config.topic_codes || []).length ? d.config.topic_codes.length + ' 个搜集主题' : '未单独指定主题') : module === 'industries' ? d.config.industries : '优先级：' + priority[d.config.priority] + ' · 已保存为' + (d.config.enabled ? '启用' : '暂停');
+      directionText(title, 'small', range, 'intel-direction-range');
       if (d.effective_on > directionData.day) directionText(title, 'small', d.effective_on + ' 北京时间生效', 'intel-direction-pending-date');
       var effective = directionData.effective.find(function (v) { return v.id === d.id; });
-      directionText(summary, 'span', effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效', 'intel-badge');
+      if (module === 'goal' || module === 'rules') directionText(summary, 'span', effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效', 'intel-badge');
       var body = directionText(card, 'div', '', 'intel-direction-card-body');
       if (d.effective_on > directionData.day) directionText(body, 'p', '以下为已保存设置，' + d.effective_on + ' 北京时间起' + (d.config.enabled ? '启用' : '暂停') + '；今天的任务不受本次修改影响。', 'intel-direction-pending');
-      directionText(body, 'p', d.config.why, 'intel-direction-purpose');
-      directionText(body, 'p', '关注对象：' + d.config.industries, 'intel-muted');
-      directionText(body, 'p', '希望找到：' + d.config.targets.map(function(t){return ({signal:'变化线索',investment:'投资动向',procurement:'采购机会'})[t];}).join('、'), 'intel-muted');
+      if (module === 'goal') {
+        directionText(body, 'p', d.config.why, 'intel-direction-purpose');
+        directionText(body, 'p', '希望找到：' + targets, 'intel-muted');
+      } else if (module === 'countries') {
+        directionText(body, 'p', d.config.countries.map(function(c){return regionNames[c];}).join('、'));
+      } else if (module === 'industries') {
+        directionText(body, 'p', d.config.industries);
+      } else if (module === 'rules') {
+        directionText(body, 'p', '已保存规则：' + (d.config.enabled ? '启用' : '暂停') + ' · 优先级：' + priority[d.config.priority]);
+        directionText(body, 'p', '排除内容：' + (d.config.exclude || '未设置'));
+      }
+      if (module === 'topics') {
+        var cardTopicCodes=d.config.topic_codes || [];
+        var topicLabels=directionText(body, 'p', cardTopicCodes.length ? cardTopicCodes.map(function(code){var topic=topicData?.topics.find(function(item){return item.code===code;});return topic ? topic.name+(topic.active?'':'（已停用）') : topicNames[code] || '主题名称暂未读取';}).join('、') : '未单独指定主题，按这个方向的一般要求搜集。');
+        var cardTopicsLoaded=false, cardTopicsLoading=false;
+        card.addEventListener('toggle',async function(){
+          if(!card.open || !cardTopicCodes.length || cardTopicsLoaded || cardTopicsLoading)return;
+          cardTopicsLoading=true;
+          try {
+            await loadTopicCatalog();
+            topicLabels.textContent=cardTopicCodes.map(function(code){var topic=topicData.topics.find(function(item){return item.code===code;});return topic ? topic.name+(topic.active?'':'（已停用）') : '原主题不在当前名单中';}).join('、');
+            cardTopicsLoaded=true;
+          } catch(error){topicLabels.textContent='主题名称暂未读取，收起后再展开可重试。';}
+          finally{cardTopicsLoading=false;}
+        });
+      }
       var actions = directionText(body, 'div', '', 'intel-direction-buttons');
-      var edit = directionText(actions, 'button', '修改搜集要求', 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable; edit.dataset.directionEdit = d.id;
-      edit.addEventListener('click',function(){ openDirection(d); });
+      var edit = directionText(actions, 'button', '修改' + modules[module], 'intel-button'); edit.type = 'button'; edit.disabled = !directionData.writable; edit.dataset.directionEdit = d.id;
+      edit.addEventListener('click',function(){ openDirection(d, undefined, module); });
+      if (module === 'goal') {
       var results = directionText(actions, 'button', '查看搜集结果', 'intel-button'); results.type='button'; results.dataset.directionResults=d.id;
       results.addEventListener('click',function(){ loadDirectionResults(d); });
+      }
+      if (module !== 'rules') return;
       var toggle = directionText(actions, 'button', d.config.enabled ? '暂停搜集' : '恢复搜集', 'intel-button intel-button-quiet'); toggle.type='button'; toggle.disabled=!directionData.writable;
       toggle.addEventListener('click',function(){ openDirection(d, !d.config.enabled); });
       var states = {queued:'等待执行', running:'正在执行', retry:'等待重试', succeeded:'已执行', failed:'执行失败', budget_paused:'预算或账单暂停', manual_paused:'已暂停'};
       var taskText = directionText(body, 'p', '展开后读取最近搜索。', 'intel-source-meta');
       var taskError = directionText(body, 'p', '本次搜索未完成，可在“当天任务”查看原因。', 'intel-muted'); taskError.hidden=true;
       var details = document.createElement('details'); body.appendChild(details);
-      directionText(details, 'summary', '查看完整设置、来源网站与修改记录');
-      directionText(details, 'p', '已保存的地区：' + d.config.countries.map(function(c){return regionNames[c];}).join('、'));
-      var cardTopicCodes=d.config.topic_codes || [];
-      var topicLabels=directionText(details, 'p', '关联主题：' + (cardTopicCodes.length ? cardTopicCodes.map(function(code){return topicNames[code] || '主题名称暂未读取';}).join('、') : '未单独指定'));
-      var cardTopicsLoaded=false, cardTopicsLoading=false;
-      card.addEventListener('toggle',async function(){
-        if(!card.open || !cardTopicCodes.length || cardTopicsLoaded || cardTopicsLoading)return;
-        cardTopicsLoading=true;
-        try {
-          await loadTopicCatalog();
-          topicLabels.textContent='关联主题：'+cardTopicCodes.map(function(code){var topic=topicData.topics.find(function(item){return item.code===code;});return topic ? topic.name+(topic.active?'':'（已停用）') : '原主题不在当前名单中';}).join('、');
-          cardTopicsLoaded=true;
-        } catch(error){topicLabels.textContent='关联主题：主题名称暂未读取，收起后再展开可重试。';}
-        finally{cardTopicsLoading=false;}
-      });
-      directionText(details, 'p', '优先级：' + priority[d.config.priority] + ' · 排除：' + (d.config.exclude || '未设置'));
+      directionText(details, 'summary', '查看今天生效的规则与修改记录');
       directionText(details, 'p', '最近保存：' + dateLabel(d.updated_at), 'intel-muted');
       if (effective) {
         directionText(details, 'h4', '今天生效的设置 · 版本 ' + effective.revision);
-        directionText(details, 'p', effective.config.name + '；' + effective.config.why + '；对象：' + effective.config.industries + '；地区：' + effective.config.countries.map(function(c){return regionNames[c];}).join('、'));
+        directionText(details, 'p', (effective.config.enabled ? '启用' : '暂停') + ' · 优先级：' + priority[effective.config.priority] + ' · 排除：' + (effective.config.exclude || '未设置'));
       }
-      directionText(details, 'h4', '既有发布者入口参考');
-      directionText(details, 'p', '按方向搜索也会发现这些网站以外的政府、企业、媒体和公开作者文章。下列入口不代表已采集成功或独立核实。', 'intel-muted');
-      d.config.countries.forEach(function (country) {
-        var row = directionText(details, 'p', regionNames[country] + '：');
-        (directionData.websites[country] || []).forEach(function (host) {
-          var link = directionText(row, 'a', host + ' '); link.href = 'https://' + host; link.target = '_blank'; link.rel = 'noopener noreferrer';
-        });
-      });
       directionText(details, 'h4', '最近保存记录');
       var historyList = directionText(details, 'div', '');
       var activityLoaded=false, activityLoading=false;
@@ -1951,8 +1967,10 @@
       });
     });
     if (!directionData.directions.length) directionText(list, 'p', '还没有搜集方向。点击“新增搜集方向”，告诉系统你希望找到什么。');
+    });
+    selectDirectionModule(directionHomeModule);
   }
-  function openDirection(direction, enabled) {
+  function openDirection(direction, enabled, module) {
     editingDirection = direction || { id:null, revision:0, config:{name:'',why:'',industries:'',exclude:'',countries:[],topic_codes:[],targets:['signal','investment','procurement'],priority:'normal',enabled:true} };
     var config = editingDirection.config, toggle = enabled !== undefined;
     directionTopicCodes = (config.topic_codes || []).slice();
@@ -1964,16 +1982,16 @@
     byId('direction-config-fields').hidden = toggle;
     byId('direction-save').disabled=!toggle && !topicData;
     byId('direction-editor-title').textContent = toggle ? (enabled ? '恢复搜集：' : '暂停搜集：') + config.name : direction ? '修改：' + config.name : '新增搜集方向';
-    byId('direction-editor-note').textContent = toggle ? '只调整这个方向的启用状态，原搜集要求保持不变。已有情报和“我的跟踪”中的事项保留。' : '按下面四个模块设置关注范围。';
+    byId('direction-editor-note').textContent = toggle ? '只调整这个方向的启用状态，原搜集要求保持不变。已有情报和“我的跟踪”中的事项保留。' : '以下五项共同组成这个搜集方向，保存后次日生效。';
     byId('direction-save').textContent = toggle ? (enabled ? '确认恢复搜集' : '确认暂停搜集') : '保存搜集方向';
     byId('direction-saved-results').hidden = true;
-    byId('direction-cancel').textContent = toggle ? '取消，返回列表' : '返回方向列表';
+    byId('direction-cancel').textContent = toggle ? '取消，返回搜集方向' : '返回搜集方向';
     status('direction-save-status',toggle ? '确认后次日北京时间 00:00 起生效，今天已开始的任务保持原设置。' : '尚未保存。保存后次日生效。');
     updateDirectionScope();
     if (!toggle) refreshDirectionTopics();
     directionView('edit');
-    byId('direction-editor-title').focus();
-    byId('direction-editor').scrollIntoView({block:'start'});
+    var target = module ? byId('direction-field-' + module) : byId('direction-editor-title');
+    target.focus(); target.scrollIntoView({block:'start'});
   }
   function directionCountries() {
     return Array.from(document.querySelectorAll('[name="direction-country"]:checked')).map(function(n){return n.value;});
@@ -2015,7 +2033,7 @@
     if (directionSaving || topicSaving) return;
     topicsReturnView = byId('direction-editor').hidden ? 'home' : 'edit';
     directionView('topics');
-    byId('direction-topics-back').textContent=topicsReturnView==='edit' ? '← 返回编辑（保留未保存内容）' : '← 返回方向列表';
+    byId('direction-topics-back').textContent=topicsReturnView==='edit' ? '← 返回编辑（保留未保存内容）' : '← 返回搜集方向';
     byId('direction-topics-title').focus(); byId('direction-topics').scrollIntoView({block:'start'});
     await loadTopics();
   }
@@ -2060,6 +2078,10 @@
     if(!list.children.length)directionText(list,'li',filtered?'当前日期筛选下没有记录，可选择“全部”查看历史、待获取或日期未知的线索。':'尚无实际搜集结果。未执行、没有命中或采集失败，都不能据此判断没有价值。');
   }
   if(byId('direction-form')) {
+    document.querySelectorAll('[data-direction-module]').forEach(function(button){button.addEventListener('click',function(){
+      selectDirectionModule(button.dataset.directionModule);
+      byId('direction-module-' + directionHomeModule + '-title').focus();
+    });});
     byId('direction-new').addEventListener('click',function(){openDirection(null);});
     byId('direction-period').addEventListener('change',renderDirectionResults);
     byId('direction-results-back').addEventListener('click',function(){returnToDirections(directionResultId);});
@@ -2073,7 +2095,7 @@
       returnToDirections(editingDirection?.id);
     });
     function markDirectionDirty(){
-      directionDirty=true;byId('direction-save').disabled=!byId('direction-config-fields').hidden && !topicData;byId('direction-cancel').textContent='放弃修改，返回列表';
+      directionDirty=true;byId('direction-save').disabled=!byId('direction-config-fields').hidden && !topicData;byId('direction-cancel').textContent='放弃修改，返回搜集方向';
       byId('direction-save').textContent='保存搜集方向';byId('direction-saved-results').hidden=true;
       if (topicData && byId('direction-topic-choices').children.length) {
         directionTopicCodes=Array.from(document.querySelectorAll('[name="direction-topic"]:checked')).map(function(n){return n.value;});
@@ -2092,8 +2114,8 @@
     byId('direction-topics-back').addEventListener('click',function(){
       if(topicSaving)return;
       directionView(topicsReturnView);
-      if(topicsReturnView==='edit'){if(topicData)renderDirectionTopics();else refreshDirectionTopics();byId('direction-editor-title').focus();}
-      else byId('direction-new').focus();
+      if(topicsReturnView==='edit'){if(topicData)renderDirectionTopics();else refreshDirectionTopics();byId('direction-field-topics').focus();}
+      else {renderDirections();byId('direction-module-' + directionHomeModule + '-title').focus();}
     });
     byId('direction-form').addEventListener('submit',async function(event){
       event.preventDefault();if(!editingDirection||directionSaving)return;
@@ -2115,7 +2137,7 @@
         renderDirections();
         var message='已保存「'+result.direction.config.name+'」。将于 '+result.direction.effective_on+' 北京时间 00:00 起'+(config.enabled?'启用':'暂停')+'，今天的任务继续使用原设置。';
         status('direction-save-status',message,'success');
-        byId('direction-save').textContent='已保存';byId('direction-cancel').textContent='完成，返回方向列表';
+        byId('direction-save').textContent='已保存';byId('direction-cancel').textContent='完成，返回搜集方向';
         byId('direction-saved-results').hidden=false;
         try {await loadDirections();}
         catch(error){status('direction-save-status',message+' 列表暂未刷新，无需重复保存。请稍后刷新页面。','success');status('page-status','本次保存已确认；其他执行状态暂未刷新，请稍后刷新页面。','error');}

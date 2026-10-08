@@ -484,6 +484,15 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-results li { display: grid; gap: 10px; }
 #direction-results a { overflow-wrap: anywhere; }
 .intel-direction-list { margin-top: 24px; }
+.intel-direction-modules { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 24px 0 32px; }
+.intel-direction-modules .intel-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 10px; font-size: .95rem; }
+.intel-direction-modules .intel-button span { color: var(--text-dim); font-size: .8rem; }
+.intel-direction-modules .intel-button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--btn-primary-text); }
+.intel-direction-modules .intel-button[aria-pressed="true"] span { color: inherit; }
+.intelligence-app .intel-direction-module { padding: 24px 0 0; background: transparent; border-top: 2px solid var(--form-border); }
+.intel-direction-module .intel-section-heading h2 { font-size: 1.4rem; }
+.intel-direction-module .intel-section-heading p { margin: 8px 0 0; }
+.intel-direction-module .intel-direction-card > summary::after { grid-column: -2; }
 .intel-direction-card > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 12px; min-height: 48px; list-style: none; }
 .intel-direction-card > summary::-webkit-details-marker { display: none; }
 .intel-direction-card > summary::after { content: '展开'; color: var(--accent); font-size: .85rem; }
@@ -517,6 +526,8 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-editor { padding: 0; border: 0; background: transparent; }
 #direction-config-fields { display: grid; gap: 32px; }
 #direction-config-fields > fieldset { margin: 0; background: var(--surface); border-color: var(--form-border); }
+#direction-config-fields > fieldset:focus { outline: 2px solid var(--accent); outline-offset: 4px; }
+#direction-config-fields > fieldset { scroll-margin-top: 24px; }
 #direction-config-fields > fieldset > legend { color: var(--accent); background: var(--surface); font-size: 1.15rem; font-weight: 700; }
 .intel-direction-form fieldset { display: grid; gap: 20px; padding: 24px; }
 .intel-direction-form legend { padding: 0 8px; font-weight: 600; }
@@ -535,6 +546,10 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-save-status:not(:empty) { padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; line-height: 1.7; }
 #direction-results-panel > label { display: grid; gap: 8px; max-width: 280px; margin: 24px 0; }
 @media (max-width: 640px) {
+  .intel-direction-modules { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .intel-direction-modules .intel-button { justify-content: flex-start; padding: 12px; font-size: .88rem; }
+  .intel-direction-modules .intel-button:last-child { grid-column: 1 / -1; }
+  .intel-direction-module > .intel-section-heading { align-items: flex-start; flex-wrap: wrap; }
   .intel-direction-workspace { padding: 20px 16px; }
   .intel-direction-form fieldset { padding: 20px 12px; }
   .intel-direction-buttons .intel-button { flex: 1; }
