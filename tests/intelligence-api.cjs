@@ -962,7 +962,7 @@ test('topic list has a visible private editor and owner-scoped save without invo
   assert.match(redirect.headers.location,/topics/);
   const page=await request('topics-page');
   assert.match(page.body,/id="topic-new"/);
-  assert.match((await request('directions-page')).body,/管理主题/);
+  assert.match((await request('directions-page')).body,/管理搜集主题/);
   assert.doesNotMatch((await request('discover-page')).body,/管理专题/);
   const topicList=(await request('topics')).body;
   assert.equal(topicList.topics.length,7);
