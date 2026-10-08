@@ -1185,7 +1185,8 @@
       var result = await api('sources');
       renderSources(result.sources);
       status('page-status', result.sources.length ? '共 ' + result.sources.length + ' 条来源' : '');
-    } catch (error) { status('page-status', error.message, 'error'); }
+      return true;
+    } catch (error) { status('page-status', error.message, 'error'); return false; }
     finally { button.disabled = false; }
   }
   function renderProjectTimeline(history) {
@@ -2098,11 +2099,18 @@
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
       if (overviewList) { await loadOverview(); return; }
-      var session = await api('session');
-      byId('account-email').textContent = session.user.email;
       var match = location.pathname.match(detailPath);
       if (match) await loadDetail(match[1]);
-      else if (importForm) await loadSources();
+      else if (importForm) {
+        var savedMaterials = byId('library-saved');
+        if (savedMaterials) savedMaterials.addEventListener('toggle', function () {
+          if (savedMaterials.open && !savedMaterials.dataset.loaded) {
+            savedMaterials.dataset.loaded = '1';
+            loadSources().then(function (loaded) { if (!loaded) delete savedMaterials.dataset.loaded; });
+          }
+        });
+        else await loadSources();
+      }
       else if (providerForms.length) await Promise.all([loadProviderSettings(), loadOperations(), loadArchiveSettings()]);
     } catch (error) { status('page-status', error.message, 'error'); }
   })();

@@ -56,7 +56,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
-    sourceLibrary: async () => [], snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
+    sourceLibrary: async () => [], directionList: async () => [], snapshotDirections: async () => null, bindDirectionSource: async () => {}, sourceDirections: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -399,8 +399,12 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(calls.find(call => call.name === 'list').args, [admin]);
   await request('source');
   assert.deepEqual(calls.find(call => call.name === 'get').args, [id, admin]);
-  assert.deepEqual(calls.find(call => call.name === 'candidateBySource').args, [id, admin]);
-  assert.deepEqual(calls.find(call => call.name === 'sourceHistory').args, [id, admin]);
+  for (const name of ['candidateBySource', 'sourceHistory', 'analysisRevisions', 'businessHistory']) {
+    const args = calls.find(call => call.name === name).args;
+    assert.deepEqual(args.slice(0,2), [id, admin]);
+    assert.equal(await args[2], source);
+  }
+  assert.equal(calls.filter(call => call.name === 'get').length, 1);
   assert.deepEqual((await request('overview')).body.user, { email: 'local@example.test' });
   assert.deepEqual(calls.find(call => call.name === 'candidates').args, [admin]);
   assert.deepEqual(calls.find(call => call.name === 'currentOpportunities').args, [admin, []]);

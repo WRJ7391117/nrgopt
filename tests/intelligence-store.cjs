@@ -406,7 +406,7 @@ test('operations exposes recent owner-scoped jobs, item checkpoints and budget s
   assert.equal(result.budgets[0].spent_micro, 1000);
   assert.equal(result.notifications[0].status, 'unknown');
   assert.ok(calls.every(url => url.searchParams.get('owner_id') === 'eq.owner-a'));
-  assert.equal(calls[1].searchParams.get('job_run_id'), 'in.(job-a)');
+  assert.equal(calls.find(url => url.pathname.endsWith('/intelligence_job_items')).searchParams.get('job_run_id'), 'in.(job-a)');
 });
 
 test('provider configuration is owner-scoped and stored only through the service role', async () => {
@@ -1257,13 +1257,15 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
   const store=createStore(CONFIG,async input=>{
     const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
     if(u.pathname.endsWith('intelligence_candidates')) {
-      assert.equal(u.searchParams.get('disposition'),'eq.candidate');
-      assert.equal(u.searchParams.get('offset'),'0');
-      return Response.json(ids.map(id=>({id,source_id:id,created_at:'2026-09-27T00:00:00Z'})));
+      if (!u.searchParams.has('id')) {
+        assert.equal(u.searchParams.get('disposition'),'eq.candidate');
+        assert.equal(u.searchParams.get('offset'),'0');
+      }
+      return Response.json(ids.map(id=>({id,source_id:id,disposition:'candidate',review_status:'pending',created_at:'2026-09-27T00:00:00Z'})));
     }
     if(u.pathname.endsWith('intelligence_watch_targets'))return Response.json([{candidate_id:'handled',status:'expired'}]);
     if(u.pathname.endsWith('intelligence_sources')) {
-      assert.ok(u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
+      assert.ok(u.searchParams.get('select').includes('content_sha256') || u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
       return Response.json(sources);
     }
     if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities)$/.test(u.pathname))return Response.json([]);
@@ -1301,12 +1303,15 @@ test('active followups are globally prioritized, per-watch changes exclude uncha
 });
 
 test('overview counts include all candidate pages and preserve source-level classification counts', async()=>{
-  const candidates=Array.from({length:501},(_,i)=>({id:'c'+i,source_id:'s'+i,created_at:'2026-09-26T16:00:00+00:00',radars:['demand','project'],source_sha256:'a'}));
+  const candidates=Array.from({length:501},(_,i)=>({id:'c'+i,source_id:'s'+i,disposition:'candidate',review_status:'pending',created_at:'2026-09-26T16:00:00+00:00',radars:['demand','project'],source_sha256:'a'}));
   const offsets=[];
   const store=createStore(CONFIG,async(input,init)=>{
     assert.ok(!init.method || init.method==='GET');
     const u=new URL(input);assert.equal(u.searchParams.get('owner_id'),'eq.owner-a');
-    if(u.pathname.endsWith('intelligence_candidates')){const offset=Number(u.searchParams.get('offset'));offsets.push(offset);return Response.json(candidates.slice(offset,offset+500));}
+    if(u.pathname.endsWith('intelligence_candidates')){
+      if(u.searchParams.has('id'))return Response.json(candidates.filter(c=>u.searchParams.get('id').slice(4,-1).split(',').includes(c.id)));
+      const offset=Number(u.searchParams.get('offset'));offsets.push(offset);return Response.json(candidates.slice(offset,offset+500));
+    }
     if(u.pathname.endsWith('intelligence_sources'))return Response.json(u.searchParams.get('id').slice(4,-1).split(',').map(id=>({id,final_url:'https://example.com/'+id,content_sha256:'a',extraction_source_sha256:'a',extraction_status:'extracted',publication_date:'2026-09-27'})));
     return Response.json([]);
   });
