@@ -96,7 +96,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
       const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
-      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-activity', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -293,7 +293,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!result || result.id !== config.adminId) throw failure('forbidden', 403);
         return res.status(200).json({ ok: true });
       }
+      const authStarted = Date.now();
       const user = await store.user(token);
+      const authDuration = Date.now() - authStarted;
+      res.setHeader('Server-Timing', `auth;dur=${authDuration}`);
       if (!user || user.id !== config.adminId) throw failure('forbidden', 403);
       if (['detail-page', 'source', 'evidence', 'annotate', 'extract', 'followup', 'save-followup'].includes(action) && !UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
       if (action === 'page' || action === 'detail-page') return html(sourcesPage({ detailId: action === 'detail-page' ? req.query.id : null, email: user.email }));
@@ -327,12 +330,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const checkedEntry = access.status==='failed' && entry.status==='active' && entry.config.mode!=='fixed' ? {...entry,status:'candidate'} : entry;
         return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
       }
-      if (action === 'directions-page') {
-        let initial;
-        try { initial = { ...(await store.collectionDirections(user.id, scheduleDate())), writable:config.writes, websites:primaryHosts }; }
-        catch (error) { initial = { error_zh:messages[error.code] || '方向数据暂时无法读取，请刷新重试。' }; }
-        return html(directionsPage(user.email, initial));
-      }
+      if (action === 'directions-page') return html(directionsPage(user.email));
       if (action === 'topics-page') return html(topicsPage(user.email));
       if (action === 'topics') return res.status(200).json({ topics: await store.topicCatalog(user.id), writable: config.writes });
       if (action === 'save-topic') {
@@ -344,7 +342,16 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (topics.some(topic => topic.code !== value.code && topic.name === value.name)) throw failure('topic_duplicate', 409);
         return res.status(200).json({ topic: await store.saveTopic(user.id, value) });
       }
-      if (action === 'directions') return res.status(200).json({ ...(await store.collectionDirections(user.id, scheduleDate())), writable: config.writes, websites: primaryHosts });
+      if (action === 'directions') {
+        const readStarted = Date.now();
+        const data = await store.collectionDirections(user.id, scheduleDate());
+        res.setHeader('Server-Timing', `auth;dur=${authDuration}, database;dur=${Date.now() - readStarted}`);
+        return res.status(200).json({ ...data, writable: config.writes, websites: primaryHosts });
+      }
+      if (action === 'direction-activity') {
+        if (!UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
+        return res.status(200).json(await store.directionActivity(user.id, req.query.id));
+      }
       if (action === 'direction-results') {
         if (!UUID.test(req.query.id || '')) throw failure('invalid_request', 400);
         return res.status(200).json(await store.directionResults(user.id, req.query.id));
