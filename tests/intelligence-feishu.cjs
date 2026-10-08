@@ -141,6 +141,14 @@ test('daily digest contains evidence and judgment, abbreviates accepted FLASH an
   assert.ok(!output.includes('六国任务：成功 20'));
 });
 
+test('daily digest title uses its Beijing delivery date and identifies the source plan in the body', () => {
+  const card = buildCard({ baseUrl: 'https://nrgopt.example', now: new Date('2026-10-07T16:05:00Z'),
+    notification: { notification_type: 'daily', payload: { schedule_key: '2026-10-06', status: 'succeeded' } } });
+  assert.equal(card.card.header.title.content, '每日情报摘要｜2026-10-08');
+  assert.match(card.card.elements[0].content, /本期完成的搜集计划/);
+  assert.match(card.card.elements[0].content, /2026-10-06/);
+});
+
 test('new FLASH renders its queued snapshot instead of a later model rewrite', () => {
   const card = buildCard({ baseUrl: 'https://nrgopt.example', source: { extraction_zh: { known_facts: [{ claim_zh: '后续改写' }] } },
     notification: { notification_type: 'flash', payload: { evidence_change_id: 1, facts: ['入队时的事实'], judgment_zh: '当时判断' } } });
