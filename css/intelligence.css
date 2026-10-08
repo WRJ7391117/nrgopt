@@ -469,11 +469,12 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-topic-card p { margin: 10px 0 0; }
 .intel-topic-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
 #topic-editor { margin-top: 24px; scroll-margin-top: 24px; }
-.intel-direction-list > .intel-direction-card { margin: 0; min-width: 0; }
 .intel-direction-list p, .intel-direction-explainer p { overflow-wrap: anywhere; }
 .intel-direction-list summary { cursor: pointer; }
 .intel-direction-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
 .intel-direction-form { display: grid; gap: 18px; }
+.intel-direction-picker { display: grid; gap: 8px; max-width: 580px; margin-top: 18px; font-weight: 600; }
+.intel-direction-picker select { width: 100%; min-width: 0; }
 .intel-direction-form > label { display: grid; gap: 8px; }
 .intel-direction-form > label:has(input[type="checkbox"]) { display: flex; align-items: center; }
 .intel-direction-form fieldset { min-width: 0; border: 1px solid var(--border); padding: 16px; border-radius: 10px; }
@@ -489,21 +490,7 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-modules .intel-button span { color: var(--text-dim); font-size: .8rem; }
 .intel-direction-modules .intel-button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--btn-primary-text); }
 .intel-direction-modules .intel-button[aria-pressed="true"] span { color: inherit; }
-.intelligence-app .intel-direction-module { padding: 24px 0 0; background: transparent; border-top: 2px solid var(--form-border); }
-.intel-direction-module .intel-section-heading h2 { font-size: 1.4rem; }
-.intel-direction-module .intel-section-heading p { margin: 8px 0 0; }
-.intel-direction-module .intel-direction-card > summary::after { grid-column: -2; }
-.intel-direction-card > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 12px; min-height: 48px; list-style: none; }
-.intel-direction-card > summary::-webkit-details-marker { display: none; }
-.intel-direction-card > summary::after { content: '展开'; color: var(--accent); font-size: .85rem; }
-.intel-direction-card[open] > summary::after { content: '收起'; }
-.intel-direction-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-.intel-direction-heading strong { color: var(--text); font-size: 1.05rem; line-height: 1.6; overflow-wrap: anywhere; }
 .intel-direction-number { color: var(--accent); font-size: .85rem; font-weight: 700; }
-.intel-direction-title { display: grid; gap: 4px; min-width: 0; }
-.intel-direction-range, .intel-direction-pending-date { font-size: .82rem; font-weight: 400; line-height: 1.6; }
-.intel-direction-range { color: var(--text-dim); }
-.intel-direction-pending-date { color: var(--accent); }
 .intel-direction-group-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .intel-direction-group-heading .intel-field-label, .intel-direction-group-heading h3 { margin: 0; }
 .intel-direction-selection, .intel-direction-scope-summary { padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--form-bg); overflow-wrap: anywhere; line-height: 1.8; }
@@ -513,12 +500,6 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-topic-status:empty { display: none; }
 #direction-topic-choices label:has(input:disabled) { color: var(--text-dim); }
 
-.intel-direction-card-body { padding-top: 12px; }
-.intel-direction-card p { margin: 10px 0; line-height: 1.7; }
-.intel-direction-card .intel-direction-purpose { margin-top: 16px; }
-.intel-direction-pending { padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--form-bg); font-size: .82rem; }
-.intel-direction-card-body details { padding-top: 12px; margin: 16px 0 0; border-top: 1px solid var(--border); color: var(--text-dim); font-size: .82rem; }
-.intel-direction-card-body details h4 { margin-top: 20px; color: var(--text); }
 .intel-direction-help { margin: 28px 0; color: var(--text-dim); font-size: .85rem; line-height: 1.8; }
 .intel-direction-help summary { cursor: pointer; }
 .intel-direction-help p { margin-top: 12px; }
@@ -526,13 +507,12 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-editor { padding: 0; border: 0; background: transparent; }
 #direction-config-fields { display: grid; gap: 32px; }
 #direction-config-fields > fieldset { margin: 0; background: var(--surface); border-color: var(--form-border); }
-#direction-config-fields > fieldset:focus { outline: 2px solid var(--accent); outline-offset: 4px; }
+#direction-config-fields > fieldset:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 #direction-config-fields > fieldset { scroll-margin-top: 24px; }
 #direction-config-fields > fieldset > legend { color: var(--accent); background: var(--surface); font-size: 1.15rem; font-weight: 700; }
 .intel-direction-form fieldset { display: grid; gap: 20px; padding: 24px; }
 .intel-direction-form legend { padding: 0 8px; font-weight: 600; }
 .intel-direction-form textarea { min-height: 96px; }
-#direction-editor-back { margin-bottom: 16px; }
 .intel-direction-form fieldset > label { display: grid; gap: 8px; margin: 0; }
 .intel-direction-form fieldset > .intel-direction-enable { display: flex; align-items: center; }
 .intel-direction-form .intel-field-label { margin: 0 0 12px; font-size: .9rem; font-weight: 600; }
@@ -543,19 +523,18 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-country-group { padding-top: 16px; }
 .intel-direction-country-group h3 { margin: 0 0 8px; font-size: .85rem; color: var(--text-dim); }
 .intel-direction-form > .intel-direction-buttons { padding-top: 16px; border-top: 1px solid var(--border); margin-top: 0; }
+#direction-activity { padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: .85rem; line-height: 1.8; }
+#direction-activity summary { cursor: pointer; }
+#direction-activity-content h4 { margin-top: 20px; color: var(--text); }
 #direction-save-status:not(:empty) { padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; line-height: 1.7; }
 #direction-results-panel > label { display: grid; gap: 8px; max-width: 280px; margin: 24px 0; }
 @media (max-width: 640px) {
   .intel-direction-modules { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .intel-direction-modules .intel-button { justify-content: flex-start; padding: 12px; font-size: .88rem; }
   .intel-direction-modules .intel-button:last-child { grid-column: 1 / -1; }
-  .intel-direction-module > .intel-section-heading { align-items: flex-start; flex-wrap: wrap; }
   .intel-direction-workspace { padding: 20px 16px; }
   .intel-direction-form fieldset { padding: 20px 12px; }
   .intel-direction-buttons .intel-button { flex: 1; }
-  .intel-direction-card > summary { grid-template-columns: minmax(0, 1fr) auto; }
-  .intel-direction-heading { grid-column: 1 / -1; }
-  .intel-direction-card > summary::after { justify-self: end; }
 }
 
 .intel-review-points { margin-top: 14px; padding: 14px 16px; border-left: 2px solid var(--border); }
