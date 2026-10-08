@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { defaults, validateDirection, selectDirection, validateMatches } = require('../lib/intelligence/directions.cjs');
+const { defaults, validateDirection, selectDirection, selectSearchTopic, validateMatches } = require('../lib/intelligence/directions.cjs');
 const { discoveryQuery } = require('../lib/intelligence/discovery.cjs');
 const { watchSearchPlan } = require('../lib/intelligence/watch-search.cjs');
 const { createStore } = require('../lib/intelligence/store.cjs');
@@ -12,6 +12,21 @@ test('direction inputs bound every user field and reject invalid or duplicate sc
     assert.throws(()=>validateDirection({revision:0,config:{...d.config,...change}}),{code:'invalid_request'});
   assert.throws(()=>validateDirection({id:'-'.repeat(36),revision:0,config:d.config}));
 });
+
+test('direction topic associations are optional for old settings, bounded and reusable across directions', () => {
+  const old = { ...d.config }; delete old.topic_codes;
+  assert.deepEqual(validateDirection({ revision: 0, config: old }).config.topic_codes, []);
+  const custom = 'custom-11111111-1111-4111-8111-111111111111';
+  const shared = ['red-sea', custom];
+  const first = validateDirection({ revision: 0, config: { ...old, name: '航运与保供', topic_codes: shared } });
+  const second = validateDirection({ revision: 0, config: { ...old, name: '跨境项目与投资', topic_codes: shared } });
+  assert.deepEqual(first.config.topic_codes, shared);
+  assert.deepEqual(second.config.topic_codes, shared, 'one topic can belong to several independent directions');
+  assert.deepEqual(validateDirection({ revision: 0, config: { ...old, topic_codes: [] } }).config.topic_codes, []);
+  for (const topic_codes of [null, 'red-sea', ['red-sea', 'red-sea'], ['SA'], ['unknown'], [4], Array(21).fill(custom)]) {
+    assert.throws(() => validateDirection({ revision: 0, config: { ...old, topic_codes } }), { code: 'invalid_request' });
+  }
+});
 test('weighted rotation visits all enabled directions without expanding the country search count',()=>{
   const plan=['high','normal','low'].map((priority,i)=>({...d,id:String(i),config:{...d.config,priority}}));
   const counts=[0,0,0];
@@ -19,6 +34,40 @@ test('weighted rotation visits all enabled directions without expanding the coun
   assert.deepEqual(counts,[30,20,10]);
   assert.equal(selectDirection([{...d,config:{...d.config,enabled:false}}],'SA','2026-09-27'),null);
   assert.equal(selectDirection([{...d,config:{...d.config,countries:['QA']}}],'SA','2026-09-27'),null);
+});
+
+test('actual direction execution turns alternate ordinary search with each linked active topic', () => {
+  const direction = { ...d, config: { ...d.config, topic_codes: ['red-sea', 'hormuz'] } };
+  const topics = [
+    { code: 'red-sea', name: '红海', description: '跨境航运与能源运输', revision: 2, active: true },
+    { code: 'suez', name: '苏伊士', description: '未关联专题', revision: 1, active: true },
+    { code: 'hormuz', name: '霍尔木兹', description: '跨境能源供应', revision: 3, active: true }
+  ];
+  const selected = Array.from({ length: 8 }, (_, count) => selectSearchTopic(direction, topics, count));
+  assert.deepEqual(selected.map(topic => topic?.code || null), [null, 'hormuz', null, 'red-sea', null, 'hormuz', null, 'red-sea']);
+  assert.deepEqual(selected[1], { code: 'hormuz', name: '霍尔木兹', description: '跨境能源供应', revision: 3 });
+  assert.deepEqual(selectSearchTopic(direction, [...topics].reverse(), 3), selected[3], 'catalog display order must not alter search rotation');
+  const sharedDirection = { ...direction, id: '22222222-2222-4222-8222-222222222222' };
+  assert.deepEqual(selectSearchTopic(sharedDirection, topics, 1), selected[1], 'a topic is not consumed by use in another direction');
+  for (const count of [0, 1, 9]) {
+    assert.equal(selectSearchTopic({ ...direction, config: { ...direction.config, topic_codes: [] } }, topics, count), null);
+    assert.equal(selectSearchTopic(direction, topics.filter(topic => topic.code === 'suez'), count), null);
+    assert.equal(selectSearchTopic(direction, topics.map(topic => ({ ...topic, active: false })), count), null);
+  }
+  const oldConfig = { ...direction.config }; delete oldConfig.topic_codes;
+  assert.equal(selectSearchTopic({ ...direction, config: oldConfig }, topics, 1), null);
+});
+
+test('frozen topic text guides search without supplying source evidence or raw operators', () => {
+  const direction = { ...d, config: { ...d.config, topic_codes: ['red-sea'] }, search_topic: {
+    code: 'red-sea', revision: 2, name: '红海 site:private.example "', description: '航运与能源运输 OR 延期',
+  } };
+  const query = discoveryQuery('SA', 1, direction);
+  assert.match(query, /红海/);
+  assert.match(query, /航运与能源运输/);
+  assert.ok(!query.includes('site:private.example') && !query.includes('"'));
+  const match = { id, revision: 1, relevant: true, reason_zh: '仅依据已关联专题。', evidence_fact_number: 1 };
+  assert.throws(() => validateMatches([match], [direction], []), { code: 'extraction_invalid_direction_matches' }, 'association alone cannot establish a relevant evidence match');
 });
 test('direction queries broaden websites while preserving positive intent and sanitizing operators',()=>{
   const changed={...d,config:{...d.config,name:'关注储能 site:evil.test " OR ',targets:['procurement'],exclude:'一般评论'}};

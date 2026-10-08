@@ -254,7 +254,6 @@
 .intel-discover-filters { margin: 12px 0 0; padding: 18px; }
 .intel-discover-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .intel-discover-filter-grid label { min-width: 0; margin: 0; }
-.intel-discover-topic-link { margin: 8px 0 0; font-size: .88rem; }
 .intel-discover-more { margin-top: 12px; }
 .intel-discover-more summary { width: fit-content; color: var(--accent); cursor: pointer; font-size: .85rem; }
 .intel-discover-more .intel-discover-filter-grid { margin-top: 14px; }
@@ -492,6 +491,19 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .intel-direction-heading strong { color: var(--text); font-size: 1.05rem; line-height: 1.6; overflow-wrap: anywhere; }
 .intel-direction-number { color: var(--accent); font-size: .85rem; font-weight: 700; }
+.intel-direction-title { display: grid; gap: 4px; min-width: 0; }
+.intel-direction-range, .intel-direction-pending-date { font-size: .82rem; font-weight: 400; line-height: 1.6; }
+.intel-direction-range { color: var(--text-dim); }
+.intel-direction-pending-date { color: var(--accent); }
+.intel-direction-group-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.intel-direction-group-heading .intel-field-label, .intel-direction-group-heading h3 { margin: 0; }
+.intel-direction-selection, .intel-direction-scope-summary { padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--form-bg); overflow-wrap: anywhere; line-height: 1.8; }
+.intel-direction-scope-summary p { margin: 8px 0 0; }
+#direction-topics { margin-top: 24px; }
+#direction-topics .intel-intro { margin-bottom: 24px; }
+#direction-topic-status:empty { display: none; }
+#direction-topic-choices label:has(input:disabled) { color: var(--text-dim); }
+
 .intel-direction-card-body { padding-top: 12px; }
 .intel-direction-card p { margin: 10px 0; line-height: 1.7; }
 .intel-direction-card .intel-direction-purpose { margin-top: 16px; }
@@ -523,6 +535,9 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
   .intel-direction-workspace { padding: 20px 16px; }
   .intel-direction-form fieldset { padding: 20px 12px; }
   .intel-direction-buttons .intel-button { flex: 1; }
+  .intel-direction-card > summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .intel-direction-heading { grid-column: 1 / -1; }
+  .intel-direction-card > summary::after { justify-self: end; }
 }
 
 .intel-review-points { margin-top: 14px; padding: 14px 16px; border-left: 2px solid var(--border); }
