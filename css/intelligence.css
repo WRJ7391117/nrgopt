@@ -514,7 +514,10 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-help summary { cursor: pointer; }
 .intel-direction-help p { margin-top: 12px; }
 .intel-direction-workspace > h2 { font-size: 1.3rem; margin-top: 16px; overflow-wrap: anywhere; }
-#direction-config-fields { display: grid; gap: 24px; }
+#direction-editor { padding: 0; border: 0; background: transparent; }
+#direction-config-fields { display: grid; gap: 32px; }
+#direction-config-fields > fieldset { margin: 0; background: var(--surface); border-color: var(--form-border); }
+#direction-config-fields > fieldset > legend { color: var(--accent); background: var(--surface); font-size: 1.15rem; font-weight: 700; }
 .intel-direction-form fieldset { display: grid; gap: 20px; padding: 24px; }
 .intel-direction-form legend { padding: 0 8px; font-weight: 600; }
 .intel-direction-form textarea { min-height: 96px; }
