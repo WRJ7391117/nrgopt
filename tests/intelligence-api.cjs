@@ -408,10 +408,13 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.deepEqual(operations.body, { runs: [], items: [], budgets: [], notifications: [], fixed_source_countries: [...new Set(require('../lib/intelligence/registry.cjs').registry.map(item => item.country))], scheduler_enabled: false, archive_status: 'disabled' });
   assert.deepEqual(calls.find(call => call.name === 'operations').args, [admin]);
   const overviewPage = await request('discover-page');
-  assert.match(overviewPage.body, /发现情报/);
-  assert.match(overviewPage.body, />总工作台</);
+  assert.match(overviewPage.body, /情报库/);
+  assert.match(overviewPage.body, />工作台</);
+  const moduleNav = overviewPage.body.match(/<nav class="intel-nav"[^>]*>(.*?)<\/nav>/s)[1];
+  assert.deepEqual([...moduleNav.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(match => match[1]),
+    ['搜集方向', '渠道库', '情报库', '工作台', '我的跟踪', '运行机制', '系统设置']);
   assert.match(overviewPage.body, />早期信号</);
-  assert.match(overviewPage.body, /浏览近期变化/);
+  assert.match(overviewPage.body, /查阅已保存的情报/);
   assert.match(overviewPage.body, /id="radar-demand-count"/);
   assert.match(overviewPage.body, /id="radar-project-count"/);
   assert.match(overviewPage.body, /id="opportunity-count"/);
@@ -769,7 +772,7 @@ test('entry routes open overview while source tools and deep links keep their lo
   const entry = rewrites.find(route => route.source === '/intelligence');
   const action = new URL(entry.destination, 'https://preview.example').searchParams.get('action');
   const workbench = (await request(action)).body;
-  assert.match(workbench, /<h1>工作台总览<\/h1>/);
+  assert.match(workbench, /<h1>工作台<\/h1>/);
   assert.ok(workbench.indexOf('id="workbench-actions"') < workbench.indexOf('id="workbench-highlights-title"'));
   assert.ok(workbench.indexOf('id="workbench-highlights-title"') < workbench.indexOf('id="workbench-directions-section"'));
   assert.doesNotMatch(workbench, /整体概况|id="workbench-summary"/);
@@ -916,7 +919,7 @@ test('decision workbench is private, read-only and separate from filtered discov
   assert.equal((await request('workbench',{query:{period:'2'}})).code,400);
   assert.equal((await request('workbench',{query:{period:'all'}})).code,400);
   const page=await request('overview-page');
-  for(const label of ['工作台总览','新增情报','跟踪有更新','需要处理','发现情报','我的跟踪','运行状态'])assert.ok(page.body.includes(label));
+  for(const label of ['工作台','新增情报','跟踪有更新','需要处理','情报库','我的跟踪','运行状态'])assert.ok(page.body.includes(label));
   assert.doesNotMatch(page.body,/id="overview-list"/);
   assert.match((await request('overview-page',{query:{view:'project'}})).body,/id="overview-title"/);
   const redirect=await request('discover-page',{loggedIn:false,query:{country:'EG',view:'demand',period:'90'}});
