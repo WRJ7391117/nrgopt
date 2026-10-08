@@ -301,7 +301,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'engine-page') return html(enginePage(user.email));
       if (action === 'feishu-page') return html(require('../lib/intelligence/pages.cjs').feishuPage(user.email));
       if (action === 'library-page') return html(require('../lib/intelligence/pages.cjs').sourceLibraryPage(user.email));
-      if (action === 'source-library') return res.status(200).json({ ...(await store.libraryOverview(user.id)), writable:config.writes, directions:(await store.collectionDirections(user.id,scheduleDate())).directions, types:require('../lib/intelligence/source-library.cjs').types });
+      if (action === 'source-library') {
+        const [library, directions] = await Promise.all([store.libraryOverview(user.id), store.directionList(user.id)]);
+        return res.status(200).json({ ...library, writable:config.writes, directions, types:require('../lib/intelligence/source-library.cjs').types });
+      }
       if (action === 'library-history') {
         if (typeof req.query.id !== 'string' || req.query.id.length>255) throw failure('invalid_request',400);
         return res.status(200).json({ history:await store.libraryHistory(user.id,req.query.id) });
@@ -311,7 +314,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const library = require('../lib/intelligence/source-library.cjs');
         if (action === 'save-library-entry') {
           const entry = library.validateEntry(body);
-          const directions = (await store.collectionDirections(user.id,scheduleDate())).directions;
+          const directions = await store.directionList(user.id);
           if (entry.config.direction_ids.some(id=>!directions.some(d=>d.id===id))) throw failure('invalid_request',400);
           const entries = await store.sourceLibrary(user.id);
           if (entries.some(e=>e.id!==entry.id && library.scopeKey(e)===library.scopeKey(entry))) throw failure('library_duplicate',409);
@@ -376,11 +379,21 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'session') return res.status(200).json({ user: { email: user.email } });
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
-      if (action === 'source') return res.status(200).json({ source: await store.get(req.query.id, user.id), topics: await store.topicCatalog(user.id),
-        candidate: await store.candidateBySource(req.query.id, user.id), history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });
+      if (action === 'source') {
+        const sourceRead = store.get(req.query.id, user.id);
+        const [source, topics, candidate, history, revisions, project_history, business_history] = await Promise.all([
+          sourceRead, store.topicCatalog(user.id), store.candidateBySource(req.query.id, user.id, sourceRead),
+          store.sourceHistory(req.query.id, user.id, sourceRead), store.analysisRevisions(req.query.id, user.id, sourceRead),
+          store.projectTimeline(req.query.id, user.id), store.businessHistory(req.query.id, user.id, sourceRead)
+        ]);
+        return res.status(200).json({ source, topics, candidate, history, revisions, project_history, business_history });
+      }
       if (action === 'overview') {
-        const candidates = await store.candidates(user.id);
-        return res.status(200).json({ user: { email: user.email }, candidates, opportunities: await store.currentOpportunities(user.id, candidates), topics: await store.topicCatalog(user.id) });
+        const candidatesRead = store.candidates(user.id);
+        const [candidates, opportunities, topics] = await Promise.all([
+          candidatesRead, candidatesRead.then(candidates => store.currentOpportunities(user.id, candidates)), store.topicCatalog(user.id)
+        ]);
+        return res.status(200).json({ user: { email: user.email }, candidates, opportunities, topics });
       }
       if (action === 'source-controls') {
         const controls = await store.sourceControls(user.id);
