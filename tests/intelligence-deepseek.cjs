@@ -254,6 +254,8 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.ok(request.body.messages.some(message => message.content.includes('普通政治、房地产、咨询、通信网络、奖项')));
   assert.ok(request.body.messages.some(message => message.content.includes('区域变化→受影响对象→能源影响机制→韧性需求→可能响应→下一验证证据')));
   assert.ok(request.body.messages.some(message => message.content.includes('trigger早期信号的classification.early_opportunities必须为[]')));
+  assert.ok(request.body.messages.some(message => message.content.includes('另独立判断关键设施风险') && message.content.includes('risk_signal')));
+  assert.ok(request.body.messages.some(message => message.content.includes('不即时重大推送') && message.content.includes('不用报道日、收录日、声明发布日')));
   await extract({ title: 'Energy', url: 'https://source.example', sourceText,
     formatRepairCode: 'extraction_invalid_early_opportunity_evidence' });
   assert.ok(request.body.messages.some(message => message.content.includes('唯一一次格式修复机会')));
@@ -261,6 +263,24 @@ test('DeepSeek request uses only its server key and returns validated JSON', asy
   assert.equal(result.extraction.summary_zh, valid.summary_zh);
   assert.deepEqual(result.usage, { prompt_tokens: 100, completion_tokens: 50,
     prompt_cache_hit_tokens: 20, prompt_cache_miss_tokens: 80 });
+});
+
+test('risk evidence is validated independently of source-only energy classification while legacy analyses stay unchanged', () => {
+  const quote = 'Harbor International Airport in Saudi Arabia was attacked on 10 October 2026.';
+  const input = structuredClone(valid);
+  input.known_facts = [{ statement_type: 'report', attribution_zh: '测试媒体报道', claim_zh: '来源报道沙特海港国际机场遭袭，能源影响未知。', evidence_quote: quote }];
+  input.classification.energy_scope = 'none';
+  input.risk_signal = { event_type: 'attack', facility_zh: '海港国际机场', facility_name: 'Harbor International Airport', country_code: 'SA',
+    event_date: '2026-10-10', event_status: 'reported_event', severity: 'high', impact_status: 'unknown', fact_numbers: [1], date_fact_number: 1 };
+  const result = validateExtraction(input, quote);
+  assert.equal(result.classification.disposition, 'source_only');
+  assert.deepEqual(result.classification.radars, []);
+  assert.equal(result.classification.project, null);
+  assert.equal(result.risk_signal.event_date, '2026-10-10');
+  input.risk_signal.country_code = 'QA';
+  assert.throws(() => validateExtraction(input, quote), { code: 'extraction_invalid_risk_evidence' });
+  assert.equal(Object.hasOwn(validateExtraction(valid, sourceText), 'risk_signal'), false);
+  assert.equal(validateExtraction({ ...valid, risk_signal: null }, sourceText).risk_signal, null);
 });
 
 test('new extraction uses enabled owner topics while historical custom codes remain readable', async () => {

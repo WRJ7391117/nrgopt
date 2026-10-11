@@ -58,7 +58,7 @@
       if (/^[a-z0-9-]{1,80}$/.test(params.get('topic') || '')) retained.set('topic', params.get('topic'));
       var view = params.get('view');
       if (!view && ['trigger', 'demand', 'project'].includes(params.get('radar'))) view = params.get('radar') === 'trigger' ? 'signal' : params.get('radar');
-      if (['signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
+      if (['risk', 'signal', 'demand', 'project', 'opportunity'].includes(view)) retained.set('view', view);
       if (['30', '90', 'all', 'unknown'].includes(params.get('period'))) retained.set('period', params.get('period'));
       return value.slice(0, value.indexOf('?')) + (retained.size ? '?' + retained : '');
     }
@@ -564,6 +564,55 @@
     section.append(heading, list);
     return section;
   }
+  var riskStatusLabels = { reported: '来源已报道', pending_verification: '待核实风险线索', historical: '历史风险资料' };
+  function riskTiming(risk) {
+    var payload = risk.payload;
+    return { publication_date: payload.event_date || payload.publication_date };
+  }
+  function inRiskPeriod(risk, period) {
+    if (period === 'unknown') return risk.status !== 'historical' && inPublicationPeriod({ publication_date: risk.payload.event_date }, period);
+    return period === 'all' || risk.status !== 'historical' && inPublicationPeriod(riskTiming(risk), period);
+  }
+  function riskFactLabel(fact) {
+    return typeof fact === 'string' ? fact : (fact.attribution_zh ? fact.attribution_zh + '：' : '') + fact.claim_zh;
+  }
+  function riskImpactLabel(risk) {
+    if (risk.payload.energy_impact_zh) return risk.payload.energy_impact_zh;
+    var states = { unknown: '能源影响尚未明确。', interrupted: '来源披露运行中断，能源影响仍需核对。', damaged: '来源披露设施损坏，能源影响仍需核对。', restored: '来源披露运行已恢复，能源影响仍需核对。' };
+    return states[risk.payload.impact_status] || states.unknown;
+  }
+  function riskCard(risk) {
+    var payload = risk.payload, item = document.createElement('li'), row = directionText(item, 'div', '', 'intel-source-row');
+    var heading = directionText(row, 'h3', ''), link = directionText(heading, 'a', payload.title_zh);
+    setSourceLink(link, risk.source_id);
+    var badge = directionText(row, 'span', riskStatusLabels[risk.status] || riskStatusLabels.pending_verification, 'intel-badge');
+    badge.dataset.state = risk.status;
+    paragraph(item, [regionNames[payload.country_code] || payload.country_code, payload.facility_zh || payload.facility_name,
+      ({ critical: '重大风险', high: '高风险', medium: '风险关注' }[payload.severity] || '风险关注')].filter(Boolean).join(' · '), 'intel-source-meta');
+    var dates = '事件发生：' + (payload.event_date || '未知，待核实') + ' · 报道发布：' + (payload.publication_date || '未知，待核实');
+    if (payload.fetched_at) dates += ' · 原文抓取：' + dateLabel(payload.fetched_at);
+    paragraph(item, dates, 'intel-source-meta');
+    if (payload.facts.length) paragraph(item, riskFactLabel(payload.facts[0]), 'intel-discover-summary');
+    paragraph(item, riskImpactLabel(risk), 'intel-risk-impact');
+    if (payload.unknowns_zh.length) paragraph(item, '待核实：' + payload.unknowns_zh[0], 'intel-discover-why');
+    if (payload.next_signals_zh.length) paragraph(item, '下一步：' + payload.next_signals_zh[0], 'intel-discover-why');
+    var action = directionText(item, 'a', '查看风险分析与原文 →', 'intel-evidence-link'); action.href = link.href;
+    return item;
+  }
+  function renderRiskDetail(risk) {
+    byId('detail-risk').hidden = !risk;
+    byId('detail-event-time').hidden = !risk;
+    byId('detail-publication-label').textContent = risk ? '报道发布时间' : '原文发布时间';
+    if (!risk) return;
+    var payload = risk.payload;
+    byId('detail-event-date').textContent = payload.event_date ? dateLabel(payload.event_date) : '未知，待核实（不能用报道或抓取日期代替）';
+    byId('detail-risk-title').textContent = payload.title_zh;
+    var badge = byId('detail-risk-status'); badge.textContent = riskStatusLabels[risk.status] || riskStatusLabels.pending_verification; badge.dataset.state = risk.status;
+    renderTextList('detail-risk-facts', payload.facts.map(riskFactLabel));
+    byId('detail-risk-impact').textContent = riskImpactLabel(risk);
+    renderTextList('detail-risk-unknowns', payload.unknowns_zh.length ? payload.unknowns_zh : ['当前未列出具体核实点，不代表影响已获确认。']);
+    renderTextList('detail-risk-next', payload.next_signals_zh.length ? payload.next_signals_zh : ['核对发布方、设施运行通报及后续更新。']);
+  }
   function overviewDiscovery(candidate, compact) {
     var item=document.createElement('li'), heading=directionText(item,'h3','');
     var link=directionText(heading,'a',candidate.title_zh);setSourceLink(link,candidate.source_id);
@@ -599,6 +648,9 @@
       var run=data.runtime,failed=run.counts.failed||0,paused=(run.counts.budget_paused||0)+(run.counts.manual_paused||0);
       var alert=byId('workbench-alert');alert.hidden=!failed&&!paused&&!!run.run;
       alert.textContent=!run.run?'今天暂无搜集计划记录 · 查看当天任务 →':'今天 '+failed+' 项失败、'+paused+' 项暂停 · 查看当天任务 →';
+      var risks=(data.risks||[]).filter(function(risk){return inRiskPeriod(risk,'30');}),riskList=byId('workbench-risks');riskList.replaceChildren();
+      risks.forEach(function(risk){riskList.append(riskCard(risk));});byId('workbench-risk-section').hidden=!risks.length;
+      Array.from(document.querySelectorAll('.intel-overview-section')).filter(function(section){return !section.hidden;}).forEach(function(section,index){section.querySelector('.intel-kicker span').textContent=String(index+1).padStart(2,'0')+' /';});
       var highlights=byId('workbench-highlights');highlights.replaceChildren();
       data.highlights.forEach(function(candidate){highlights.append(overviewDiscovery(candidate,true));});
       if(!data.highlights.length)emptyWorkList(highlights,'本期暂无未跟踪的新情报。');
@@ -654,7 +706,7 @@
     byId('workbench-range').addEventListener('change',loadWorkbench);
     document.querySelectorAll('.intel-overview-metrics a').forEach(function(a){a.addEventListener('click',function(){var target=document.querySelector(a.getAttribute('href'));if(target.tagName==='DETAILS')target.open=true;});});
   }
-  var overviewCandidates = [], overviewOpportunities = [], overviewLoaded = false;
+  var overviewCandidates = [], overviewOpportunities = [], overviewRisks = [], overviewLoaded = false;
   function renderOverviewHeading() {
     var filters = byId('candidate-filters'), period = filters.elements.period.value, view = filters.elements.view.value || 'overview';
     var prefix = period === 'all' ? '全部记录' : period === 'unknown' ? '日期待核验' : '近' + period + '天';
@@ -667,8 +719,13 @@
         + '（含今天，共' + period + '天；北京时间 UTC+8）。';
     }
     byId('overview-period').textContent = range;
+    byId('candidate-period-label').textContent = view === 'risk' ? '事件/报道日期' : '原文发布时间';
+    if (view === 'risk') byId('overview-period').textContent = period === 'all' ? '包含历史风险资料；新报道或重新分析不会改变事件日期。'
+      : period === 'unknown' ? '仅展示日期不足以判断时效的风险线索；缺失、无效或未来日期仍待核实。'
+      : range.replace('原文发布日期：', '事件日期（未明时按报道日）：') + ' 事件日未知会明确标注；历史事件不作为近期风险。';
     var viewCopy = {
-      overview: ['全部情报', '按类型、地区和原文日期查阅已保存的情报，打开详情查看分析与证据，再选择是否跟踪。'],
+      overview: ['能源情报', '按类型、地区和原文日期查阅已保存的情报，打开详情查看分析与证据，再选择是否跟踪。'],
+      risk: ['风险线索', '先了解重大设施风险，再核对能源影响与未知项。来源报道不等于事件已获独立确认。'],
       signal: ['早期信号', '查看区域变化如何传导到能源需求。'],
       demand: ['需求', '查看哪些业主或设施需要解决供能问题。'],
       project: ['项目', '查看有项目级原文证据的进展。'],
@@ -696,6 +753,10 @@
     function inGroup(item) { return (!selectedCountry || (item.occurrence_countries || []).includes(selectedCountry)) && (!group || (item.occurrence_countries || []).some(function (code) { return regions.countries.some(function (region) { return region.code === code && region.group === group; }); })); }
     var periodOpportunities = overviewOpportunities.filter(function (item) { return inPublicationPeriod(item.source_timing, period) && inGroup(item) && (!topic || (item.topic_codes || []).includes(topic)); });
     var periodCandidates = candidates.filter(function (item) { return inPublicationPeriod(item.source_timing, period) && inGroup(item) && (!topic || (item.topic_codes || []).includes(topic)); });
+    var periodRisks = overviewRisks.filter(function (risk) {
+      var payload = risk.payload, scoped = { occurrence_countries: [payload.country_code] };
+      return inRiskPeriod(risk, period) && inGroup(scoped) && (!topic || (payload.topic_codes || []).includes(topic));
+    });
     var groupedCandidates = periodCandidates.filter(function (item) { return item.disposition === 'candidate'; });
     var active = groupedCandidates.filter(function (item) { return item.review_status !== 'rejected'; });
     ['trigger', 'demand', 'project'].forEach(function (radar) {
@@ -703,9 +764,24 @@
     });
     byId('candidate-total-count').textContent = active.length;
     byId('opportunity-count').textContent = periodOpportunities.length;
+    byId('risk-count').textContent = periodRisks.length;
     var list = byId('candidate-list');
     list.replaceChildren();
     var country = filters.elements.country.value, view = filters.elements.view.value || 'overview';
+    if (view === 'risk') {
+      var severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      periodRisks.sort(function (left, right) { return publicationSortDay(riskTiming(right)) - publicationSortDay(riskTiming(left))
+        || (severityOrder[left.payload.severity] ?? 9) - (severityOrder[right.payload.severity] ?? 9); });
+      periodRisks.forEach(function (risk) { list.append(riskCard(risk)); });
+      list.hidden = false;
+      byId('candidate-filter-status').textContent = periodRisks.length + ' 条风险线索';
+      byId('candidate-explainer').hidden = false;
+      byId('candidate-explainer').textContent = '按事件日排列；事件日未知时按报道日排列，并明确保留未知。收录与重新分析不会刷新事件日期。';
+      byId('candidate-empty').hidden = periodRisks.length !== 0;
+      byId('candidate-empty').textContent = '当前筛选暂无风险线索；不代表没有风险，也不代表设施运行已获确认。';
+      byId('opportunities-section').hidden = true;
+      return;
+    }
     var radar = { signal: 'trigger', demand: 'demand', project: 'project' }[view];
     var filtered = active.filter(function (item) {
       return (!country || (item.occurrence_countries || []).includes(country)) && (!radar || (item.radars || []).includes(radar));
@@ -1093,6 +1169,7 @@
       overviewLoaded = true;
       overviewCandidates = result.candidates;
       overviewOpportunities = result.opportunities || [];
+      overviewRisks = result.risks || [];
       renderOverview(result.candidates);
       status('page-status', '');
     } catch (error) {
@@ -1550,6 +1627,7 @@
       byId('annotation-time').textContent = source.annotation_updated_at ? '更新于 ' + dateLabel(source.annotation_updated_at) : '尚未填写';
       renderExtraction(source, result.candidate);
       renderDecision(source, result.candidate);
+      renderRiskDetail(result.risk);
       renderSourceHistory(result.history || [], id);
       renderAnalysisRevisions(result.revisions || []);
       renderProjectTimeline(result.project_history);
@@ -1656,7 +1734,7 @@
         control.value = name === 'period' ? '30' : '';
         if (Array.from(control.options).some(function (option) { return option.value === value; })) control.value = value;
       });
-      candidateFilters.elements.view.value = ['overview', 'signal', 'demand', 'project', 'opportunity'].includes(filterParams.get('view')) ? filterParams.get('view') : 'overview';
+      candidateFilters.elements.view.value = ['overview', 'risk', 'signal', 'demand', 'project', 'opportunity'].includes(filterParams.get('view')) ? filterParams.get('view') : 'overview';
       byId('candidate-more-filters').open = Boolean(candidateFilters.elements.group.value || candidateFilters.elements.topic.value);
     }
     readCandidateFilters();

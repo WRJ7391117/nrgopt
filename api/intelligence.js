@@ -5,7 +5,7 @@ const { fetchSource } = require('../lib/intelligence/source.cjs');
 const { createDeepSeekExtractor } = require('../lib/intelligence/deepseek.cjs');
 const { createDeepSeekCrossChecker } = require('../lib/intelligence/crosscheck.cjs');
 const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
-const { runPaidCall, enqueueDailyScan, runDailyJobItem, scheduleDate } = require('../lib/intelligence/jobs.cjs');
+const { runPaidCall, enqueueDailyScan, runDailyJobBatch, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu.cjs');
 const { enginePage, directionsPage, topicsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
@@ -156,15 +156,20 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
-        const result = await runDailyJobItem({ store, owner: config.adminId, env,
+        const batch = await runDailyJobBatch({ store, owner: config.adminId, env,
           discover: (country, profile, attempt, direction, channel) => discoverCountry(country, profile, discoveryFactory, attempt, direction, channel),
           watchDiscover: (plan, profile) => discoverWatch(plan, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
           balanceReaderFactory });
-        const job = await store.jobRun(config.adminId, result.jobId || scheduled.jobId);
-        if (['succeeded', 'partial', 'failed', 'budget_paused', 'manual_paused'].includes(job.run.status)) {
-          await store.enqueueDailyDigest(config.adminId, result.jobId || scheduled.jobId);
+        const jobIds = [...new Set(batch.results.map(result => result.jobId || scheduled.jobId))];
+        if (!jobIds.length) jobIds.push(scheduled.jobId);
+        for (const jobId of jobIds) {
+          const job = await store.jobRun(config.adminId, jobId);
+          if (['succeeded', 'partial', 'failed', 'budget_paused', 'manual_paused'].includes(job.run.status)) {
+            if (typeof store.enqueueDailySnapshot === 'function') await store.enqueueDailySnapshot(config.adminId, scheduled.scheduleKey);
+            else await store.enqueueDailyDigest(config.adminId, jobId);
+          }
         }
-        return res.status(200).json({ ...scheduled, result });
+        return res.status(200).json({ ...scheduled, ...batch });
       }
       if (action === 'library-maintenance') {
         if (env.NRGOPT_SCHEDULER_ENABLED !== '1') throw failure('scheduler_disabled', 503);
@@ -209,10 +214,24 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const scheduleKey = scheduleDate();
         const snapshot = await store.dailyTasks(config.adminId, scheduleKey);
         const run = snapshot.run;
-        const health = !run ? 'missing' : run.status === 'succeeded' ? 'ok' : ['failed', 'partial', 'budget_paused', 'manual_paused'].includes(run.status) ? 'degraded' : 'running';
-        if (health === 'missing' || health === 'degraded') await store.enqueueNotification(config.adminId, 'system',
+        const oldest = await store.oldestUnfinishedDailyRun(config.adminId);
+        const delayedRuns = oldest && oldest.schedule_key < scheduleKey ? [oldest] : [];
+        const waiting = snapshot.items.filter(item => ['queued', 'retry'].includes(item.status)
+          && Date.now() - Date.parse(item.created_at) >= 6 * 3600000);
+        const delayed = delayedRuns.length > 0 || waiting.length > 0;
+        const health = delayed ? 'delayed' : !run ? 'missing' : run.status === 'succeeded' ? 'ok' : ['failed', 'partial', 'budget_paused', 'manual_paused'].includes(run.status) ? 'degraded' : 'running';
+        const summary = summarizeRun(run, snapshot.items);
+        if (delayed) {
+          const reasons = [delayedRuns.length ? `仍有较早计划未完成（最早 ${oldest.schedule_key}）` : '',
+            waiting.length ? `今日 ${waiting.length} 项任务等待超过 6 小时` : ''].filter(Boolean);
+          summary.issue_zh = `${reasons.join('；')}。近期信息可能尚未完成分析，请查看当天任务与处理进度，不能将未处理视为没有新动态。`;
+          summary.problem_groups.unshift({ stage: '处理时效', code: 'scan_delayed', count: delayedRuns.length + waiting.length,
+            reason: reasons.join('；'), examples: [] });
+        }
+        if (['missing', 'degraded', 'delayed'].includes(health)) await store.enqueueNotification(config.adminId, 'system',
           `system:daily-health:${scheduleKey}:${health}`, { schedule_key: scheduleKey, health,
-            ...summarizeRun(run, snapshot.items) });
+            ...summary });
+        if (typeof store.enqueueDailySnapshot === 'function') await store.enqueueDailySnapshot(config.adminId, scheduleKey);
         return res.status(200).json({ schedule_key: scheduleKey, health, run_status: run?.status || null });
       }
       if (action === 'notification-worker') {
@@ -222,6 +241,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const store = storeFactory(config);
         const delivery = feishuConfig.effectiveConfig(await store.feishuConfig(config.adminId), env, config.adminId);
         if (!delivery.enabled) return res.status(200).json({ status: 'paused' });
+        if (typeof store.enqueueDailySnapshot === 'function') await store.enqueueDailySnapshot(config.adminId, scheduleDate());
         const send = notificationFactory(feishuConfig.senderOptions(delivery));
         const notification = await store.claimNotification(config.adminId);
         if (!notification) return res.status(200).json({ status: 'idle' });
@@ -397,19 +417,21 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'sources') return res.status(200).json({ sources: await store.list(user.id) });
       if (action === 'source') {
         const sourceRead = store.get(req.query.id, user.id);
-        const [source, topics, candidate, history, revisions, project_history, business_history] = await Promise.all([
+        const [source, topics, candidate, history, revisions, project_history, business_history, risks] = await Promise.all([
           sourceRead, store.topicCatalog(user.id), store.candidateBySource(req.query.id, user.id, sourceRead),
           store.sourceHistory(req.query.id, user.id, sourceRead), store.analysisRevisions(req.query.id, user.id, sourceRead),
-          store.projectTimeline(req.query.id, user.id), store.businessHistory(req.query.id, user.id, sourceRead)
+          store.projectTimeline(req.query.id, user.id), store.businessHistory(req.query.id, user.id, sourceRead),
+          typeof store.riskSignals === 'function' ? store.riskSignals(user.id, req.query.id) : []
         ]);
-        return res.status(200).json({ source, topics, candidate, history, revisions, project_history, business_history });
+        return res.status(200).json({ source, topics, candidate, history, revisions, project_history, business_history, risk: risks[0] || null });
       }
       if (action === 'overview') {
         const candidatesRead = store.candidates(user.id);
-        const [candidates, opportunities, topics] = await Promise.all([
-          candidatesRead, candidatesRead.then(candidates => store.currentOpportunities(user.id, candidates)), store.topicCatalog(user.id)
+        const [candidates, opportunities, topics, risks] = await Promise.all([
+          candidatesRead, candidatesRead.then(candidates => store.currentOpportunities(user.id, candidates)), store.topicCatalog(user.id),
+          typeof store.riskSignals === 'function' ? store.riskSignals(user.id) : []
         ]);
-        return res.status(200).json({ user: { email: user.email }, candidates, opportunities, topics });
+        return res.status(200).json({ user: { email: user.email }, candidates, opportunities, topics, risks });
       }
       if (action === 'source-controls') {
         const controls = await store.sourceControls(user.id);
@@ -521,7 +543,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);
           if (Object.hasOwn(regions.groups, req.query.group || '')) params.set('group', req.query.group);
           if (/^(?:[a-z0-9-]{1,80})$/.test(req.query.topic || '')) params.set('topic', req.query.topic);
-          const view = ['signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
+          const view = ['risk', 'signal', 'demand', 'project', 'opportunity'].includes(req.query.view) ? req.query.view
             : ['trigger', 'demand', 'project'].includes(req.query.radar) ? (req.query.radar === 'trigger' ? 'signal' : req.query.radar) : null;
           if (view) params.set('view', view);
           if (['30', '90', 'all', 'unknown'].includes(req.query.period)) params.set('period', req.query.period);
