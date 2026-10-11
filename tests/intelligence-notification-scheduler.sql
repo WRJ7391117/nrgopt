@@ -1,13 +1,18 @@
 -- Local transaction only: pg_net sends after commit; rollback sends nothing.
 begin;
 do $$
-declare owner uuid:=gen_random_uuid(); other_owner uuid:=gen_random_uuid(); request bigint; item uuid;
+declare owner uuid:=gen_random_uuid(); other_owner uuid:=gen_random_uuid(); request bigint; item uuid; daily uuid;
+  day date:=(now() at time zone 'Asia/Shanghai')::date;
 begin
   insert into auth.users(id) values(owner),(other_owner);
   perform public.configure_intelligence_notification_schedule(owner,'https://production.example.invalid',repeat('t',40),false);
   perform public.configure_intelligence_notification_schedule(owner,'https://production.example.invalid',repeat('t',40),false);
   if (select count(*) from cron.job where jobname='nrgopt-intelligence-notifications')<>1
     or (select active from cron.job where jobname='nrgopt-intelligence-notifications') then raise exception 'unexpected schedule'; end if;
+  -- Today's due report is already accepted, so the remaining assertions isolate pending-message filtering.
+  daily:=public.enqueue_intelligence_daily_snapshot(owner,day,(day::text||' 08:00:00+08')::timestamptz,8);
+  if daily is null then raise exception 'daily scheduler fixture missing'; end if;
+  update public.intelligence_notification_outbox set status='accepted',accepted_at=now(),attempts=1 where id=daily;
   if public.dispatch_intelligence_notifications() is not null then raise exception 'empty queue dispatched'; end if;
   insert into public.intelligence_notification_outbox(owner_id,notification_type,notification_key,payload)
     values(other_owner,'system','other-owner','{}');
