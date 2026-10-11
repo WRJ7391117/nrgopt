@@ -1,10 +1,11 @@
 .research-main { max-width: 1240px; }
+.research-layout > * { min-width: 0; }
 .research-layout > section { padding: 0; background: none; }
 .research-heading, .research-project-heading, .research-toolbar, .research-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .research-heading { margin-bottom: 20px; }
 .research-heading h1 { margin: 4px 0 10px; }
-.research-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 24px; }
-.research-sidebar { border-right: 1px solid var(--border); padding-right: 24px; }
+.research-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 24px; }
+.research-sidebar { border-right: 1px solid var(--border); padding-right: 20px; position: sticky; top: 24px; }
 .research-sidebar h2 { font-size: .85rem; color: var(--text-dim); margin: 0 0 16px; }
 .research-project { display: block; text-align: left; width: 100%; padding: 14px; margin-bottom: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; overflow-wrap: anywhere; }
 .research-project strong, .research-project small { display: block; }
@@ -35,10 +36,6 @@
 #detail-preview iframe { display: block; width: 100%; height: 75vh; border: 1px solid var(--border); border-radius: 8px; margin-top: 24px; background: white; }
 #detail-preview iframe[data-expanded] { height: 1px; border: 0; }
 .research-detail[data-format="html"] { padding: 0; border: 0; }
-.research-layout.research-expanded { grid-template-columns: 1fr; gap: 24px; }
-.research-expanded .research-sidebar { border-right: 0; padding-right: 0; }
-.research-expanded #project-list { display: flex; gap: 8px; overflow-x: auto; }
-.research-expanded .research-project { min-width: 190px; max-width: 300px; flex-shrink: 0; margin: 0; }
 .research-empty { padding: 40px 0; }
 .research-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
 .research-app button:disabled { opacity: .5; cursor: default; }
@@ -51,4 +48,46 @@
   .research-form, .research-detail { padding: 16px; }
   .research-toolbar { gap: 12px; }
   .research-entry { flex-direction: column; gap: 6px; }
+}
+
+.research-directory { margin-top: 32px; padding: 0; background: none !important; }
+.research-overview { padding: 0; background: none !important; }
+.research-directory-heading { margin-bottom: 24px; }
+.research-directory-heading h2, .research-overview-heading h3, .research-library-heading h3 { margin: 0 0 8px; }
+.research-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.research-project-card { text-align: left; padding: 28px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font: inherit; display: flex; flex-direction: column; align-items: flex-start; }
+.research-project-card:hover { border-color: var(--accent); }
+.research-project-card h3 { font-size: 1.2rem; line-height: 1.5; margin: 0 0 12px; overflow-wrap: anywhere; }
+.research-card-summary { color: var(--text-dim); line-height: 1.7; margin: 0 0 24px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.research-project-card small:not(.intel-eyebrow) { color: var(--text-dim); margin-top: auto; }
+.research-card-action { color: var(--accent); margin-top: 16px; font-size: .85rem; }
+.research-section-nav { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin: 24px 0 28px; }
+.research-section-nav button { color: var(--text-dim); background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 12px 0; font: inherit; font-size: .9rem; cursor: pointer; }
+.research-section-nav button[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.research-section-nav .research-back { margin-left: auto; }
+.research-goal { border-left: 3px solid var(--accent); padding: 8px 0 8px 24px; margin: 0 0 36px; }
+.research-goal h3 { font-size: 1.05rem; margin: 0 0 12px; }
+.research-goal .research-summary { margin: 0; line-height: 1.8; }
+.research-overview-heading { margin-bottom: 24px; }
+.research-overview-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.research-reading-group { padding: 22px; border: 1px solid var(--border); border-radius: 10px; background: transparent !important; display: flex; flex-direction: column; min-width: 0; }
+.research-reading-group h4 { margin: 0 0 8px; font-size: 1rem; }
+.research-reading-group > .intel-muted { margin: 0 0 16px; font-size: .82rem; }
+.research-reading-link { text-align: left; background: transparent; border: 0; border-top: 1px solid var(--border); padding: 14px 0; color: var(--text); cursor: pointer; font: inherit; }
+.research-reading-link strong { display: block; font-size: .9rem; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
+.research-reading-link small { display: block; color: var(--text-dim); font-size: .75rem; margin-top: 5px; }
+.research-reading-link:hover strong { color: var(--accent); }
+.research-group-more { align-self: flex-start; background: transparent; border: 0; padding: 16px 0 0; color: var(--accent); font: inherit; font-size: .82rem; cursor: pointer; margin-top: auto; }
+.research-group-empty { color: var(--text-dim); font-size: .85rem; padding: 14px 0; }
+.research-detail { margin-top: 0; }
+#detail-description { margin: 20px 0; }
+#detail-description summary { color: var(--text-dim); cursor: pointer; font-size: .85rem; }
+.research-app button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .research-project-grid, .research-overview-groups { grid-template-columns: 1fr; }
+  .research-project-card { padding: 22px; }
+  .research-sidebar { display: none; }
+  .research-section-nav { gap: 16px; }
+  .research-section-nav button { font-size: .82rem; }
+  .research-goal { padding-left: 16px; }
 }
