@@ -525,9 +525,9 @@ test('unchanged raw HTML queues re-extraction when old evidence came from an exc
   assert.equal(calls, 1);
 });
 
-test('supported MENA countries do not silently enable searches and extra searches remain bounded', () => {
+test('supported regions keep reference hosts separate and extra searches remain bounded', () => {
   const { primaryHosts, discoveryQuery } = require('../lib/intelligence/discovery.cjs');
-  assert.equal(COUNTRIES.length, 24);
+  assert.equal(COUNTRIES.length, 29);
   assert.match(discoveryQuery('EH'), /Western Sahara.*Laayoune/);
   assert.match(discoveryQuery('EH', 2), /Laayoune/);
   assert.deepEqual(dailySearchCountries('2026-09-27').slice(0, 6), ['SA', 'AE', 'QA', 'KW', 'OM', 'BH']);

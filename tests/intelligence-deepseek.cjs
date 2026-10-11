@@ -383,9 +383,9 @@ test('unbound numerical or package context is excluded with visible warnings whi
   assert.equal(validateExtraction(result, quote).context_issues.length, 2, 'replaying sanitized output preserves warnings');
 });
 
-test('MENA accepts the product 24 regions, keeps occurrence separate and requires topic evidence', () => {
+test('regional scope accepts MENA and Central Asia, keeps occurrence separate and requires topic evidence', () => {
   const regions = require('../lib/intelligence/regions.json');
-  assert.equal(new Set(regions.countries.map(item => item.code)).size, 24);
+  assert.equal(new Set(regions.countries.map(item => item.code)).size, 29);
   assert.equal(regions.countries.filter(item => item.code === 'EG').length, 1);
   assert.match(regions.countries.find(item => item.code === 'EH').name, /争议/);
   const input = structuredClone(valid);
@@ -393,7 +393,7 @@ test('MENA accepts the product 24 regions, keeps occurrence separate and require
   input.classification.countries.push({ code: 'SA', relation: 'relevance', rationale_zh: '受影响地区关联，非发生地', evidence_fact_number: null });
   input.classification.topics = [{ code: 'red-sea', evidence_fact_number: 1 }];
   const result = validateExtraction(input, sourceText);
-  assert.equal(result.classification.countries.length, 25);
+  assert.equal(result.classification.countries.length, 30);
   assert.equal(result.classification.countries.at(-1).relation, 'relevance');
   assert.equal(result.classification.topics[0].code, 'red-sea');
   assert.equal(result.gcc_relevance_zh, valid.gcc_relevance_zh);
