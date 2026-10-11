@@ -36,6 +36,29 @@
       byId('show-' + name).setAttribute('aria-current', view === name ? 'page' : 'false');
     });
   }
+  function remember(replace) {
+    var state = { research: true, depth: (history.state?.depth || 0) + (replace ? 0 : 1),
+      projectId: activeProject?.id || null, view: currentView, entryId: currentView === 'detail' ? activeEntry?.id : null,
+      returnView: returnView, kind: byId('entry-kind-filter').value, query: byId('entry-search').value };
+    history[replace ? 'replaceState' : 'pushState'](state, '', '/research');
+  }
+  function showProjects() {
+    activeEntry = null; activeProject = null; byId('detail-preview').replaceChildren();
+    document.querySelector('.research-layout').hidden = true; byId('project-directory').hidden = false; renderProjects();
+    status('选择一个市场项目开始阅读。');
+  }
+  async function restore(state) {
+    var project = projects.find(function (item) { return item.id === state?.projectId; });
+    if (!project) { showProjects(); return; }
+    if (activeProject?.id !== project.id) await selectProject(project, false);
+    byId('entry-kind-filter').value = state.kind || ''; byId('entry-search').value = state.query || '';
+    activeEntry = null; byId('detail-preview').replaceChildren();
+    showView(state.view === 'library' ? 'library' : 'overview'); renderEntries();
+    status(currentView === 'library' ? '已返回资料库。' : '已返回项目概览。');
+    if (state.view === 'detail' && entries.some(function (item) { return item.id === state.entryId; })) {
+      await openEntry(state.entryId, false, false); returnView = state.returnView || 'overview';
+    }
+  }
   function entryButton(entry) {
     var button = node('button', undefined, 'research-reading-link'); button.type = 'button';
     button.append(node('strong', entry.title), node('small', '更新于 ' + date(entry.updated_at)));
@@ -52,9 +75,17 @@
       section.append(node('p', '0' + (index + 1), 'intel-eyebrow'), node('h4', kinds[kind]), node('p', descriptions[kind], 'intel-muted'));
       items.slice(0, 3).forEach(function (entry) { section.append(entryButton(entry)); });
       if (!items.length) section.append(node('p', '暂无资料', 'research-group-empty'));
-      var more = node('button', '查看全部 · ' + items.length + '份', 'research-group-more'); more.type = 'button';
-      more.addEventListener('click', function () { if (discard()) { byId('entry-kind-filter').value = kind; byId('entry-search').value = ''; showView('library'); renderEntries(); } });
-      section.append(more); groups.append(section);
+      if (items.length) {
+        var direct = items.length === 1 && items[0].file_type === 'text/html';
+        var more = node('button', direct ? '阅读手册 →' : '查看全部 · ' + items.length + '份', 'research-group-more'); more.type = 'button';
+        more.addEventListener('click', function () {
+          if (!discard()) return;
+          if (direct) { openEntry(items[0].id).catch(function (e) { status(e.message, true); }); return; }
+          byId('entry-kind-filter').value = kind; byId('entry-search').value = ''; showView('library'); renderEntries(); remember();
+        });
+        section.append(more);
+      }
+      groups.append(section);
     });
   }
   function renderProjects() {
@@ -84,7 +115,7 @@
 
     }); controls();
   }
-  async function selectProject(project) {
+  async function selectProject(project, record) {
     loading = true; controls(); status('正在读取项目资料…');
     try {
       var data = await api('entries', null, project.id);
@@ -95,8 +126,9 @@
       byId('project-workspace').hidden = false; byId('research-empty').hidden = true; renderProjects(); renderEntries(); renderOverview(); showView('overview');
       status(writable ? '资料已同步 · ' + entries.length + '份资料' : '当前环境只读，暂不能保存。');
     } finally { loading = false; controls(); }
+    if (record !== false) remember();
   }
-  async function openEntry(id, scroll) {
+  async function openEntry(id, scroll, record) {
     loading = true; controls(); status('正在读取资料…');
     try {
       activeEntry = (await api('entry', null, id)).entry;
@@ -121,6 +153,7 @@
         }
       }
       byId('entry-detail').hidden = false; renderEntries(); status('已打开资料。');
+      if (record !== false) remember();
       if (scroll !== false) byId('entry-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } finally { loading = false; controls(); }
   }
@@ -178,19 +211,24 @@
     try { if (file) body.attachment = await encodedFile(file); } catch (error) { status(error.message, true); return; }
     save(this, 'save-entry', body, async function (result) { await selectProject(activeProject); await openEntry(result.entry.id); });
   });
-  byId('entry-search').addEventListener('input', renderEntries); byId('entry-kind-filter').addEventListener('change', renderEntries);
+  byId('entry-search').addEventListener('input', function () { renderEntries(); remember(true); }); byId('entry-kind-filter').addEventListener('change', function () { renderEntries(); remember(true); });
   function leaveDetail(view) {
     if (!discard()) return;
-    activeEntry = null; byId('detail-preview').replaceChildren(); showView(view); renderEntries();
+    activeEntry = null; byId('detail-preview').replaceChildren(); showView(view); renderEntries(); remember();
   }
-  byId('close-entry').addEventListener('click', function () { leaveDetail(returnView); });
+  byId('close-entry').addEventListener('click', function () {
+    if (history.state?.research && history.state.depth > 0) { if (discard()) history.back(); }
+    else leaveDetail(returnView);
+  });
   byId('show-overview').addEventListener('click', function () { leaveDetail('overview'); });
   byId('show-library').addEventListener('click', function () { leaveDetail('library'); });
   byId('back-projects').addEventListener('click', function () {
     if (!discard()) return;
-    activeEntry = null; activeProject = null; byId('detail-preview').replaceChildren();
-    document.querySelector('.research-layout').hidden = true; byId('project-directory').hidden = false; renderProjects();
-    status('选择一个市场项目开始阅读。');
+    showProjects(); remember();
+  });
+  window.addEventListener('popstate', function (event) {
+    if (discard()) restore(event.state).catch(function (e) { status(e.message, true); });
+    else remember();
   });
   window.addEventListener('message', function (event) {
     var preview = byId('detail-preview').querySelector('iframe[data-expanded]'), data = event.data;
@@ -211,7 +249,10 @@
   (async function () {
     try {
       var data = await api('projects'); projects = data.projects; writable = data.writable; renderProjects();
-      if (projects.length) { status(writable ? '选择一个市场项目开始阅读。' : '当前环境只读，选择项目查看资料。'); }
+      if (projects.length) {
+        if (history.state?.research) await restore(history.state);
+        else { showProjects(); remember(true); }
+      }
       else { document.querySelector('.research-layout').hidden = false; byId('project-directory').hidden = true; byId('research-empty').hidden = false; status(writable ? '还没有调研项目。新建项目后即可添加资料。' : '当前环境只读。'); }
     } catch (error) { status(error.message, true); }
   })();
