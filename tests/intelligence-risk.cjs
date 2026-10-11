@@ -33,6 +33,19 @@ test('recent attributed facility attack remains a risk with unknown energy impac
   assert.ok(snapshot.unknowns_zh.some(text => text.includes('能源供应影响')));
 });
 
+test('plural data-centre names retain the same citation and location requirements', () => {
+  for (const name of ['Alpha Data Centre', 'Alpha Data Centres', 'Alpha Data Center', 'Alpha Data Centers']) {
+    const quote = `${name} in Saudi Arabia was attacked on 10 October 2026.`;
+    const input = analysis(quote);
+    Object.assign(input.risk_signal, { facility_name: name, facility_zh: '甲数据中心' });
+    assert.equal(normalizeRisk(input, quote).facility_name, name);
+    assert.equal(riskSnapshot(source, input, now).notification_eligible, true);
+    assert.throws(() => normalizeRisk(input, 'Unrelated original text.'), { code: 'extraction_invalid_risk_evidence' });
+    input.risk_signal.country_code = 'QA';
+    assert.throws(() => normalizeRisk(input, quote), { code: 'extraction_invalid_risk_evidence' });
+  }
+});
+
 test('condemnation statement or unknown event date is pending verification, never an immediate flash', () => {
   const input = analysis('A ministry condemned the attack on Harbor International Airport in Saudi Arabia.');
   Object.assign(input.risk_signal, { event_status: 'statement_only', event_date: null, date_fact_number: null });
