@@ -1961,15 +1961,15 @@
     byId('direction-country-selection').textContent = countries.length ? '已选 ' + countries.length + ' 个：' + countries.map(function(code){return regionNames[code];}).join('、') : '尚未选择国家或地区';
     var summary = byId('direction-scope-summary'); summary.replaceChildren();
     directionText(summary, 'strong', '保存这个方向的全部修改');
-    directionText(summary, 'p', (byId('direction-name').value.trim() || '未命名方向') + ' · ' + countries.length + ' 个国家/地区 · ' + directionTopicCodes.length + ' 个主题');
-    if (directionTopicCodes.length) directionText(summary, 'p', directionTopicCodes.map(function(code){return topicNames[code] || '主题名称待读取';}).join('、'));
+    directionText(summary, 'p', (byId('direction-name').value.trim() || '未命名方向') + ' · ' + countries.length + ' 个国家/地区' + (directionTopicCodes.length ? ' · ' + directionTopicCodes.length + ' 个跨境专题' : ''));
+    if (directionTopicCodes.length) directionText(summary, 'p', directionTopicCodes.map(function(code){return topicNames[code] || '专题名称待读取';}).join('、'));
     var nextDay = new Date((beijingToday() + 1) * 86400000).toISOString().slice(0, 10);
     directionText(summary, 'p', '保存后于 ' + nextDay + ' 北京时间 00:00 起' + (byId('direction-enabled').checked ? '启用' : '暂停') + '。今天已生成的任务保持原设置。', 'intel-muted');
   }
   function renderDirectionTopics() {
     var list = byId('direction-topic-choices'); list.replaceChildren();
     var catalog = topicData.topics.slice();
-    directionTopicCodes.forEach(function(code){if (!catalog.some(function(topic){return topic.code === code;})) catalog.push({ code:code, name:topicNames[code] || '原主题名称不可用', active:false, unavailable:true });});
+    directionTopicCodes.forEach(function(code){if (!catalog.some(function(topic){return topic.code === code;})) catalog.push({ code:code, name:topicNames[code] || '原专题名称不可用', active:false, unavailable:true });});
     catalog.forEach(function(topic){
       var label = directionText(list, 'label', '');
       var input = document.createElement('input'); input.type='checkbox'; input.name='direction-topic'; input.value=topic.code;
@@ -1977,23 +1977,22 @@
       label.appendChild(input);
       directionText(label, 'span', topic.name + (topic.unavailable ? '（当前目录不可用，保留原选择）' : topic.active ? '' : '（已停用）'));
     });
-    status('direction-topic-status', catalog.length ? '' : '暂无主题，可在“管理搜集主题”中新增。');
+    status('direction-topic-status', catalog.length ? '' : '暂无跨境专题，可在“管理跨境专题”中新增。');
     byId('direction-topic-retry').hidden=true;
     directionControls();
     updateDirectionScope();
   }
   async function refreshDirectionTopics() {
     var current = editingDirection;
-    status('direction-topic-status', '正在读取主题…'); byId('direction-topic-retry').hidden=true;
+    status('direction-topic-status', '正在读取跨境专题…'); byId('direction-topic-retry').hidden=true;
     byId('direction-topic-choices').replaceChildren();
     try { await loadTopicCatalog(); if (editingDirection===current) renderDirectionTopics(); }
-    catch(error){if (editingDirection!==current) return;status('direction-topic-status', error.message + ' 原主题选择已保留，请重试后保存。', 'error');byId('direction-topic-retry').hidden=false;}
+    catch(error){if (editingDirection!==current) return;status('direction-topic-status', error.message + ' 原专题选择已保留，请重试后保存。', 'error');byId('direction-topic-retry').hidden=false;}
   }
   async function openDirectionTopics() {
     if (directionSaving || topicSaving) return;
     directionView('topics');
-    byId('direction-topics-back').textContent='← 返回方向设置（保留未保存内容）';
-    byId('direction-topics-title').focus(); byId('direction-topics').scrollIntoView({block:'start'});
+    byId('direction-topics-back').focus(); byId('direction-topics').scrollIntoView({block:'start'});
     await loadTopics();
   }
   async function loadDirections() {
@@ -2119,20 +2118,20 @@
       directionText(heading, 'span', String(index + 1).padStart(2, '0'), 'intel-direction-number');
       directionText(heading, 'h3', topic.name);
       directionText(heading, 'span', topic.active ? '已启用' : '已停用', 'intel-badge');
+      var actions = directionText(heading, 'div', '', 'intel-direction-buttons');
+      var toggle = directionText(actions, 'button', topic.active ? '停用专题' : '恢复专题', 'intel-button intel-button-quiet'); toggle.type = 'button'; toggle.disabled = !topicData.writable;
       directionText(card, 'p', topic.description);
       var usedBy = (directionData?.directions || topicData.directions || []).filter(function(d){return (d.config.topic_codes || []).includes(topic.code);});
       directionText(card, 'p', usedBy.length ? '关联方向：' + usedBy.map(function(d){return d.config.name;}).join('、') : '尚未关联方向', 'intel-muted');
-      var actions = directionText(card, 'div', '', 'intel-direction-buttons');
-      var toggle = directionText(actions, 'button', topic.active ? '停用主题' : '恢复主题', 'intel-button intel-button-quiet'); toggle.type = 'button'; toggle.disabled = !topicData.writable;
       toggle.addEventListener('click', async function () {
         if (topicSaving) return;
         topicSaving = true; toggle.disabled = true;
-        status('topic-status', '正在保存主题状态…');
+        status('topic-status', '正在保存专题状态…');
         try {
           var result = await api('save-topic', { code: topic.code, revision: topic.revision, active: !topic.active });
           topicData.topics = topicData.topics.map(function (item) { return item.code === result.topic.code ? { ...item, ...result.topic } : item; });
           renderTopics();
-          status('topic-status', topic.active ? '主题已停用；方向原选择和历史情报保留。' : '主题已恢复，可重新用于后续搜集。', 'success');
+          status('topic-status', topic.active ? '专题已停用；方向原选择和历史情报保留。' : '专题已恢复，可重新用于后续搜集。', 'success');
         } catch (error) { status('topic-status', error.message + ' 请重新读取名单后重试。', 'error');byId('topic-retry').hidden=false; }
         finally { topicSaving = false; toggle.disabled = false; }
       });
@@ -2153,7 +2152,7 @@
     return topicRead;
   }
   async function loadTopics(force) {
-    status('topic-status', '正在读取主题…'); byId('topic-retry').hidden=true;
+    status('topic-status', '正在读取跨境专题…'); byId('topic-retry').hidden=true;
     try {await loadTopicCatalog(force);renderTopics();status('topic-status', topicData.writable ? '' : '当前为只读模式。');}
     catch(error){status('topic-status', error.message + ' 请重试。', 'error');byId('topic-retry').hidden=false;}
   }
@@ -2171,7 +2170,7 @@
         topicData.topics.push(result.topic);topicNames[result.topic.code]=result.topic.name;
         renderTopics();
         byId('topic-editor').hidden = true;
-        status('topic-status', '主题已保存，可返回方向选择使用。', 'success');
+        status('topic-status', '专题已保存，可返回方向选择使用。', 'success');
       } catch (error) { status('topic-save-status', error.message + ' 未保存的内容仍在表单中。', 'error'); }
       finally { topicSaving = false; byId('topic-save').disabled = false; }
     });
