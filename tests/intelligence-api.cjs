@@ -47,7 +47,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     requestPasswordReset: async () => ({}), resetPassword: async () => ({ id: admin }),
     user: async () => ({ id: admin, email: 'local@example.test' }),
     logout: async () => {}, list: async () => [source], get: async () => source,
-    dailyTasks: async () => ({ run: null, items: [] }), candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
+    dailyTasks: async () => ({ run: null, items: [] }), oldestUnfinishedDailyRun: async () => null, candidates: async () => [], currentOpportunities: async () => [], operations: async () => ({ runs: [], items: [], budgets: [], notifications: [] }), candidateBySource: async () => null, projectTimeline: async () => ({ entries: [] }), analysisRevisions: async () => [], sourceHistory: async () => [], businessHistory: async () => [], previousExtractedSource: async () => null, findCandidatePeers: async () => [], assessmentTargets: async () => [], saveCrossCheck: async () => ({}),
     providerHistory: async () => ({ versions: [], calls: [] }),
     feishuConfig: async () => null, notificationHistory: async () => [], saveFeishuConfig: async (_owner, revision, config) => ({ ...config, revision: revision + 1 }),
     notificationSettings: async () => ({ quiet_enabled: true, quiet_start_hour: 23, quiet_end_hour: 7, timezone: 'Asia/Shanghai', flash_breaks_quiet: false }),
@@ -289,7 +289,7 @@ test('paid manual calls stop before providers when budget is absent or exhausted
   }
 });
 
-test('scheduled scan requires both its switch and secret, then consumes one persisted item', async () => {
+test('scheduled scan requires both its switch and secret, then consumes a bounded persisted batch', async () => {
   const disabled = setup();
   assert.equal((await disabled.request('scheduled-scan', { loggedIn: false })).code, 503);
   assert.deepEqual(disabled.calls, []);
@@ -333,6 +333,41 @@ test('independent health check records one system alert for a missing daily run'
   const ok = await healthy.request('health-check', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
   assert.equal(ok.body.health, 'ok');
   assert.ok(!healthy.calls.some(call => call.name === 'enqueueNotification'));
+});
+
+test('health flags cross-day backlog and six-hour waits even while a run stays running', async () => {
+  for (const lag of ['previous-day', 'long-wait']) {
+    const app = setup({ environment: { ...env, CRON_SECRET: 'health-secret' }, overrides: {
+      dailyTasks: async () => ({ run: { status: 'running' }, items: lag === 'long-wait'
+        ? [{ item_key: 'extract:waiting', status: 'queued', created_at: new Date(Date.now() - 7 * 3600000).toISOString() }] : [] }),
+      oldestUnfinishedDailyRun: async () => lag === 'previous-day' ? { schedule_key: '2000-01-01', status: 'running' } : null,
+      enqueueDailySnapshot: async () => null
+    } });
+    const response = await app.request('health-check', { loggedIn: false, headers: { authorization: 'Bearer health-secret' } });
+    assert.equal(response.body.health, 'delayed');
+    const alert = app.calls.find(call => call.name === 'enqueueNotification').args[3];
+    assert.match(alert.issue_zh, lag === 'previous-day' ? /较早计划未完成.*2000-01-01/ : /等待超过 6 小时/);
+    assert.equal(alert.problem_groups[0].code, 'scan_delayed');
+    assert.equal(alert.task_counts.total, lag === 'previous-day' ? 0 : 1);
+    assert.ok(!JSON.stringify(alert).includes('budgets'));
+    assert.ok(app.calls.some(call => call.name === 'enqueueDailySnapshot'));
+  }
+});
+
+test('a serial batch that finishes older plans uses today snapshot instead of sending historical digests', async () => {
+  const { scheduleDate } = require('../lib/intelligence/jobs.cjs');
+  const queue = ['old-plan', 'new-plan'].map(job_run_id => ({ id: job_run_id, job_run_id, item_key: 'invalid-short', attempts: 1, checkpoint: {} }));
+  const app = setup({ environment: { ...env, NRGOPT_SCHEDULER_ENABLED: '1', CRON_SECRET: 'batch-secret' }, overrides: {
+    claimJobItem: async () => queue.shift() || null,
+    jobRun: async () => ({ run: { status: 'failed' }, items: [] }),
+    enqueueDailySnapshot: async () => null
+  } });
+  const result = await app.request('scheduled-scan', { loggedIn: false, headers: { authorization: 'Bearer batch-secret' } });
+  assert.equal(result.code, 200);
+  assert.equal(result.body.processed_count, 2);
+  assert.deepEqual(result.body.results.map(item => item.jobId), ['old-plan', 'new-plan']);
+  assert.ok(!app.calls.some(call => call.name === 'enqueueDailyDigest'));
+  assert.ok(app.calls.filter(call => call.name === 'enqueueDailySnapshot').every(call => call.args[1] === scheduleDate()));
 });
 
 test('notification worker records accepted and unknown delivery outcomes without blind retry', async () => {
@@ -1048,6 +1083,7 @@ test('health alert snapshots the full daily task result with actionable grouped 
   assert.equal(payload.problem_groups.length, 3);
   assert.match(payload.problem_groups.find(g => g.stage === '情报分析').reason, /背景材料与商业分类/);
   assert.ok(!app.calls.some(c => c.name === 'operations'));
+  assert.ok(app.calls.some(c => c.name === 'oldestUnfinishedDailyRun'));
   assert.deepEqual(app.calls.find(c => c.name === 'dailyTasks').args, [admin, result.body.schedule_key]);
 });
 

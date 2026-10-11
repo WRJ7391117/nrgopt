@@ -1247,6 +1247,60 @@ test('follow-up list paginates owner-scoped records without dropping the next pa
   assert.equal(result.items[0].candidate.source_id, 'source'); assert.equal(calls.length, 4);
 });
 
+test('health reads the earliest unfinished daily run through one owner-scoped query', async () => {
+  const run={id:'oldest',schedule_key:'2000-01-01',status:'running'};
+  let count=0;
+  const store=createStore(CONFIG,async (input,init)=>{
+    assert.ok(!init.method || init.method==='GET');
+    const url=new URL(input);
+    assert.equal(url.pathname,'/rest/v1/intelligence_job_runs');
+    assert.equal(url.searchParams.get('owner_id'),'eq.owner-a');
+    assert.equal(url.searchParams.get('job_type'),'eq.daily_scan');
+    assert.equal(url.searchParams.get('status'),'in.(queued,running,retry)');
+    assert.equal(url.searchParams.get('order'),'schedule_key.asc,id.asc');
+    assert.equal(url.searchParams.get('limit'),'1');
+    return Response.json(count++===0?[run]:[]);
+  });
+  assert.deepEqual(await store.oldestUnfinishedDailyRun('owner-a'),run);
+  assert.equal(await store.oldestUnfinishedDailyRun('owner-a'),null);
+  assert.equal(count,2);
+});
+
+test('risk reads group current cross-source events and discard stale or failed source evidence', async () => {
+  const risks = [
+    { id:'latest', source_id:'source-1', source_sha256:'hash-1', event_key:'airport-event', status:'reported', payload:{facility_zh:'机场'} },
+    { id:'older-report', source_id:'source-2', source_sha256:'hash-2', event_key:'airport-event', status:'reported', payload:{facility_zh:'机场'} },
+    { id:'changed-original', source_id:'source-3', source_sha256:'old-hash', event_key:'different-event', status:'reported', payload:{} },
+    { id:'stale-analysis', source_id:'source-4', source_sha256:'hash-4', event_key:'different-event', status:'reported', payload:{} },
+    { id:'failed-analysis', source_id:'source-5', source_sha256:'hash-5', event_key:'different-event', status:'reported', payload:{} },
+    { id:'undated-clue', source_id:'source-6', source_sha256:'hash-6', event_key:null, status:'pending_verification', payload:{} }
+  ];
+  const sources = risks.map(risk => ({id:risk.source_id,content_sha256:risk.source_sha256,
+    extraction_source_sha256:risk.source_sha256,extraction_status:'extracted'}));
+  sources[2].content_sha256='new-hash'; sources[3].extraction_source_sha256='previous-analysis'; sources[4].extraction_status='failed';
+  const calls=[];
+  const store=createStore(CONFIG,async (input,init)=>{
+    assert.ok(!init.method || init.method==='GET');
+    const url=new URL(input);assert.equal(url.searchParams.get('owner_id'),'eq.owner-a');calls.push(url);
+    if(url.pathname.endsWith('intelligence_risk_signals')) {
+      assert.equal(url.searchParams.get('order'),'updated_at.desc,id.asc');
+      assert.equal(url.searchParams.get('limit'),'100');
+      const selected=url.searchParams.get('source_id');
+      return Response.json(selected?risks.filter(risk=>selected===`eq.${risk.source_id}`):risks);
+    }
+    if(url.pathname.endsWith('intelligence_sources')) {
+      assert.equal(url.searchParams.get('select'),'id,content_sha256,extraction_source_sha256,extraction_status');
+      const ids=url.searchParams.get('id').slice(4,-1).split(',');
+      return Response.json(sources.filter(source=>ids.includes(source.id)));
+    }
+    throw Error('unexpected risk read');
+  });
+  assert.deepEqual((await store.riskSignals('owner-a')).map(risk=>risk.id),['latest','undated-clue']);
+  assert.equal(calls.length,2);
+  assert.deepEqual((await store.riskSignals('owner-a','source-2')).map(risk=>risk.id),['older-report']);
+  assert.equal(calls.length,4);
+});
+
 test('workbench uses Beijing first-recorded day and excludes stale, conflicting, handled and invalid evidence', async () => {
   const ids = ['fresh','old','future','unknown','conflict','hash','handled','duplicate','boundary'];
   const sources = ids.map(id => ({id,final_url:id === 'duplicate' ? 'fresh' : id,publication_date:'2026-09-27',extraction_status:'extracted',content_sha256:'a',extraction_source_sha256:'a'}));
@@ -1268,7 +1322,7 @@ test('workbench uses Beijing first-recorded day and excludes stale, conflicting,
       assert.ok(u.searchParams.get('select').includes('content_sha256') || u.searchParams.get('select').includes('unknowns_zh:extraction_zh->unknowns_zh'));
       return Response.json(sources);
     }
-    if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities)$/.test(u.pathname))return Response.json([]);
+    if (/intelligence_(collection_directions|job_runs|direction_sources|source_library|source_controls|opportunities|risk_signals)$/.test(u.pathname))return Response.json([]);
     throw Error('unexpected');
   });
   const result=await store.workbench('owner-a','2026-09-27');

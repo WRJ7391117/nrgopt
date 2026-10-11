@@ -246,7 +246,7 @@
 .intel-excerpt { margin-top: 16px; padding-left: 18px; border-left: 2px solid var(--form-border); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem; }
 .intel-notice { margin-top: 24px; padding: 20px 24px; border-left: 3px solid var(--gold); background: var(--surface); color: var(--text-dim); font-size: .9rem; }
 .intel-notice h2 { margin-bottom: 8px; }
-.intel-discover-views { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 22px 0 0; }
+.intel-discover-views { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 22px 0 0; }
 .intel-discover-views a { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text) !important; text-decoration: none; font-size: .9rem; }
 .intel-discover-views a:hover, .intel-discover-views a[aria-current="page"] { border-color: var(--accent); }
 .intel-discover-views a[aria-current="page"] { background: var(--form-bg); font-weight: 700; }
@@ -317,6 +317,10 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-badge[data-state="checked"], .intel-badge[data-state="corrected"] { color: var(--success); }
 .intel-badge[data-state="conflict"] { color: var(--error); }
 .intel-badge[data-state="unverified"] { color: var(--text-dim); }
+.intel-badge[data-state="pending_verification"], .intel-badge[data-state="reported"] { color: var(--gold); }
+.intel-risk-section { border-left: 3px solid var(--gold) !important; }
+.intel-risk-section h3 { margin: 20px 0 8px; }
+.intel-risk-impact { margin: 12px 0; padding: 10px 14px; border-left: 2px solid var(--gold); background: var(--form-bg); color: var(--text); overflow-wrap: anywhere; }
 .intel-evidence-link { display: inline-block; margin-top: 12px; font-size: .86rem; }
 .intel-provider-form { scroll-margin-top: 24px; }
 .intel-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; margin-top: 22px; }

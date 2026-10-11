@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { COUNTRIES, dailySearchCountries, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, sourceItem } = require('../lib/intelligence/jobs.cjs');
+const { COUNTRIES, dailySearchCountries, scheduleDate, runPaidCall, enqueueDailyScan, runDailyJobItem, runDailyJobBatch, sourceItem } = require('../lib/intelligence/jobs.cjs');
 const { automaticCallReserve } = require('../lib/intelligence/budget.cjs');
 const { registry } = require('../lib/intelligence/registry.cjs');
 
@@ -41,6 +41,48 @@ const dependencies = {
   balanceReaderFactory: () => async () => 1_000_000
 };
 
+test('one scheduler batch completes at most four short items in strict finish-then-claim order', async () => {
+  const store = fakeStore();
+  let claimed = 0; let finished = 0;
+  store.claimJobItem = async () => {
+    assert.equal(claimed, finished, 'next claim started before preceding finish');
+    claimed++;
+    return { id: `short-${claimed}`, job_run_id: 'job-1', item_key: `invalid-${claimed}`, attempts: 1, checkpoint: {} };
+  };
+  store.finishJobItem = async () => { finished++; return true; };
+  const result = await runDailyJobBatch({ store, owner: 'owner-a', ...dependencies });
+  assert.equal(result.processed_count, 4);
+  assert.equal(claimed, 4);
+  assert.equal(result.result.itemId, 'short-1');
+});
+
+test('a slow completed item ends its batch and budget pause never starts another paid item', async () => {
+  const slow = fakeStore({ item: { id: 'slow', item_key: 'invalid-slow', attempts: 1, checkpoint: {} } });
+  let elapsed = 0;
+  slow.finishJobItem = async () => { elapsed = 25_000; return true; };
+  const completed = await runDailyJobBatch({ store: slow, owner: 'owner-a', ...dependencies }, { clock: () => elapsed });
+  assert.equal(completed.processed_count, 1);
+  assert.equal(slow.calls.filter(call => call[0] === 'claimJobItem').length, 1);
+  const paused = fakeStore();
+  const result = await runDailyJobBatch({ store: paused, owner: 'owner-a', env: {}, ...dependencies,
+    discover: async () => { throw new Error('must not call without budget'); } });
+  assert.equal(result.processed_count, 1);
+  assert.equal(result.result.status, 'budget_paused');
+  assert.equal(paused.calls.filter(call => call[0] === 'claimJobItem').length, 1);
+});
+
+test('revisit extraction retains routine priority unless that URL returned new content', async () => {
+  for (const [watch, reused, fresh] of [[true, false, true], [true, true, false], [false, true, true]]) {
+    const work = sourceItem({ url: 'https://official.example/new-version' }, 'SA');
+    const store = fakeStore({ item: { id: 'source-version', job_run_id: 'job-1', item_key: work.item_key, attempts: 1,
+      checkpoint: { ...work.checkpoint, watch, fresh: !watch } } });
+    store.save = async () => ({ reused, source: { id: sourceId, final_url: work.checkpoint.url, content_sha256: 'a'.repeat(64) } });
+    await runDailyJobItem({ store, owner: 'owner-a', ...dependencies });
+    assert.deepEqual(store.calls.find(call => call[0] === 'enqueueJobItems')[3][0].checkpoint,
+      { source_id: sourceId, watch, fresh });
+  }
+});
+
 test('daily schedule uses the configured timezone and stable six-country item keys', async () => {
   assert.equal(scheduleDate(new Date('2026-09-21T16:30:00Z')), '2026-09-22');
   const store = fakeStore();
@@ -59,8 +101,8 @@ test('Nama article aliases use the verified canonical article URL while retainin
   const alias = sourceItem({ url: original }, 'OM');
   const standard = sourceItem({ url: canonical }, 'OM');
   assert.equal(alias.item_key, standard.item_key);
-  assert.deepEqual(alias.checkpoint, { country: 'OM', url: canonical, discovered_url: original });
-  assert.deepEqual(standard.checkpoint, { country: 'OM', url: canonical });
+  assert.deepEqual(alias.checkpoint, { country: 'OM', url: canonical, fresh: true, discovered_url: original });
+  assert.deepEqual(standard.checkpoint, { country: 'OM', url: canonical, fresh: true });
 });
 
 test('the server derives a bounded call reservation from each service monthly limit', () => {
@@ -105,7 +147,7 @@ test('source item saves evidence idempotently and queues one extraction item', a
   assert.equal(result.sourceId, sourceId);
   assert.ok(store.calls.some(call => call[0] === 'save'));
   assert.deepEqual(store.calls.find(call => call[0] === 'enqueueJobItems')[3],
-    [{ item_key: `extract:${sourceId}`, checkpoint: { source_id: sourceId } }]);
+    [{ item_key: `extract:${sourceId}`, checkpoint: { source_id: sourceId, watch: false, fresh: true } }]);
   assert.equal(store.calls.find(call => call[0] === 'finishJobItem')[3], 'succeeded');
 });
 
@@ -426,7 +468,7 @@ test('daily scan revisits active watched URLs with the same deduplicated source 
   const items = store.calls.find(call => call[0] === 'enqueueJobItems' && call[3][0]?.checkpoint.watch)[3];
   assert.equal(items.length, 1);
   assert.equal(items[0].item_key, sourceItem({ url: 'https://official.example/watch' }, null).item_key);
-  assert.deepEqual(items[0].checkpoint, { url: 'https://official.example/watch', watch: true });
+  assert.deepEqual(items[0].checkpoint, { url: 'https://official.example/watch', watch: true, fresh: false });
 });
 
 test('template-only source changes reuse verified model input without another paid extraction', async () => {

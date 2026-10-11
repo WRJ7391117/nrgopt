@@ -207,3 +207,24 @@ test('configured group-only and private-only delivery never resolves or sends to
     assert.equal(calls.length, 2); assert.ok(calls[1].endsWith(privateOnly ? 'receive_id_type=open_id' : 'receive_id_type=chat_id'));
   }
 });
+
+
+test('risk cards preserve attributed facts, unknown event time and available energy analysis', () => {
+  const payload = { kind: 'risk', risk_status: 'pending_verification', country_code: 'SA', facility_zh: '合成机场',
+    publication_date: '2026-10-10', event_date: null, facts: ['通讯社转述部门谴责声明。'], energy_impact_zh: '尚未披露供电中断。',
+    unknowns_zh: ['袭击发生时间未知。'], next_signals_zh: ['核对运营方公告。'] };
+  const card = buildCard({ baseUrl: 'https://example.test', notification: { notification_type: 'flash', payload } });
+  assert.equal(card.card.header.title.content, '区域风险提醒｜合成机场');
+  const content = card.card.elements[0].content;
+  for (const phrase of ['待核实风险线索','未知，不能用报道日期代替','2026-10-10','通讯社转述','尚未披露供电中断','核对运营方公告']) assert.ok(content.includes(phrase));
+});
+
+test('late daily snapshots report the actual capture time and unfinished coverage', () => {
+  const card = buildCard({ baseUrl: 'https://example.test', now: new Date('2026-10-11T03:10:00Z'),
+    notification: { notification_type: 'daily', payload: { report_kind: 'snapshot', report_date: '2026-10-11',
+      snapshot_at: '2026-10-11T03:05:00Z', schedule_key: '2026-10-11', active_plan_day: '2026-10-09',
+      status: 'running', coverage: { succeeded: 10, failed: 1, unfinished: 2 }, changes: [] } } });
+  const content = card.card.elements[0].content;
+  assert.match(content,/每日定时摘要（08:00）/); assert.match(content,/11:05/); assert.doesNotMatch(content,/截至北京时间08:00/);
+  assert.match(content,/未结束 2/); assert.match(content,/最早 2026-10-09/);
+});

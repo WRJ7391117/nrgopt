@@ -108,13 +108,14 @@ test('workbench retains complete counts and current detail while reading histori
     intelligence_candidates: candidates, intelligence_sources: sources, intelligence_watch_targets: [],
     intelligence_collection_directions: directions, intelligence_job_runs: runs,
     intelligence_direction_sources: refs, intelligence_source_library: [], intelligence_source_controls: [],
-    intelligence_opportunities: opportunities, intelligence_job_items: tasks
+    intelligence_opportunities: opportunities, intelligence_job_items: tasks, intelligence_risk_signals: []
   };
   const calls = [], store = createStore(CONFIG, readOnlyFetch(tables, calls));
   const actual = await store.workbench(OWNER, day, 1);
   const expected = summarize({ day, period: 1, candidates, sources: sources.map(source => ({ ...source, ...source.extraction_zh })),
     watches: [], followed: [], directions, runs, refs, library: defaults(), opportunities,
     tasks: tasks.filter(item => item.item_key.startsWith('discover:')), currentTasks: tasks });
+  expected.risks = [];
   delete actual.captured_at; delete expected.captured_at;
   assert.deepEqual(actual, expected, 'lightweight reads must preserve the complete overview result');
   assert.equal(actual.distribution.total, 505);
