@@ -844,6 +844,8 @@ test('discovery keeps one region filter and accepts only supported country, grou
   assert.match(page.body, /aria-label="情报类型"/);
   assert.equal((page.body.match(/name="group"/g) || []).length, 1);
   assert.match(page.body, /option value="north-africa"/);
+  assert.match(page.body, /option value="central-asia"/);
+  assert.match(page.body, /option value="UZ"/);
   assert.match(page.body, /option value="EG"/);
   assert.match(page.body, /西撒哈拉（地位有争议）/);
   assert.doesNotMatch(page.body, /id="region-coverage"/);
@@ -852,20 +854,19 @@ test('discovery keeps one region filter and accepts only supported country, grou
   assert.equal((await request('coverage', { loggedIn: false })).code, 401);
 });
 
-test('MENA manual discovery lists enabled regions and rejects pending regions before billing', async () => {
+test('manual discovery lists supported regions and rejects unknown countries before billing', async () => {
   const { request, calls } = setup();
   const page = await request('page');
   const form = page.body.match(/<form id="discovery-form"[\s\S]*?<\/form>/)[0];
-  for (const code of ['SA', 'TR', 'MA', 'DZ', 'EG', 'JO', 'PS', 'YE', 'SD', 'MR', 'TN', 'IR', 'CY', 'LB', 'EH', 'IQ', 'IL', 'SY']) assert.match(form, new RegExp('option value="' + code + '"'));
-  const { primaryHosts } = require('../lib/intelligence/discovery.cjs');
-  const syria = primaryHosts.SY;
-  delete primaryHosts.SY;
-  try {
-    const result = await request('discover', { method: 'POST', body: { country: 'SY' } });
+  for (const region of require('../lib/intelligence/regions.json').countries) assert.match(form, new RegExp('option value="' + region.code + '"'));
+  for (const country of ['XX', 'US', 'toString']) {
+    const result = await request('discover', { method: 'POST', body: { country } });
     assert.equal(result.code, 400);
-    assert.equal(result.body.error, 'discovery_country_not_enabled');
-    assert.equal(calls.filter(item => /reserve|provider/i.test(item.name)).length, 0);
-  } finally { primaryHosts.SY = syria; }
+    assert.equal(result.body.error, 'invalid_request');
+  }
+  assert.equal(calls.filter(item => /reserve|provider/i.test(item.name)).length, 0);
+  const central = setup({discoveryFactory: () => async () => ({results: []})});
+  assert.equal((await central.request('discover', {method:'POST',body:{country:'UZ'}})).code, 200);
 });
 
 test('every authenticated HTML page includes its verified account before loading business data', async () => {

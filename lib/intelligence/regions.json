@@ -143,12 +143,43 @@
       "name": "毛里塔尼亚",
       "english": "Mauritania",
       "group": "north-africa"
+    },
+    {
+      "code": "KZ",
+      "name": "哈萨克斯坦",
+      "english": "Kazakhstan",
+      "group": "central-asia"
+    },
+    {
+      "code": "UZ",
+      "name": "乌兹别克斯坦",
+      "english": "Uzbekistan",
+      "group": "central-asia"
+    },
+    {
+      "code": "KG",
+      "name": "吉尔吉斯斯坦",
+      "english": "Kyrgyzstan",
+      "group": "central-asia"
+    },
+    {
+      "code": "TJ",
+      "name": "塔吉克斯坦",
+      "english": "Tajikistan",
+      "group": "central-asia"
+    },
+    {
+      "code": "TM",
+      "name": "土库曼斯坦",
+      "english": "Turkmenistan",
+      "group": "central-asia"
     }
   ],
   "groups": {
     "gcc": "海合会",
     "middle-east": "中东其他地区",
-    "north-africa": "北非"
+    "north-africa": "北非",
+    "central-asia": "中亚"
   },
   "topics": {
     "red-sea": "红海",

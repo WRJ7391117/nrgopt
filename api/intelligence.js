@@ -370,7 +370,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (![1,7,30].includes(period)) throw failure('invalid_request', 400);
         return res.status(200).json(await store.workbench(user.id, scheduleDate(), period));
       }
-      if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(primaryHosts), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
+      if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(countries), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
       if (action === 'workflow-page') return html(workflowPage(user.email));
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });
       if (action === 'followups-page') return html(followupsPage(user.email));
@@ -466,8 +466,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'discover') {
         if (!config.writes) throw failure('writes_disabled', 403);
-        if (!countries[body.country]) throw failure('invalid_request', 400);
-        if (!primaryHosts[body.country]?.length) throw failure('discovery_country_not_enabled', 400);
+        if (!Object.hasOwn(countries, body.country)) throw failure('invalid_request', 400);
         const discoveryProvider = (await providerSettingsForOwner(env, store, user.id)).discovery;
         const discovery = await runPaidCall({ store, owner: user.id, operation: 'discovery', currency: discoveryProvider.currency,
           budgetKey: discoveryProvider.budgetKey, budgetLimitMicro: discoveryProvider.budgetLimitMicro,

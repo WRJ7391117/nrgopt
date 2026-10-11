@@ -136,7 +136,7 @@ test('daily digest contains evidence and judgment, abbreviates accepted FLASH an
       { source_id: 'source-b', title_zh: '已发送事项', flash_accepted: true, grouped_source_count: 5, summary_zh: '不应再次详述' }]
   } } });
   const output = JSON.stringify(card);
-  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','当天覆盖不完整','不代表24地全部接入','已发重大提醒','同一事件共 5 个来源','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
+  for (const phrase of ['每日情报摘要','金额已披露','NRGOPT 判断','设备采购未知','卡塔尔','当天覆盖不完整','实际搜集范围以已启用方向为准','已发重大提醒','同一事件共 5 个来源','另有 3 条','sources/source-a']) assert.ok(output.includes(phrase));
   assert.ok(!output.includes('不应再次详述'));
   assert.ok(!output.includes('六国任务：成功 20'));
 });
