@@ -1948,12 +1948,13 @@
       button.setAttribute('aria-pressed', String(selected));
       byId('direction-field-' + button.dataset.directionModule).hidden = !selected;
     });
-    if (module === 'topics' && editingDirection) refreshDirectionTopics();
+    if (module === 'countries' && editingDirection && document.querySelector('.intel-direction-topic-extra').open) refreshDirectionTopics();
   }
   function directionControls() {
     var writable = directionData?.writable;
     byId('direction-new').disabled = directionSaving || !writable;
     byId('direction-list').disabled = directionSaving || !directionData?.directions.length;
+    byId('direction-name').disabled = directionSaving || !writable;
     document.querySelectorAll('[data-direction-module]').forEach(function(n){n.disabled=directionSaving;});
     byId('direction-config-fields').querySelectorAll('button,input,select,textarea').forEach(function(n){
       n.disabled = directionSaving || !writable;
@@ -1990,8 +1991,7 @@
     byId('direction-empty').hidden = !!directionData.directions.length || !!editingDirection;
     byId('direction-count').textContent = '共 ' + directionData.directions.length + ' 个方向 · 今天已启用 ' + directionData.effective.filter(function(d){return d.config.enabled;}).length + ' 个';
     if (editingDirection) {
-      var index=directionData.directions.findIndex(function(d){return d.id===editingDirection.id;});
-      byId('direction-editor-title').textContent = editingDirection.id ? String(index+1).padStart(2,'0') + ' · ' + editingDirection.config.name : '新增搜集方向';
+      byId('direction-name-edit').querySelector('summary').textContent=editingDirection.id?'修改方向名称':'为新方向命名';
       var effective=directionData.effective.find(function(d){return d.id===editingDirection.id;});
       byId('direction-editor-note').textContent = (effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效') + (editingDirection.effective_on > directionData.day ? ' · 已保存设置将于 ' + editingDirection.effective_on + ' 北京时间生效' : '');
     }
@@ -2003,6 +2003,8 @@
     directionTopicCodes=(config.topic_codes || []).slice();
     directionDirty=!direction; directionResultId=null;
     ['name','why','industries','exclude','priority'].forEach(function(k){byId('direction-'+k).value=config[k];});
+    byId('direction-name-edit').open=!direction;
+    document.querySelector('.intel-direction-topic-extra').open=false;
     document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=config.countries.includes(n.value);});
     document.querySelectorAll('[name="direction-target"]').forEach(function(n){n.checked=config.targets.includes(n.value);});
     byId('direction-enabled').checked=config.enabled;
@@ -2115,6 +2117,7 @@
     if(!list.children.length)directionText(list,'li',filtered?'当前日期筛选下没有记录，可选择“全部”查看历史、待获取或日期未知的线索。':'尚无实际搜集结果。未执行、没有命中或采集失败，都不能据此判断没有价值。');
   }
   if(byId('direction-form')) {
+    document.querySelector('.intel-direction-topic-extra').addEventListener('toggle',function(){if(this.open && editingDirection)refreshDirectionTopics();});
     document.querySelectorAll('[data-direction-module]').forEach(function(button){button.addEventListener('click',function(){
       if(directionSaving)return;
       selectDirectionModule(button.dataset.directionModule);
@@ -2155,11 +2158,12 @@
     byId('direction-topics-back').addEventListener('click',function(){
       if(topicSaving)return;
       directionView('home');if(topicData)renderDirectionTopics();else refreshDirectionTopics();
-      byId('direction-field-topics').focus();
+      byId('direction-field-countries').focus();
     });
     byId('direction-form').addEventListener('submit',async function(event){
       event.preventDefault();if(!editingDirection||directionSaving||!directionData.writable)return;
       var invalid=this.querySelector('input:invalid,textarea:invalid,select:invalid');
+      if(invalid?.id==='direction-name'){byId('direction-name-edit').open=true;status('direction-save-status','请填写这个搜集方向的名称。','error');invalid.reportValidity();return;}
       var config={};['name','why','industries','exclude','priority'].forEach(function(k){config[k]=byId('direction-'+k).value;});
       config.countries=directionCountries();config.topic_codes=directionTopicCodes.slice();
       config.targets=Array.from(document.querySelectorAll('[name="direction-target"]:checked')).map(function(n){return n.value;});
