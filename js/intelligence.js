@@ -1963,11 +1963,12 @@
     document.querySelectorAll('[data-direction-module]').forEach(function(n){n.disabled=directionSaving;});
     byId('direction-config-fields').querySelectorAll('button,input,select,textarea').forEach(function(n){
       n.disabled = directionSaving || !writable;
-      if (n.hasAttribute('data-manage-topics') || n.id==='direction-list' || n.id==='direction-saved-results') n.disabled=directionSaving;
+      if (n.hasAttribute('data-manage-topics')) n.disabled=directionSaving;
       if (n.name === 'direction-topic' && !topicData?.topics.find(function(t){return t.code===n.value;})?.active && !n.checked) n.disabled=true;
     });
     byId('direction-new').disabled=directionSaving || !writable || directionDraft.length>=20;
     byId('direction-list').disabled=directionSaving || !directionData?.directions.length;
+    byId('direction-saved-results').disabled=directionSaving;
     byId('direction-save').disabled = directionSaving || !writable || !directionDirty;
     byId('direction-cancel').disabled = directionSaving || !directionDirty;
     byId('direction-saved-results').hidden = !editingDirection?.id;
@@ -2034,19 +2035,15 @@
   }
   async function loadDirectionActivity() {
     var current=editingDirection, id=current?.id, list=byId('direction-activity-content'), read;
-    if (!id) {list.textContent='保存后可查看搜索与修改记录。';return;}
-    list.textContent='正在读取最近搜索与修改记录…';
+    if (!id) {list.textContent='保存后可查看设置修改记录。';return;}
+    list.textContent='正在读取设置修改记录…';
     try {
       read=directionActivityCache[id] || (directionActivityCache[id]=api('direction-activity',undefined,id));
       var activity=await read;
       if (editingDirection!==current || !byId('direction-activity').open)return;
       list.replaceChildren();
-      var task=activity.tasks[0], states={queued:'等待执行',running:'正在执行',retry:'等待重试',succeeded:'已执行',failed:'执行失败',budget_paused:'预算或账单暂停',manual_paused:'已暂停'};
-      directionText(list,'p',task ? '最近搜索：'+dateLabel(task.updated_at)+' · '+regionNames[task.checkpoint.country]+' · '+(states[task.status] || task.status)+' · 使用版本 '+task.checkpoint.direction.revision+(task.status==='succeeded'?' · 找到 '+(task.checkpoint.result_count || 0)+' 条线索':'') : '尚无搜索记录，等待生效或地区轮转。');
-      if (task?.error_code) directionText(list,'p','本次搜索未完成，可在“当天任务”查看原因。','intel-muted');
-      var effective=directionData.effective.find(function(d){return d.id===id;});
-      if(effective) directionText(list,'p','今天生效的规则：'+(effective.config.enabled?'启用':'暂停')+' · 优先级：'+({high:'高',normal:'普通',low:'低'})[effective.config.priority]+' · 排除：'+(effective.config.exclude || '未设置'));
       directionText(list,'h4','最近保存记录');
+      if(!activity.versions.length)directionText(list,'p','尚无设置修改记录。');
       activity.versions.forEach(function(v){directionText(list,'p',dateLabel(v.recorded_at)+' · '+(v.config.enabled?'启用':'暂停')+' · '+v.config.name+' · '+v.effective_on+' 北京时间生效');});
     } catch(error){if(directionActivityCache[id]===read)delete directionActivityCache[id];if(editingDirection===current)list.textContent=error.message+' 收起后再展开可重试。';}
   }
