@@ -91,3 +91,12 @@
   .research-section-nav button { font-size: .82rem; }
   .research-goal { padding-left: 16px; }
 }
+
+.research-reading-nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 16px; margin-bottom: 20px; border-radius: 8px 8px 0 0; }
+.research-breadcrumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: .8rem; min-width: 0; }
+.research-breadcrumbs button { padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.research-breadcrumbs span { color: var(--text-dim); overflow-wrap: anywhere; }
+.research-breadcrumbs [aria-current] { color: var(--text); }
+.research-reading-nav .intel-button { flex-shrink: 0; }
+@media (max-width: 760px) { .research-reading-nav { padding: 12px; } .research-breadcrumbs { font-size: .75rem; } }
+@media print { .research-reading-nav { display: none; } }
