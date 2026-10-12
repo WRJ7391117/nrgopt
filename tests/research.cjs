@@ -59,7 +59,7 @@ test('downloaded HTML is an attachment by default and has a sandbox with no same
   const { request } = setup(); const response = await request('file');
   assert.equal(response.headers['content-type'], 'application/octet-stream');
   assert.match(response.headers['content-disposition'], /^attachment/);
-  assert.match(response.headers['content-security-policy'], /sandbox allow-scripts allow-downloads;/);
+  assert.match(response.headers['content-security-policy'], /sandbox allow-scripts allow-downloads allow-modals;/);
   assert.doesNotMatch(response.headers['content-security-policy'], /allow-same-origin/);
   assert.match(response.headers['content-security-policy'], /connect-src 'none'/);
   assert.equal(response.headers['x-frame-options'], 'SAMEORIGIN');
@@ -71,6 +71,8 @@ test('HTML preview adds page sizing while original downloads remain byte-identic
   assert.equal(original.body.toString(), '<script>parent.document.body.innerHTML="bad"</script>');
   assert.match(preview.body, /nrgopt-research-height/);
   assert.match(preview.body, /nrgopt-research-scroll/);
+  assert.match(preview.body, /nrgopt-research-open/);
+  assert.match(preview.body, /data-research-file/);
   assert.match(preview.headers['content-disposition'], /^inline/);
   assert.doesNotMatch(preview.headers['content-security-policy'], /allow-same-origin/);
 });

@@ -148,7 +148,7 @@
         if (['text/html', 'text/plain', 'application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(activeEntry.file_type)) {
           var preview = node('iframe'); preview.title = activeEntry.file_name;
           if (activeEntry.file_type === 'text/html') preview.dataset.expanded = 'true';
-          preview.setAttribute('sandbox', 'allow-scripts allow-downloads'); preview.src = url + '&preview=1'; byId('detail-preview').append(preview);
+          preview.setAttribute('sandbox', 'allow-scripts allow-downloads allow-modals'); preview.src = url + '&preview=1'; byId('detail-preview').append(preview);
           if (activeEntry.file_type === 'text/html') links.append(node('p', '手册中的填写记录需导出备份；如需更新云端附件，请保存副本后添加新版。', 'intel-muted'));
         }
       }
@@ -233,6 +233,10 @@
   window.addEventListener('message', function (event) {
     var preview = byId('detail-preview').querySelector('iframe[data-expanded]'), data = event.data;
     if (!preview || event.source !== preview.contentWindow || !data) return;
+    if (data.type === 'nrgopt-research-open') {
+      var linkedEntry = entries.find(function (entry) { return entry.file_name === data.file; });
+      if (linkedEntry && discard()) openEntry(linkedEntry.id).catch(function (e) { status(e.message, true); });
+    }
     if (data.type === 'nrgopt-research-height' && Number.isFinite(data.height) && data.height > 0) {
       preview.style.height = Math.ceil(data.height) + 'px';
     }
@@ -250,7 +254,13 @@
     try {
       var data = await api('projects'); projects = data.projects; writable = data.writable; renderProjects();
       if (projects.length) {
-        if (history.state?.research) await restore(history.state);
+        var linked = new URLSearchParams(location.search);
+        if (linked.has('project') && linked.has('file')) {
+          await restore({ projectId: linked.get('project'), view: 'overview' }); remember(true);
+          var report = entries.find(function (entry) { return entry.file_name === linked.get('file'); });
+          if (report) await openEntry(report.id);
+        }
+        else if (history.state?.research) await restore(history.state);
         else { showProjects(); remember(true); }
       }
       else { document.querySelector('.research-layout').hidden = false; byId('project-directory').hidden = true; byId('research-empty').hidden = false; status(writable ? '还没有调研项目。新建项目后即可添加资料。' : '当前环境只读。'); }
