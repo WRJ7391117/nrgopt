@@ -43,7 +43,7 @@
     });
   }
   function remember(replace) {
-    var state = { research: true, depth: (history.state?.depth || 0) + (replace ? 0 : 1),
+    var state = { research: true,
       projectId: activeProject?.id || null, view: currentView, entryId: currentView === 'detail' ? activeEntry?.id : null,
       returnView: returnView, kind: byId('entry-kind-filter').value, query: byId('entry-search').value };
     history[replace ? 'replaceState' : 'pushState'](state, '', '/research');
