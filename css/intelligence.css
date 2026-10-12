@@ -545,6 +545,8 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-form fieldset { display: grid; gap: 20px; padding: 24px; }
 .intel-direction-form legend { padding: 0 8px; font-weight: 600; }
 .intel-direction-form textarea { min-height: 96px; }
+#direction-why { resize: none; overflow-y: hidden; }
+#direction-field-goal > label { margin-bottom: 4px; }
 .intel-direction-form fieldset > label { display: grid; gap: 8px; margin: 0; }
 .intel-direction-form fieldset > .intel-direction-enable { display: flex; align-items: center; }
 .intel-direction-form .intel-field-label { margin: 0 0 12px; font-size: .9rem; font-weight: 600; }

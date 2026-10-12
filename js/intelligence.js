@@ -1935,11 +1935,18 @@
     if (className) node.className = className;
     parent.appendChild(node); return node;
   }
+  function fitDirectionPurpose() {
+    var field=byId('direction-why');
+    if(!field?.offsetWidth)return;
+    field.style.height='auto';
+    field.style.height=(field.scrollHeight+field.offsetHeight-field.clientHeight)+'px';
+  }
   function directionView(view) {
     byId('direction-home').hidden = view !== 'home';
     byId('direction-editor').hidden = !directionData;
     byId('direction-results-panel').hidden = view !== 'results';
     byId('direction-topics').hidden = view !== 'topics';
+    if(view==='home')fitDirectionPurpose();
   }
   function selectDirectionModule(module) {
     directionHomeModule = module;
@@ -1949,6 +1956,7 @@
       byId('direction-field-' + button.dataset.directionModule).hidden = !selected;
     });
     if (module === 'countries' && directionData && document.querySelector('.intel-direction-topic-extra').open) refreshDirectionTopics();
+    if(module==='goal')fitDirectionPurpose();
   }
   function directionControls() {
     var writable = directionData?.writable;
@@ -2126,6 +2134,7 @@
     if(!list.children.length)directionText(list,'li',filtered?'当前日期筛选下没有记录，可选择“全部”查看历史、待获取或日期未知的线索。':'尚无实际搜集结果。未执行、没有命中或采集失败，都不能据此判断没有价值。');
   }
   if(byId('direction-form')) {
+    window.addEventListener('resize',fitDirectionPurpose);
     document.querySelector('.intel-direction-topic-extra').addEventListener('toggle',function(){if(this.open && directionData)refreshDirectionTopics();});
     document.querySelectorAll('[data-direction-module]').forEach(function(button){button.addEventListener('click',function(){
       if(directionSaving)return;
@@ -2165,6 +2174,7 @@
     }
     byId('direction-form').addEventListener('input',function(event){
       if(event.target.id==='direction-list')return;
+      if(event.target.id==='direction-why')fitDirectionPurpose();
       var index=event.target.dataset.nameIndex;
       if(index!==undefined){
         directionDraft[index].config.name=event.target.value;
