@@ -1929,7 +1929,7 @@
       finally { extractButton.disabled = false; }
     });
   }
-  var directionData, editingDirection, directionResults = [], directionResultId = null, directionDirty = false, directionSaving = false, directionTopicCodes = [], directionHomeModule = 'goal', directionActivityCache = {};
+  var directionData, editingDirection, directionResults = [], directionResultId = null, directionDirty = false, directionSaving = false, directionTopicCodes = [], directionHomeModule = 'goal', directionActivityCache = {}, directionDraft = [], directionSharedPriority = 'normal';
   function directionText(parent, tag, text, className) {
     var node = document.createElement(tag); node.textContent = text;
     if (className) node.className = className;
@@ -1937,7 +1937,7 @@
   }
   function directionView(view) {
     byId('direction-home').hidden = view !== 'home';
-    byId('direction-editor').hidden = !editingDirection;
+    byId('direction-editor').hidden = !directionData;
     byId('direction-results-panel').hidden = view !== 'results';
     byId('direction-topics').hidden = view !== 'topics';
   }
@@ -1948,72 +1948,81 @@
       button.setAttribute('aria-pressed', String(selected));
       byId('direction-field-' + button.dataset.directionModule).hidden = !selected;
     });
-    if (module === 'countries' && editingDirection && document.querySelector('.intel-direction-topic-extra').open) refreshDirectionTopics();
+    if (module === 'countries' && directionData && document.querySelector('.intel-direction-topic-extra').open) refreshDirectionTopics();
   }
   function directionControls() {
     var writable = directionData?.writable;
-    byId('direction-new').disabled = directionSaving || !writable;
-    byId('direction-list').disabled = directionSaving || !directionData?.directions.length;
-    byId('direction-name').disabled = directionSaving || !writable;
     document.querySelectorAll('[data-direction-module]').forEach(function(n){n.disabled=directionSaving;});
     byId('direction-config-fields').querySelectorAll('button,input,select,textarea').forEach(function(n){
       n.disabled = directionSaving || !writable;
-      if (n.hasAttribute('data-manage-topics')) n.disabled=directionSaving;
+      if (n.hasAttribute('data-manage-topics') || n.id==='direction-list' || n.id==='direction-saved-results') n.disabled=directionSaving;
       if (n.name === 'direction-topic' && !topicData?.topics.find(function(t){return t.code===n.value;})?.active && !n.checked) n.disabled=true;
     });
+    byId('direction-new').disabled=directionSaving || !writable || directionDraft.length>=20;
+    byId('direction-list').disabled=directionSaving || !directionData?.directions.length;
     byId('direction-save').disabled = directionSaving || !writable || !directionDirty;
     byId('direction-cancel').disabled = directionSaving || !directionDirty;
     byId('direction-saved-results').hidden = !editingDirection?.id;
-    byId('direction-saved-results').disabled = directionSaving;
-  }
-  function canChangeDirection() {
-    if(directionSaving)return false;
-    if(directionDirty){
-      status('direction-save-status','当前方向有未保存的修改，请先保存，或点击“放弃修改”后再切换。');
-      byId('direction-save-status').scrollIntoView({block:'center',behavior:'instant'});
-      return false;
-    }
-    return true;
   }
   function returnToDirections() {
-    directionResultId = null;
-    directionView('home');
-    if (editingDirection) byId('direction-field-' + directionHomeModule).focus();
-    else byId('direction-new').focus();
+    directionResultId = null; directionView('home');
+    byId('direction-field-' + directionHomeModule).focus();
   }
   function renderDirections() {
     var list = byId('direction-list'); list.replaceChildren();
-    if (!editingDirection?.id) directionText(list, 'option', editingDirection ? '新增方向（尚未保存）' : '选择搜集方向').value='';
-    directionData.directions.forEach(function(d,index){
-      directionText(list, 'option', String(index+1).padStart(2,'0') + ' · ' + d.config.name).value=d.id;
-    });
-    list.value = editingDirection?.id || '';
-    byId('direction-empty').hidden = !!directionData.directions.length || !!editingDirection;
-    byId('direction-count').textContent = '共 ' + directionData.directions.length + ' 个方向 · 今天已启用 ' + directionData.effective.filter(function(d){return d.config.enabled;}).length + ' 个';
-    if (editingDirection) {
-      byId('direction-name-edit').querySelector('summary').textContent=editingDirection.id?'修改方向名称':'为新方向命名';
-      var effective=directionData.effective.find(function(d){return d.id===editingDirection.id;});
-      byId('direction-editor-note').textContent = (effective ? (effective.config.enabled ? '今天已启用' : '今天已暂停') : '尚未生效') + (editingDirection.effective_on > directionData.day ? ' · 已保存设置将于 ' + editingDirection.effective_on + ' 北京时间生效' : '');
-    }
+    directionData.directions.forEach(function(d,index){directionText(list,'option',String(index+1).padStart(2,'0')+' · '+d.config.name).value=d.id;});
+    editingDirection=directionData.directions.find(function(d){return d.id===editingDirection?.id;}) || directionData.directions[0];
+    list.value=editingDirection?.id || '';
+    byId('direction-count').textContent='共 '+directionData.directions.length+' 个已保存方向 · 今天已启用 '+directionData.effective.filter(function(d){return d.config.enabled;}).length+' 个';
+    var future=directionData.directions.map(function(d){return d.effective_on;}).filter(function(day){return day>directionData.day;});
+    byId('direction-editor-note').textContent=future.length ? '已保存的新设置将于 '+Array.from(new Set(future)).sort().join('、')+' 北京时间生效；今天的任务仍使用原设置。' : '以下地区、行业机构与规则对整个目的与方向矩阵统一设置。';
     directionControls();
   }
-  function openDirection(direction, module) {
-    editingDirection = direction || { id:null, revision:0, config:{name:'',why:'',industries:'',exclude:'',countries:[],topic_codes:[],targets:['signal','investment','procurement'],priority:'normal',enabled:true} };
-    var config=editingDirection.config;
-    directionTopicCodes=(config.topic_codes || []).slice();
-    directionDirty=!direction; directionResultId=null;
-    ['name','why','industries','exclude','priority'].forEach(function(k){byId('direction-'+k).value=config[k];});
-    byId('direction-name-edit').open=!direction;
-    document.querySelector('.intel-direction-topic-extra').open=false;
-    document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=config.countries.includes(n.value);});
-    document.querySelectorAll('[name="direction-target"]').forEach(function(n){n.checked=config.targets.includes(n.value);});
-    byId('direction-enabled').checked=config.enabled;
-    byId('direction-topic-choices').replaceChildren();
-    byId('direction-activity').open=false; byId('direction-activity-content').replaceChildren();
-    byId('direction-save').textContent='保存修改'; byId('direction-cancel').textContent='放弃修改';
-    status('direction-save-status',direction ? '' : '尚未保存，请完成这个方向的设置。');
-    renderDirections(); updateDirectionScope(); directionView('home');
-    selectDirectionModule(module || directionHomeModule);
+  function renderDirectionMatrix() {
+    var matrix=byId('direction-matrix'); matrix.replaceChildren();
+    var table=directionText(matrix,'table',''), head=directionText(table,'thead',''), headings=directionText(head,'tr','');
+    directionText(headings,'th','关注方向').scope='col';
+    var targets={signal:'值得留意的变化',investment:'投资动向',procurement:'采购机会'};
+    Object.keys(targets).forEach(function(key){directionText(headings,'th',targets[key]).scope='col';});
+    var body=directionText(table,'tbody',''), names=byId('direction-names'); names.replaceChildren();
+    directionDraft.forEach(function(d,index){
+      var row=directionText(body,'tr',''), heading=directionText(row,'th','');heading.scope='row';
+      directionText(heading,'span',String(index+1).padStart(2,'0'),'intel-direction-number');
+      var name=directionText(heading,'span',d.config.name || '未命名方向');name.dataset.matrixName=String(index);
+      Object.keys(targets).forEach(function(key){
+        var label=directionText(directionText(row,'td',''),'label',''), input=document.createElement('input');
+        input.type='checkbox';input.name='direction-matrix';input.value=key;input.dataset.index=String(index);
+        input.checked=d.config.enabled && d.config.targets.includes(key);
+        input.setAttribute('aria-label',String(index+1).padStart(2,'0')+' '+(d.config.name || '未命名方向')+' · '+targets[key]);
+        label.appendChild(input);directionText(label,'span',targets[key],'intel-direction-matrix-label');
+      });
+      var label=directionText(names,'label',''), input=document.createElement('input');
+      directionText(label,'span',String(index+1).padStart(2,'0')+' · 方向名称');
+      input.id='direction-name-'+index;input.dataset.nameIndex=String(index);input.required=true;input.maxLength=80;input.value=d.config.name;
+      input.placeholder='例如：地区冲突与能源保供';label.appendChild(input);
+      if(!d.id){
+        var remove=directionText(names,'button','移除未保存方向','intel-button intel-button-quiet');remove.type='button';remove.dataset.removeDirection=String(index);
+      }
+    });
+    if(!directionDraft.length)directionText(matrix,'p','尚无方向，请新增一个方向，再勾选搜索目的。');
+    directionControls();
+  }
+  function openDirectionMatrix() {
+    directionDraft=directionData.directions.map(function(d){return {...d,config:{...d.config,countries:d.config.countries.slice(),targets:d.config.targets.slice(),topic_codes:(d.config.topic_codes || []).slice()}};});
+    var configs=directionDraft.map(function(d){return d.config;});
+    function mergeText(key, split){return Array.from(new Set(configs.flatMap(function(c){return split ? c[key].split(/[、,，;；\n]+/).map(function(v){return v.trim();}).filter(Boolean) : [c[key].trim()];}).filter(Boolean))).join(split?'、':'\n');}
+    var countries=Array.from(new Set(configs.flatMap(function(c){return c.countries;})));
+    directionTopicCodes=Array.from(new Set(configs.flatMap(function(c){return c.topic_codes;})));
+    byId('direction-why').value=mergeText('why');byId('direction-industries').value=mergeText('industries',true);byId('direction-exclude').value=mergeText('exclude');
+    directionSharedPriority=configs.length && configs.every(function(c){return c.priority===configs[0].priority;}) ? configs[0].priority : 'normal';
+    document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=countries.includes(n.value);});
+    var keys=['why','industries','exclude','priority','countries','topic_codes'];
+    directionDirty=configs.some(function(c){return keys.some(function(key){var value=Array.isArray(c[key])?c[key].slice().sort():c[key], first=Array.isArray(configs[0][key])?configs[0][key].slice().sort():configs[0][key];return JSON.stringify(value)!==JSON.stringify(first);});});
+    byId('direction-name-edit').open=false;document.querySelector('.intel-direction-topic-extra').open=false;
+    byId('direction-topic-choices').replaceChildren();byId('direction-activity').open=false;byId('direction-activity-content').replaceChildren();
+    byId('direction-save').textContent='保存整套设置';byId('direction-cancel').textContent='放弃修改';
+    renderDirections();renderDirectionMatrix();updateDirectionScope();directionView('home');selectDirectionModule(directionHomeModule);
+    status('direction-save-status',directionDirty ? '已将原有范围与说明合并为草稿，可删减后保存。保存前仍使用原设置。' : '');
   }
   async function loadDirectionActivity() {
     var current=editingDirection, id=current?.id, list=byId('direction-activity-content'), read;
@@ -2040,11 +2049,11 @@
     var countries = directionCountries();
     byId('direction-country-selection').textContent = countries.length ? '已选 ' + countries.length + ' 个：' + countries.map(function(code){return regionNames[code];}).join('、') : '尚未选择国家或地区';
     var summary = byId('direction-scope-summary'); summary.replaceChildren();
-    directionText(summary, 'strong', '保存这个方向的全部修改');
-    directionText(summary, 'p', (byId('direction-name').value.trim() || '未命名方向') + ' · ' + countries.length + ' 个国家/地区' + (directionTopicCodes.length ? ' · ' + directionTopicCodes.length + ' 个跨境专题' : ''));
-    if (directionTopicCodes.length) directionText(summary, 'p', directionTopicCodes.map(function(code){return topicNames[code] || '专题名称待读取';}).join('、'));
-    var nextDay = new Date((beijingToday() + 1) * 86400000).toISOString().slice(0, 10);
-    directionText(summary, 'p', '保存后于 ' + nextDay + ' 北京时间 00:00 起' + (byId('direction-enabled').checked ? '启用' : '暂停') + '。今天已生成的任务保持原设置。', 'intel-muted');
+    var active=directionDraft.filter(function(d,index){return document.querySelector('[name="direction-matrix"][data-index="'+index+'"]:checked');});
+    directionText(summary,'strong','整套设置');
+    directionText(summary,'p',active.length+' 个参与搜集方向 · '+countries.length+' 个共同国家/地区'+(directionTopicCodes.length?' · '+directionTopicCodes.length+' 个共同跨境专题':''));
+    var nextDay=new Date((beijingToday()+1)*86400000).toISOString().slice(0,10);
+    directionText(summary,'p','保存后于 '+nextDay+' 北京时间 00:00 起生效。今天已生成的任务保持原设置。','intel-muted');
   }
   function renderDirectionTopics() {
     var list = byId('direction-topic-choices'); list.replaceChildren();
@@ -2063,11 +2072,11 @@
     updateDirectionScope();
   }
   async function refreshDirectionTopics() {
-    var current = editingDirection;
+    var current = directionDraft;
     status('direction-topic-status', '正在读取跨境专题…'); byId('direction-topic-retry').hidden=true;
     byId('direction-topic-choices').replaceChildren();
-    try { await loadTopicCatalog(); if (editingDirection===current) renderDirectionTopics(); }
-    catch(error){if (editingDirection!==current) return;status('direction-topic-status', error.message + ' 原专题选择已保留，请重试后保存。', 'error');byId('direction-topic-retry').hidden=false;}
+    try { await loadTopicCatalog(); if (directionDraft===current) renderDirectionTopics(); }
+    catch(error){if (directionDraft!==current) return;status('direction-topic-status', error.message + ' 原专题选择已保留，请重试后保存。', 'error');byId('direction-topic-retry').hidden=false;}
   }
   async function openDirectionTopics() {
     if (directionSaving || topicSaving) return;
@@ -2077,7 +2086,7 @@
   }
   async function loadDirections() {
     directionData=await api('directions'); directionActivityCache={}; renderDirections();
-    if (!editingDirection && directionData.directions.length) openDirection(directionData.directions[0]);
+    openDirectionMatrix();
     status('page-status',directionData.writable?'':'当前为只读模式。');
   }
   async function loadDirectionResults(direction) {
@@ -2117,18 +2126,25 @@
     if(!list.children.length)directionText(list,'li',filtered?'当前日期筛选下没有记录，可选择“全部”查看历史、待获取或日期未知的线索。':'尚无实际搜集结果。未执行、没有命中或采集失败，都不能据此判断没有价值。');
   }
   if(byId('direction-form')) {
-    document.querySelector('.intel-direction-topic-extra').addEventListener('toggle',function(){if(this.open && editingDirection)refreshDirectionTopics();});
+    document.querySelector('.intel-direction-topic-extra').addEventListener('toggle',function(){if(this.open && directionData)refreshDirectionTopics();});
     document.querySelectorAll('[data-direction-module]').forEach(function(button){button.addEventListener('click',function(){
       if(directionSaving)return;
       selectDirectionModule(button.dataset.directionModule);
     });});
     byId('direction-list').addEventListener('change',function(){
-      var selectedId=this.value, selected=directionData.directions.find(function(d){return d.id===selectedId;});
-      if(!selected || selected.id===editingDirection?.id)return;
-      if(canChangeDirection())openDirection(selected);
-      else this.value=editingDirection?.id || '';
+      editingDirection=directionData.directions.find(function(d){return d.id===this.value;},this);
+      if(byId('direction-activity').open)loadDirectionActivity();directionControls();
     });
-    byId('direction-new').addEventListener('click',function(){if(canChangeDirection())openDirection(null,'goal');});
+    byId('direction-new').addEventListener('click',function(){
+      if(directionSaving || !directionData.writable || directionDraft.length>=20)return;
+      directionDraft.push({id:null,revision:0,config:{name:'',targets:['signal'],enabled:false}});
+      selectDirectionModule('goal');byId('direction-name-edit').open=true;renderDirectionMatrix();markDirectionDirty();
+      byId('direction-name-'+(directionDraft.length-1)).focus();
+    });
+    byId('direction-names').addEventListener('click',function(event){
+      var remove=event.target.closest('[data-remove-direction]');if(!remove || directionSaving || !directionData.writable)return;
+      directionDraft.splice(Number(remove.dataset.removeDirection),1);renderDirectionMatrix();markDirectionDirty();
+    });
     byId('direction-period').addEventListener('change',renderDirectionResults);
     byId('direction-results-back').addEventListener('click',returnToDirections);
     byId('direction-saved-results').addEventListener('click',function(){if(editingDirection?.id)loadDirectionResults(editingDirection);});
@@ -2136,20 +2152,32 @@
     byId('direction-cancel').addEventListener('click',function(){
       if(directionSaving)return;
       if(directionDirty && this.textContent!=='确认放弃修改'){
-        this.textContent='确认放弃修改';status('direction-save-status','再次点击将放弃这个方向所有未保存的修改。');return;
+        this.textContent='确认放弃修改';status('direction-save-status','再次点击将放弃整套设置中所有未保存的修改。');return;
       }
-      var saved=directionData.directions.find(function(d){return d.id===editingDirection?.id;}) || directionData.directions[0];
-      if(saved)openDirection(saved);
-      else {editingDirection=null;directionDirty=false;renderDirections();directionView('home');}
+      openDirectionMatrix();
     });
     function markDirectionDirty(){
-      directionDirty=true;byId('direction-cancel').textContent='放弃修改';byId('direction-save').textContent='保存修改';
+      directionDirty=true;byId('direction-cancel').textContent='放弃修改';byId('direction-save').textContent='保存整套设置';
       if (topicData && byId('direction-topic-choices').children.length) {
         directionTopicCodes=Array.from(document.querySelectorAll('[name="direction-topic"]:checked')).map(function(n){return n.value;});
       }
       directionControls();updateDirectionScope();status('direction-save-status','有未保存的修改，保存后次日生效。');
     }
-    byId('direction-form').addEventListener('input',markDirectionDirty);
+    byId('direction-form').addEventListener('input',function(event){
+      if(event.target.id==='direction-list')return;
+      var index=event.target.dataset.nameIndex;
+      if(index!==undefined){
+        directionDraft[index].config.name=event.target.value;
+        document.querySelector('[data-matrix-name="'+index+'"]').textContent=event.target.value || '未命名方向';
+        document.querySelectorAll('[name="direction-matrix"][data-index="'+index+'"]').forEach(function(n){n.setAttribute('aria-label',String(Number(index)+1).padStart(2,'0')+' '+(event.target.value || '未命名方向')+' · '+n.parentNode.textContent);});
+      }
+      document.querySelectorAll('[name="direction-matrix"]').forEach(function(n){
+        var d=directionDraft[n.dataset.index], selected=Array.from(document.querySelectorAll('[name="direction-matrix"][data-index="'+n.dataset.index+'"]:checked')).map(function(input){return input.value;});
+        d.config.enabled=selected.length>0;
+        d.config.targets=selected.length ? selected : (directionData.directions.find(function(saved){return saved.id===d.id;})?.config.targets || d.config.targets);
+      });
+      markDirectionDirty();
+    });
     document.querySelectorAll('[data-countries]').forEach(function(button){button.addEventListener('click',function(){
       document.querySelectorAll('[name="direction-country"]').forEach(function(n){if(!button.dataset.countryGroup || n.dataset.countryGroup===button.dataset.countryGroup)n.checked=button.dataset.countries==='all';});markDirectionDirty();
     });});
@@ -2161,33 +2189,30 @@
       byId('direction-field-countries').focus();
     });
     byId('direction-form').addEventListener('submit',async function(event){
-      event.preventDefault();if(!editingDirection||directionSaving||!directionData.writable)return;
+      event.preventDefault();if(directionSaving || !directionData.writable)return;
       var invalid=this.querySelector('input:invalid,textarea:invalid,select:invalid');
-      if(invalid?.id==='direction-name'){byId('direction-name-edit').open=true;status('direction-save-status','请填写这个搜集方向的名称。','error');invalid.reportValidity();return;}
-      var config={};['name','why','industries','exclude','priority'].forEach(function(k){config[k]=byId('direction-'+k).value;});
-      config.countries=directionCountries();config.topic_codes=directionTopicCodes.slice();
-      config.targets=Array.from(document.querySelectorAll('[name="direction-target"]:checked')).map(function(n){return n.value;});
-      config.enabled=byId('direction-enabled').checked;
-      var invalidModule=invalid?.closest('fieldset').id.replace('direction-field-','');
-      var missingModule=invalidModule==='goal' ? 'goal' : !config.targets.length ? 'goal' : !config.countries.length ? 'countries' : invalidModule;
-      if(missingModule){selectDirectionModule(missingModule);status('direction-save-status',invalidModule===missingModule?'请补全这个模块中提示的必填项。':missingModule==='goal'?'请至少选择一种希望找到的信息。':'请至少选择一个国家或地区。','error');if(invalidModule===missingModule)invalid.reportValidity();else byId('direction-field-'+missingModule).focus();return;}
-      directionSaving=true;directionControls();status('direction-save-status','正在保存这个方向的全部修改…');
+      var tooLong=['why','industries','exclude'].find(function(key){return [...byId('direction-'+key).value].length>({why:400,industries:200,exclude:300})[key];});
+      if(tooLong)invalid=byId('direction-'+tooLong);
+      if(invalid?.dataset.nameIndex!==undefined){selectDirectionModule('goal');byId('direction-name-edit').open=true;status('direction-save-status','请填写方向名称。','error');invalid.reportValidity();invalid.focus();return;}
+      var shared={why:byId('direction-why').value,industries:byId('direction-industries').value,exclude:byId('direction-exclude').value,countries:directionCountries(),topic_codes:directionTopicCodes.slice(),priority:directionSharedPriority};
+      var missing=invalid?.closest('fieldset').id.replace('direction-field-','') || (!directionDraft.length?'goal':!shared.countries.length?'countries':null);
+      if(missing){selectDirectionModule(missing);status('direction-save-status',tooLong?'合并内容超过长度限制，请精简后保存。':invalid?'请补全提示的必填项。':missing==='goal'?'请新增一个关注方向。':'请至少选择一个国家或地区。','error');if(invalid){invalid.reportValidity();invalid.focus();}else byId('direction-field-'+missing).focus();return;}
+      var directions=directionDraft.map(function(d,index){
+        var targets=Array.from(document.querySelectorAll('[name="direction-matrix"][data-index="'+index+'"]:checked')).map(function(n){return n.value;});
+        return {id:d.id,revision:d.revision,config:{...shared,name:d.config.name,targets:targets.length?targets:d.config.targets,enabled:targets.length>0}};
+      });
+      directionSaving=true;directionControls();status('direction-save-status','正在保存目的与方向矩阵及共同设置…');
       try {
-        await loadTopicCatalog();
-        var result=await api('save-direction',{id:editingDirection.id,revision:editingDirection.revision,config});
-        editingDirection=result.direction;directionTopicCodes=(result.direction.config.topic_codes || []).slice();directionDirty=false;
-        directionActivityCache={};byId('direction-activity').open=false;byId('direction-activity-content').replaceChildren();
-        var savedIndex=directionData.directions.findIndex(function(d){return d.id===result.direction.id;});
-        if(savedIndex<0)directionData.directions.push(result.direction);else directionData.directions[savedIndex]=result.direction;
-        renderDirections();
-        var message='已保存「'+result.direction.config.name+'」。将于 '+result.direction.effective_on+' 北京时间 00:00 起'+(config.enabled?'启用':'暂停')+'，今天的任务继续使用原设置。';
+        var result=await api('save-direction-matrix',{directions});
+        directionData.directions=result.directions;directionActivityCache={};openDirectionMatrix();directionDirty=false;
+        var effectiveDates=Array.from(new Set(result.directions.map(function(d){return d.effective_on;}).filter(function(day){return day>directionData.day;}))).sort();
+        var message=effectiveDates.length ? '整套设置已保存，将于 '+effectiveDates.join('、')+' 北京时间 00:00 起生效。今天的任务继续使用原设置。' : '整套设置与已保存内容一致，原生效时间保持。';
         status('direction-save-status',message,'success');byId('direction-save').textContent='已保存';
-        try {await loadDirections();}
-        catch(error){status('direction-save-status',message+' 列表暂未刷新，无需重复保存。请稍后刷新页面。','success');status('page-status','本次保存已确认；其他执行状态暂未刷新，请稍后刷新页面。','error');}
-      } catch(error){directionDirty=true;status('direction-save-status',error.message+' 未保存的内容已保留。','error');}
+      } catch(error){directionDirty=true;status('direction-save-status',error.message+' 整套草稿已保留。','error');}
       finally{directionSaving=false;if(topicData)renderDirectionTopics();directionControls();}
     });
   }
+
   var topicData, topicSaving = false, topicRead;
   function renderTopics() {
     var list = byId('topic-list'); list.replaceChildren();
@@ -2260,7 +2285,7 @@
   (async function () {
     try {
       if (byId('topic-list') && !byId('direction-list')) { await loadTopics(); return; }
-      if (byId('direction-list')) { await loadDirections(); var requestedDirection=new URLSearchParams(location.search).get('direction'); var selectedDirection=directionData.directions.find(function(d){return d.id===requestedDirection;}); if(selectedDirection){openDirection(selectedDirection);await loadDirectionResults(selectedDirection);} return; }
+      if (byId('direction-list')) { await loadDirections(); var requestedDirection=new URLSearchParams(location.search).get('direction'); var selectedDirection=directionData.directions.find(function(d){return d.id===requestedDirection;}); if(selectedDirection){editingDirection=selectedDirection;await loadDirectionResults(selectedDirection);} return; }
       if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }

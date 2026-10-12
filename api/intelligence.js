@@ -20,6 +20,7 @@ const messages = {
   library_duplicate:'此入口已在源库中，请编辑或恢复已有记录。', library_conflict: '渠道已在其他页面修改，请刷新后重试。当前编辑保留。', library_limit:'最多登记500个渠道。', library_unchecked:'请先验证渠道入口可读取，再启用持续搜索。', source_invalid_url:'请填写可公开访问、不含查询参数的HTTPS渠道入口。',
 
   direction_conflict: '此方向已在其他页面修改。你的编辑仍保留，请核对最新设置后重新编辑。', direction_limit: '最多保留20个搜集方向，请编辑已有方向。',
+  matrix_required: '搜集方向已改为统一配套设置。请刷新页面，在搜索目的与方向中一并保存。',
   topic_conflict: '专题名单已在其他页面修改，请刷新后重试。', topic_limit: '最多同时启用20个跨境专题，请先停用不再关注的专题。', topic_duplicate: '已有同名专题，请使用或恢复现有专题。',
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
@@ -95,7 +96,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
+      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-direction-matrix', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
       const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-activity', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
@@ -280,7 +281,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       let body = req.body;
       if (post) {
-        const bodyLimit = action === 'save-provider-settings' ? 12000 : 8192;
+        const bodyLimit = action === 'save-direction-matrix' ? 65536 : action === 'save-provider-settings' ? 12000 : 8192;
         if (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > bodyLimit) throw failure('invalid_request', 400);
       }
       if (action === 'login') {
@@ -382,7 +383,11 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'save-direction') {
         if (!config.writes) throw failure('writes_disabled', 403);
-        return res.status(200).json({ direction: await store.saveDirection(user.id, require('../lib/intelligence/directions.cjs').validateDirection(body)) });
+        throw failure('matrix_required',409);
+      }
+      if (action === 'save-direction-matrix') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        return res.status(200).json(await store.saveDirectionMatrix(user.id, require('../lib/intelligence/directions.cjs').validateMatrix(body)));
       }
       if (action === 'discover-page') return html(overviewPage(user.email));
       if (action === 'workbench') {

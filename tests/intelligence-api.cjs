@@ -972,13 +972,13 @@ test('collection directions require authentication, owner scope, valid revisions
   const value={id:null,revision:0,config:require('../lib/intelligence/directions.cjs').defaults[0].config};
   const {request}=setup({overrides:{
     collectionDirections:async(owner)=>{assert.equal(owner,admin);return {directions:[]};},
-    saveDirection:async(owner,input)=>{assert.equal(owner,admin);assert.deepEqual(input,value);return {id,effective_on:'2026-09-28'};}
+    saveDirection:async()=>{assert.fail('obsolete individual saves must not reach the store');}
   }});
   assert.equal((await request('directions',{loggedIn:false})).code,401);
   const page=await request('directions-page',{loggedIn:false});assert.equal(page.code,303);assert.match(page.headers.location,/directions/);
   assert.equal((await request('directions')).code,200);
-  assert.equal((await request('save-direction',{method:'POST',body:value})).body.direction.id,id);
-  assert.equal((await request('save-direction',{method:'POST',body:{...value,revision:-1}})).code,400);
+  const obsolete=await request('save-direction',{method:'POST',body:value});
+  assert.equal(obsolete.code,409);assert.equal(obsolete.body.error,'matrix_required');
   assert.equal((await request('save-direction',{method:'POST',body:value,headers:{origin:'https://other.test'}})).code,403);
   const locked=setup({environment:{...env,NRGOPT_INTELLIGENCE_WRITE_ENABLED:'0'}});
   assert.equal((await locked.request('save-direction',{method:'POST',body:value})).code,403);
