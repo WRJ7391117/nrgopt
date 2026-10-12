@@ -37,7 +37,7 @@ http.createServer(async (req, res) => {
       const chunks = []; let size = 0;
       for await (const chunk of req) {
         size += chunk.length;
-        if (size > (research ? 3300000 : 8192)) { res.status(413).json({ message: '请求内容过长。' }); return; }
+        if (size > (research ? 3300000 : req.query.action === 'save-direction-matrix' ? 196608 : 8192)) { res.status(413).json({ message: '请求内容过长。' }); return; }
         chunks.push(chunk);
       }
       if (size) {

@@ -480,6 +480,16 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-direction-form { display: grid; gap: 18px; }
 .intel-direction-config { padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .intel-direction-config > .intel-muted { margin: 0 0 12px; }
+.intel-direction-matrix table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.intel-direction-matrix th, .intel-direction-matrix td { padding: 14px 10px; border-bottom: 1px solid var(--border); text-align: center; overflow-wrap: anywhere; }
+.intel-direction-matrix th:first-child { width: 40%; text-align: left; }
+.intel-direction-matrix tbody th { font-weight: 500; }
+.intel-direction-matrix .intel-direction-number { margin-right: 8px; }
+.intel-direction-matrix td label { display: flex; justify-content: center; align-items: center; margin: 0; min-height: 36px; }
+.intel-direction-matrix-label { display: none; }
+.intel-direction-names { display: grid; gap: 14px; margin: 16px 0; }
+.intel-direction-names label { display: grid; gap: 8px; }
+.intel-direction-names input { min-width: 0; width: 100%; }
 .intel-direction-selector { display: flex; align-items: flex-end; gap: 16px; }
 .intel-direction-picker { display: grid; flex: 1; min-width: 0; gap: 8px; font-weight: 600; }
 .intel-direction-selector > .intel-button { flex-shrink: 0; }
@@ -552,6 +562,13 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 #direction-results-panel > label { display: grid; gap: 8px; max-width: 280px; margin: 24px 0; }
 @media (max-width: 640px) {
   .intel-direction-config { padding: 16px 12px; }
+  .intel-direction-matrix thead { display: none; }
+  .intel-direction-matrix table, .intel-direction-matrix tbody { display: block; }
+  .intel-direction-matrix tr { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .intel-direction-matrix th:first-child { width: 100%; }
+  .intel-direction-matrix th, .intel-direction-matrix td { display: block; padding: 0; border: 0; }
+  .intel-direction-matrix td label { gap: 6px; }
+  .intel-direction-matrix-label { display: inline; font-size: .875rem; }
   .intel-direction-selector { flex-direction: column; align-items: stretch; gap: 10px; }
   .intel-direction-modules { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .intel-direction-modules .intel-button { justify-content: flex-start; padding: 12px; font-size: .88rem; }
