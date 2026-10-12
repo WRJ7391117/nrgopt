@@ -20,15 +20,21 @@
   }
   function controls() {
     ['new-project', 'edit-project', 'new-entry', 'edit-entry'].forEach(function (id) { byId(id).disabled = !writable || busy || loading; });
-    document.querySelectorAll('.research-form button, .research-form input, .research-form textarea, .research-form select, .research-project, .research-project-card, .research-reading-link, .research-group-more, .research-section-nav button, .research-entry').forEach(function (e) { e.disabled = busy || loading; });
+    document.querySelectorAll('.research-form button, .research-form input, .research-form textarea, .research-form select, .research-project, .research-project-card, .research-reading-link, .research-group-more, .research-section-nav button, .research-reading-nav button, .research-entry').forEach(function (e) { e.disabled = busy || loading; });
   }
   function discard() {
     if (busy || loading) return false;
     if (dirty && !confirm('当前输入尚未保存，是否放弃？')) return false;
     byId('project-form').hidden = true; byId('entry-form').hidden = true; dirty = false; return true;
   }
+  function readingNavigation() {
+    byId('breadcrumb-project').textContent = activeProject.title;
+    byId('breadcrumb-entry').textContent = activeEntry.title;
+    byId('close-entry').textContent = returnView === 'library' ? '← 返回资料库' : '← 返回项目概览';
+  }
   function showView(view) {
     currentView = view;
+    if (view === 'detail') readingNavigation();
     byId('project-overview').hidden = view !== 'overview';
     byId('library-panel').hidden = view !== 'library';
     byId('entry-detail').hidden = view !== 'detail';
@@ -56,7 +62,7 @@
     showView(state.view === 'library' ? 'library' : 'overview'); renderEntries();
     status(currentView === 'library' ? '已返回资料库。' : '已返回项目概览。');
     if (state.view === 'detail' && entries.some(function (item) { return item.id === state.entryId; })) {
-      await openEntry(state.entryId, false, false); returnView = state.returnView || 'overview';
+      await openEntry(state.entryId, false, false); returnView = state.returnView || 'overview'; readingNavigation();
     }
   }
   function entryButton(entry) {
@@ -77,7 +83,7 @@
       if (!items.length) section.append(node('p', '暂无资料', 'research-group-empty'));
       if (items.length) {
         var direct = items.length === 1 && items[0].file_type === 'text/html';
-        var more = node('button', direct ? '阅读手册 →' : '查看全部 · ' + items.length + '份', 'research-group-more'); more.type = 'button';
+        var more = node('button', direct ? (kind === 'plan' ? '阅读手册 →' : '阅读报告 →') : '查看全部 · ' + items.length + '份', 'research-group-more'); more.type = 'button';
         more.addEventListener('click', function () {
           if (!discard()) return;
           if (direct) { openEntry(items[0].id).catch(function (e) { status(e.message, true); }); return; }
@@ -215,10 +221,10 @@
   function leaveDetail(view) {
     if (!discard()) return;
     activeEntry = null; byId('detail-preview').replaceChildren(); showView(view); renderEntries(); remember();
+    byId('project-workspace').scrollIntoView({ block: 'start' });
   }
   byId('close-entry').addEventListener('click', function () {
-    if (history.state?.research && history.state.depth > 0) { if (discard()) history.back(); }
-    else leaveDetail(returnView);
+    leaveDetail(returnView);
   });
   byId('show-overview').addEventListener('click', function () { leaveDetail('overview'); });
   byId('show-library').addEventListener('click', function () { leaveDetail('library'); });
@@ -226,6 +232,8 @@
     if (!discard()) return;
     showProjects(); remember();
   });
+  byId('breadcrumb-project').addEventListener('click', function () { leaveDetail('overview'); });
+  byId('breadcrumb-projects').addEventListener('click', function () { if (discard()) { showProjects(); remember(); } });
   window.addEventListener('popstate', function (event) {
     if (discard()) restore(event.state).catch(function (e) { status(e.message, true); });
     else remember();
