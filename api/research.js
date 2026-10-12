@@ -67,7 +67,7 @@ function createHandler({ env = process.env, authFactory = createStore, storeFact
         res.setHeader('Content-Type', inline ? entry.file_type + (entry.file_type.startsWith('text/') ? '; charset=utf-8' : '') : 'application/octet-stream');
         res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="research-file"; filename*=UTF-8''${encodeURIComponent(entry.file_name).replace(/'/g, '%27')}`);
         res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-        res.setHeader('Content-Security-Policy', "sandbox allow-scripts allow-downloads; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
+        res.setHeader('Content-Security-Policy', "sandbox allow-scripts allow-downloads allow-modals; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
         return res.status(200).end(inline && entry.file_type === 'text/html' ? htmlPreview(bytes) : bytes);
       }
       if (!config.writes) throw failure('writes_disabled', 403);
