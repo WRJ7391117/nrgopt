@@ -620,6 +620,10 @@
     paragraph(item,(candidate.occurrence_countries||[]).map(function(c){return regionNames[c]||c;}).join('、')+' · '+(candidate.radars||[]).map(function(r){return labels[r]||r;}).join(' / '),'intel-source-meta');
     paragraph(item,candidate.summary_zh);
     paragraph(item,'与你的关注有关：'+(candidate.direction_names.length?candidate.direction_names.join('、')+'。':'尚无已核验的方向归属。')+(candidate.why_it_matters_zh||''),'intel-overview-impact');
+    if(candidate.rule_attention==='priority'){
+      paragraph(item,'当次规则：优先核实 · '+candidate.rule_paths.map(function(p){return p.path==='equipment'?'设备采购':'渠道合作';}).join(' / '),'intel-overview-impact');
+      var ruleDetails=directionText(item,'details','');directionText(ruleDetails,'summary','为什么优先核实？');paragraph(ruleDetails,candidate.rule_reason);
+    }
     if(compact) {
       paragraph(item,'关键未知：'+(candidate.unknowns_zh[0]||'当前未列出具体核实点，不代表全部证实。'),'intel-muted');
       paragraph(item,'原文发布：'+publicationLabel(candidate.source_timing)+' · 首次收录：'+dateLabel(candidate.created_at),'intel-source-meta');
@@ -2023,15 +2027,25 @@
     var countries=Array.from(new Set(configs.flatMap(function(c){return c.countries;})));
     directionTopicCodes=Array.from(new Set(configs.flatMap(function(c){return c.topic_codes;})));
     byId('direction-why').value=mergeText('why');byId('direction-industries').value=mergeText('industries',true);byId('direction-exclude').value=mergeText('exclude');
+    var rules=configs.map(function(c){return c.filter_rules || {include:['change','investment','participation'],include_note:'',focus:['equipment','partner']};});
+    ['include','focus'].forEach(function(key){var selected=Array.from(new Set(rules.flatMap(function(r){return r[key];})));document.querySelectorAll('[name="direction-rule-'+key+'"]').forEach(function(n){n.checked=selected.includes(n.value);});});
+    byId('direction-include-note').value=Array.from(new Set(rules.map(function(r){return r.include_note.trim();}).filter(Boolean))).join('\n');
+    var missingRules=configs.some(function(c){return !c.filter_rules;});
+    byId('direction-rules-note').hidden=!missingRules;
+    byId('direction-rules-note').textContent=missingRules?'推荐选项尚未保存，可调整后保存；保存前仍使用原设置。':'';
     directionSharedPriority=configs.length && configs.every(function(c){return c.priority===configs[0].priority;}) ? configs[0].priority : 'normal';
     document.querySelectorAll('[name="direction-country"]').forEach(function(n){n.checked=countries.includes(n.value);});
     var keys=['why','industries','exclude','priority','countries','topic_codes'];
-    directionDirty=configs.some(function(c){return keys.some(function(key){var value=Array.isArray(c[key])?c[key].slice().sort():c[key], first=Array.isArray(configs[0][key])?configs[0][key].slice().sort():configs[0][key];return JSON.stringify(value)!==JSON.stringify(first);});});
+    directionDirty=missingRules || rules.some(function(r){return JSON.stringify(r)!==JSON.stringify(rules[0]);}) || configs.some(function(c){return keys.some(function(key){var value=Array.isArray(c[key])?c[key].slice().sort():c[key], first=Array.isArray(configs[0][key])?configs[0][key].slice().sort():configs[0][key];return JSON.stringify(value)!==JSON.stringify(first);});});
     byId('direction-name-edit').open=false;document.querySelector('.intel-direction-topic-extra').open=false;
     byId('direction-topic-choices').replaceChildren();byId('direction-activity').open=false;byId('direction-activity-content').replaceChildren();
     byId('direction-save').textContent='保存整套设置';byId('direction-cancel').textContent='放弃修改';
     renderDirections();renderDirectionMatrix();updateDirectionScope();directionView('home');selectDirectionModule(directionHomeModule);
-    status('direction-save-status',directionDirty ? '已将原有范围与说明合并为草稿，可删减后保存。保存前仍使用原设置。' : '');
+    status('direction-save-status',directionDirty ? missingRules?'新增筛选规则是未保存草稿，请核对后保存整套设置。':'已将原有范围与说明合并为草稿，可删减后保存。保存前仍使用原设置。' : '');
+  }
+  function directionFilterRules() {
+    function selected(key){return Array.from(document.querySelectorAll('[name="direction-rule-'+key+'"]:checked')).map(function(n){return n.value;}).sort();}
+    return {include:selected('include'),include_note:byId('direction-include-note').value.trim(),focus:selected('focus')};
   }
   async function loadDirectionActivity() {
     var current=editingDirection, id=current?.id, list=byId('direction-activity-content'), read;
@@ -2114,13 +2128,16 @@
   function renderDirectionResults() {
     var list=byId('direction-results');list.replaceChildren();
     var seen=new Set(), filtered=0;
-    directionResults.forEach(function(item){
-      var key=item.source_id||item.url;if(seen.has(key))return;seen.add(key);
+    var deduped=directionResults.filter(function(item){var key=item.source_id||item.url;if(seen.has(key))return false;seen.add(key);return true;});
+    deduped.sort(function(a,b){return (b.rules_verified && b.match.attention==='priority' && b.candidate?.disposition==='candidate' && b.candidate.evidence_status!=='conflict'?1:0)-(a.rules_verified && a.match.attention==='priority' && a.candidate?.disposition==='candidate' && a.candidate.evidence_status!=='conflict'?1:0);});
+    deduped.forEach(function(item){
       if(!inPublicationPeriod(item.source,byId('direction-period').value)){filtered++;return;}
       var row=directionText(list,'li','');
       var label=!item.source?'搜索线索 · 原文尚未就绪':item.source.extraction_status==='failed'?'原文分析失败':!item.verified?'搜索线索 · 尚未按此方向核验':!item.match.relevant?'经分析与此方向无关':item.candidate?.disposition!=='candidate'?'相关背景资料':'原文支持相关性';
       if (!item.source && item.processing) label = ({queued:'等待获取原文',running:'正在获取原文',retry:'获取失败，等待重试',failed:'原文获取失败',manual_paused:'来源已暂停',budget_paused:'等待预算或账单恢复'})[item.processing.status] || label;
       directionText(row,'strong',label);
+      if(item.rules_verified && item.match.relevant)directionText(row,'p','当次规则：'+(item.match.attention==='priority' && item.candidate?.disposition==='candidate' && item.candidate.evidence_status!=='conflict'?'优先核实':'持续观察')+(item.match.business_paths.length?' · '+item.match.business_paths.map(function(p){return p.path==='equipment'?'设备采购':'渠道合作';}).join(' / '):''),'intel-source-meta');
+      else if(item.verified && !item.rules_verified)directionText(row,'p','尚未按新增筛选规则核验；以下保留当时的方向判断。','intel-muted');
       var title=item.candidate?.title_zh||item.source?.title||new URL(item.url).hostname;
       if(item.source){var link=directionText(row,'a',title);link.href='/intelligence/sources/'+item.source_id;}
       else directionText(row,'p',title);
@@ -2198,10 +2215,11 @@
     byId('direction-form').addEventListener('submit',async function(event){
       event.preventDefault();if(directionSaving || !directionData.writable)return;
       var invalid=this.querySelector('input:invalid,textarea:invalid,select:invalid');
-      var tooLong=['why','industries','exclude'].find(function(key){return [...byId('direction-'+key).value].length>({why:400,industries:200,exclude:300})[key];});
+      var tooLong=['why','industries','exclude','include-note'].find(function(key){return [...byId('direction-'+key).value].length>({why:400,industries:200,exclude:300,'include-note':300})[key];});
       if(tooLong)invalid=byId('direction-'+tooLong);
       if(invalid?.dataset.nameIndex!==undefined){selectDirectionModule('goal');byId('direction-name-edit').open=true;status('direction-save-status','请填写方向名称。','error');invalid.reportValidity();invalid.focus();return;}
-      var shared={why:byId('direction-why').value,industries:byId('direction-industries').value,exclude:byId('direction-exclude').value,countries:directionCountries(),topic_codes:directionTopicCodes.slice(),priority:directionSharedPriority};
+      var shared={why:byId('direction-why').value,industries:byId('direction-industries').value,exclude:byId('direction-exclude').value,countries:directionCountries(),topic_codes:directionTopicCodes.slice(),priority:directionSharedPriority,filter_rules:directionFilterRules()};
+      if(!shared.filter_rules.include.length){selectDirectionModule('rules');status('direction-save-status','请至少选择一项纳入条件。','error');document.querySelector('[name="direction-rule-include"]').focus();return;}
       var missing=invalid?.closest('fieldset').id.replace('direction-field-','') || (!directionDraft.length?'goal':!shared.countries.length?'countries':null);
       if(missing){selectDirectionModule(missing);status('direction-save-status',tooLong?'合并内容超过长度限制，请精简后保存。':invalid?'请补全提示的必填项。':missing==='goal'?'请新增一个关注方向。':'请至少选择一个国家或地区。','error');if(invalid){invalid.reportValidity();invalid.focus();}else byId('direction-field-'+missing).focus();return;}
       var directions=directionDraft.map(function(d,index){

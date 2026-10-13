@@ -52,7 +52,7 @@ test('purpose matrix keeps each direction association while normalizing one shar
 
 test('shared settings cannot diverge across directions', () => {
   for (const [key, value] of Object.entries({ why: '不同目的', industries: '其他行业', exclude: '不同排除项', priority: 'high',
-    countries: ['SA'], topic_codes: ['red-sea'] })) {
+    countries: ['SA'], topic_codes: ['red-sea'], filter_rules: { include: ['change'], include_note: '', focus: [] } })) {
     const input = matrix(); input.directions[1].config[key] = value;
     assert.throws(() => validateMatrix(input), { code: 'invalid_request' }, key);
   }
@@ -133,6 +133,19 @@ test('matrix route rejects mismatched scopes and surfaces stale revisions withou
   const response = await conflict.request(matrix());
   assert.equal(response.code, 409); assert.equal(response.body.error, 'direction_conflict');
   assert.match(response.body.message, /编辑仍保留/); assert.equal(conflict.saves.length, 1);
+});
+
+test('old pages cannot silently remove positive filtering rules and rule validation is owner-scoped before writing', async () => {
+  const api = app(), input = matrix();
+  delete input.directions[0].config.filter_rules;
+  const stale = await api.request(input);
+  assert.equal(stale.code, 409); assert.equal(stale.body.error, 'rules_refresh_required');
+  assert.match(stale.body.message, /刷新页面/); assert.deepEqual(api.saves, []);
+  const invalid = matrix(); invalid.directions[1].config.filter_rules.include = [];
+  assert.equal((await api.request(invalid)).code, 400); assert.deepEqual(api.saves, []);
+  const saved = await api.request(matrix());
+  assert.equal(saved.code, 200);
+  assert.ok(saved.body.directions.every(d => JSON.stringify(d.config.filter_rules) === JSON.stringify(saved.body.directions[0].config.filter_rules)));
 });
 
 test('complete matrices have a bounded larger request limit while obsolete individual saves cannot break shared settings', async () => {

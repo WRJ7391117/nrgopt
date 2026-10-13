@@ -9,6 +9,12 @@
   function status(message, error) { byId('research-status').textContent = message; byId('research-status').dataset.tone = error ? 'error' : ''; }
   function node(tag, text, className) { var e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (className) e.className = className; return e; }
   function date(value) { return new Date(value).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }); }
+  function renderSummary(summary) {
+    var container = byId('active-summary'); container.replaceChildren();
+    (summary || '尚未填写调研目标，可通过编辑项目补充。').split(/\n\s*\n/).forEach(function (text) {
+      container.append(node(text.trim() === '为什么先从乌兹别克斯坦开始？' ? 'h3' : 'p', text));
+    });
+  }
   async function api(action, body, id) {
     var response = await fetch('/api/research?action=' + action + (id ? '&id=' + encodeURIComponent(id) : ''), {
       credentials: 'same-origin', method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined
@@ -128,7 +134,7 @@
       activeProject = project; entries = data.entries; activeEntry = null;
       document.querySelector('.research-layout').hidden = false; byId('project-directory').hidden = true;
       byId('entry-detail').hidden = true; byId('detail-preview').replaceChildren(); byId('entry-search').value = ''; byId('entry-kind-filter').value = '';
-      byId('active-title').textContent = project.title; byId('active-region').textContent = project.region || '地区待填'; byId('active-summary').textContent = project.summary || '尚未填写调研目标，可通过编辑项目补充。';
+      byId('active-title').textContent = project.title; byId('active-region').textContent = project.region || '地区待填'; renderSummary(project.summary);
       byId('project-workspace').hidden = false; byId('research-empty').hidden = true; renderProjects(); renderEntries(); renderOverview(); showView('overview');
       status(writable ? '资料已同步 · ' + entries.length + '份资料' : '当前环境只读，暂不能保存。');
     } finally { loading = false; controls(); }
