@@ -21,6 +21,7 @@ const messages = {
 
   direction_conflict: '此方向已在其他页面修改。你的编辑仍保留，请核对最新设置后重新编辑。', direction_limit: '最多保留20个搜集方向，请编辑已有方向。',
   matrix_required: '搜集方向已改为统一配套设置。请刷新页面，在搜索目的与方向中一并保存。',
+  rules_refresh_required: '筛选规则已更新。请刷新页面，核对纳入、优先与不关注规则后保存。',
   topic_conflict: '专题名单已在其他页面修改，请刷新后重试。', topic_limit: '最多同时启用20个跨境专题，请先停用不再关注的专题。', topic_duplicate: '已有同名专题，请使用或恢复现有专题。',
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',

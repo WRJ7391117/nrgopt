@@ -78,11 +78,12 @@ test('direction queries broaden websites while preserving positive intent and sa
   }
 });
 test('direction relevance requires the frozen revision and an existing validated fact',()=>{
-  const match={id,revision:1,relevant:true,reason_zh:'原文披露供能中断。',evidence_fact_number:1};
+  const match={id,revision:1,relevant:true,reason_zh:'原文披露供能中断。',evidence_fact_number:1,matched_rules:['change'],business_paths:[]};
   assert.equal(validateMatches([match],[d],[{claim_zh:'停电',evidence_quote:'outage'}])[0].relevant,true);
   for(const value of [[{...match,revision:2}],[{...match,evidence_fact_number:2}],[],[match,match]])
     assert.throws(()=>validateMatches(value,[d],[{}]),{code:'extraction_invalid_direction_matches'});
-  assert.equal(validateMatches([{...match,relevant:false,evidence_fact_number:99}],[d],[{}])[0].evidence_fact_number,null);
+  const {matched_rules,business_paths,...unrelated}=match;
+  assert.equal(validateMatches([{...unrelated,relevant:false,evidence_fact_number:99}],[d],[{}])[0].evidence_fact_number,null);
 });
 test('pausing the linked direction stops automatic evidence searches but respects explicit manual tracking',()=>{
   const h={id:'h',status:'open',created_at:'2026-09-25T00:00:00Z',source_url:'https://example.test/a',source_title:'Public project',direction_ids:[id],candidate:{source_id:'s',occurrence_countries:['SA']}};
