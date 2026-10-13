@@ -103,3 +103,66 @@
 .research-reading-nav .intel-button { flex-shrink: 0; }
 @media (max-width: 760px) { .research-reading-nav { padding: 12px; } .research-breadcrumbs { font-size: .75rem; } }
 @media print { .research-reading-nav { display: none; } }
+
+/* Project overview: separate objectives, market rationale and reading paths. */
+.research-app::before, .research-app::after { display: none; }
+.research-main { padding-top: 32px; }
+.research-heading { padding-bottom: 22px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.research-heading h1 { font-size: clamp(1.75rem, 3vw, 2.15rem); line-height: 1.25; margin: 8px 0 10px; }
+.research-heading .intel-muted { margin: 0; }
+#research-status { color: var(--text-dim); font-size: .78rem; margin: 0 0 24px; }
+#research-status[data-tone="error"] { color: var(--error); }
+.research-layout { grid-template-columns: 190px minmax(0, 1fr); gap: 28px; margin-top: 0; }
+.research-sidebar { border-right: 0; padding-right: 0; }
+.research-sidebar h2 { font-size: .75rem; letter-spacing: .04em; margin-bottom: 12px; }
+.research-project { padding: 16px; background: var(--surface); font: inherit; font-size: .8rem; line-height: 1.5; border-color: var(--border); }
+.research-project[aria-current="true"] { background: var(--surface); border-color: var(--accent); }
+.research-project-heading h2 { font-size: 1.3rem; line-height: 1.5; }
+.research-project-heading .intel-eyebrow { margin-bottom: 6px; }
+.research-section-nav { margin: 20px 0 28px; }
+.research-goal { border: 0; padding: 0; margin-bottom: 36px; }
+.research-goal > .intel-eyebrow { margin-bottom: 6px; }
+.research-goal > h3, .research-market-choice > h3 { font-size: 1.12rem; margin-bottom: 18px; }
+.research-summary { white-space: normal; }
+.research-objectives, .research-reasons { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.research-objectives { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.research-objective, .research-reason { min-width: 0; margin: 0; padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.research-item-heading { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+.research-item-number { color: var(--accent); font-size: .78rem; font-weight: 650; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.research-item-heading h4 { color: var(--text); font-size: .9rem; line-height: 1.55; font-weight: 650; margin: 0; flex: 1; min-width: 100px; }
+.research-objective > p, .research-reason > p, .research-reason-detail > p { color: var(--text-dim); font-size: .84rem; line-height: 1.85; margin: 0; }
+.research-goal .research-market-choice { padding: 0; margin-top: 30px; background: none; }
+.research-market-choice > .intel-eyebrow { margin-bottom: 6px; }
+.research-reasons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.research-reason-primary { grid-column: 1 / -1; border-top: 3px solid var(--accent); padding-top: 18px; }
+.research-reason-primary h4 { font-size: 1rem; }
+.research-priority-label { color: var(--accent); font-size: .72rem; font-weight: 600; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
+.research-reason-detail { margin-top: 12px; }
+.research-reason-detail > summary { color: var(--accent); font-size: .78rem; cursor: pointer; width: fit-content; }
+.research-reason-detail > p { margin-top: 12px; }
+.research-reason-detail > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.research-summary > .research-summary-note { font-size: .82rem; line-height: 1.8; margin: 18px 0 0; padding-left: 14px; border-left: 2px solid var(--border); }
+.research-overview-heading { padding-top: 26px; border-top: 1px solid var(--border); margin-bottom: 20px; }
+.research-overview-heading h3 { font-size: 1.12rem; }
+.research-overview-groups { gap: 16px; }
+.research-app .research-reading-group { background: var(--surface) !important; padding: 22px; }
+.research-reading-group > .intel-eyebrow { margin-bottom: 10px; }
+.research-reading-group h4 { font-size: 1rem; }
+@media (max-width: 1000px) {
+  .research-objectives { grid-template-columns: 1fr; }
+  .research-objective { padding: 16px 20px; }
+}
+@media (max-width: 760px) {
+  .research-main { padding-top: 24px; }
+  .research-heading { gap: 18px; padding-bottom: 20px; }
+  .research-heading .intel-button { padding: 8px 12px; }
+  .research-layout { grid-template-columns: 1fr; }
+  .research-section-nav { gap: 18px; margin: 16px 0 24px; }
+  .research-project-heading h2 { font-size: 1.15rem; }
+  .research-reasons { grid-template-columns: 1fr; }
+  .research-objective, .research-reason { padding: 18px; }
+  .research-goal { padding: 0; }
+  .research-market-choice { margin-top: 26px; }
+  .research-item-heading { gap: 8px; }
+  .research-priority-label { margin-left: 24px; }
+}
