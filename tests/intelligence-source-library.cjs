@@ -59,7 +59,7 @@ test('extra-country channel rotation advances by country cycle, avoiding a fixed
 test('candidate check requires readable entry and recent same-host analysis of the current source hash',async()=>{
  const e={...entry(),config:{...entry().config,url:'https://example.org/',scope:'site'}};
  const fetch=async()=>({finalUrl:'https://www.example.org/',excerpt:'Public page',bytes:Buffer.from('public page'),title:'Example'});
- const sample={id:'sample',final_url:'https://example.org/article',publication_date:'2026-09-01',publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
+ const sample={id:'sample',final_url:'https://example.org/article',fetched_at:'2026-09-28T00:00:00Z',status:'pending_extraction',publication_date:'2026-09-01',publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
  assert.equal((await checkEntry(e,fetch,[sample],'2026-09-28')).review,'recent_validated_source');
  for(const changed of [{final_url:'https://example.org.evil.test/article'},{publication_date:'2026-08-29'},{publication_date:null},{publication_method:'conflicting_metadata'},{extraction_source_sha256:'b'.repeat(64)},{extraction_status:'failed'}])
   assert.equal((await checkEntry(e,fetch,[{...sample,...changed}],'2026-09-28')).review,'recent_source_missing');

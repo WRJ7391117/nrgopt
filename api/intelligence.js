@@ -179,34 +179,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         const config = settings(env);
         if (!config.writes) throw failure('writes_disabled', 403);
         const store = storeFactory(config);
-        const library = require('../lib/intelligence/source-library.cjs');
         const day = scheduleDate();
-        const entries = await store.sourceLibrary(config.adminId);
-        const candidates = entries.filter(e => {
-          const checked = Date.parse(e.access?.checked_at);
-          return e.id.startsWith('reference:') && e.status === 'candidate' && !e.host_paused
-            && (!Number.isFinite(checked) || checked <= Date.now() - 7 * 86400000);
-        })
-          .sort((a,b) => (a.access?.checked_at || '').localeCompare(b.access?.checked_at || '') || a.id.localeCompare(b.id));
-        const outcomes = [];
-        for (const entry of candidates) {
-          if (outcomes.length >= 3) break;
-          const reservation = await store.reserveLibraryCheck(config.adminId, entry.id, day);
-          if (reservation === 'limit') break;
-          if (reservation === 'duplicate') continue;
-          if (reservation !== 'reserved') throw failure('upstream_unavailable', 502);
-          const sources = await store.recentLibrarySources(config.adminId, entry);
-          const access = await library.checkEntry(entry, sourceFetcher, sources, day);
-          const status = access.status === 'readable' && access.review === 'recent_validated_source' ? 'active' : 'candidate';
-          try {
-            await store.saveLibraryEntry(config.adminId, { ...entry, status }, access);
-            outcomes.push({ id:entry.id, status, review:access.review, error_code:access.error_code || null });
-          } catch(error) {
-            if (error.code !== 'library_conflict') throw error;
-            outcomes.push({ id:entry.id, status:'conflict', review:'changed_during_check' });
-          }
-        }
-        return res.status(200).json({ day, checked:outcomes.length, outcomes });
+        return res.status(200).json(await require('../lib/intelligence/library-maintenance.cjs').maintainLibrary({
+          store, owner: config.adminId, day, fetchSource: sourceFetcher
+        }));
       }
       if (action === 'health-check') {
         if (!env.CRON_SECRET || req.headers.authorization !== `Bearer ${env.CRON_SECRET}`) throw failure('scheduler_unauthorized', 401);
@@ -327,7 +303,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'feishu-page') return html(require('../lib/intelligence/pages.cjs').feishuPage(user.email));
       if (action === 'library-page') return html(require('../lib/intelligence/pages.cjs').sourceLibraryPage(user.email));
       if (action === 'source-library') {
-        const [library, directions] = await Promise.all([store.libraryOverview(user.id), store.directionList(user.id)]);
+        const directionsRead = store.directionList(user.id);
+        const [library, directions] = await Promise.all([store.libraryOverview(user.id, directionsRead), directionsRead]);
         return res.status(200).json({ ...library, writable:config.writes, directions, types:require('../lib/intelligence/source-library.cjs').types });
       }
       if (action === 'library-history') {
@@ -343,12 +320,15 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
           if (entry.config.direction_ids.some(id=>!directions.some(d=>d.id===id))) throw failure('invalid_request',400);
           const entries = await store.sourceLibrary(user.id);
           if (entries.some(e=>e.id!==entry.id && library.scopeKey(e)===library.scopeKey(entry))) throw failure('library_duplicate',409);
-          return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,entry) });
+          const current = entries.find(e=>e.id===entry.id);
+          const userAccess = entry.id.startsWith('reference:') ? { ...(current?.config.url===entry.config.url && current.config.scope===entry.config.scope ? current.access : {status:'unchecked'}),
+            managed_by:'user', scope_confirmation_needed:false, reason:'user_confirmed', check_only:false } : null;
+          return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,entry,userAccess) });
         }
         const entry = (await store.sourceLibrary(user.id)).find(e=>e.id===body.id && e.revision===body.revision);
         if (!entry) throw failure('library_conflict',409);
         if (entry.status==='removed') throw failure('invalid_request',400);
-        const access = await library.checkEntry(entry, sourceFetcher);
+        const access = { ...entry.access, ...await library.checkEntry(entry, sourceFetcher), check_only:true };
         const checkedEntry = access.status==='failed' && entry.status==='active' && entry.config.mode!=='fixed' ? {...entry,status:'candidate'} : entry;
         return res.status(200).json({ entry:await store.saveLibraryEntry(user.id,checkedEntry,access) });
       }

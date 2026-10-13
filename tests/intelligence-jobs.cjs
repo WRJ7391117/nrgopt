@@ -745,3 +745,20 @@ test('reference trial rechecks candidate state before using the original discove
   assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),status==='candidate');
  }
 });
+test('an unconfirmed automatic source or user-owned reference candidate cannot run a stale trial plan',async()=>{
+ const channel={id:'reference:auto:'+'a'.repeat(64),url:'https://example.org/article',scope:'path',trial:true};
+ for(const access of [{status:'readable',managed_by:'automatic',scope_confirmation_needed:true,scope_verified:false,auto_scope_key:'example.org/article'},
+   {status:'readable',managed_by:'user',scope_confirmation_needed:false}]){
+  const store=fakeStore({item:{id:'item-1',item_key:'discover:SA',attempts:1,checkpoint:{channel}}});
+  store.sourceLibrary=async()=>[{id:channel.id,status:'candidate',access,config:{url:channel.url,scope:channel.scope}}];
+  const result=await runDailyJobItem({...dependencies,store,owner:'owner',jobId:'job',discover:async()=>{throw Error('stale automatic trial must not reach a paid provider');}});
+  assert.equal(result.status,'manual_paused');assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),false);
+ }
+});
+test('an active automatic channel with a failed entry review stops its frozen plan before spending',async()=>{
+ const channel={id:'reference:auto:'+'a'.repeat(64),url:'https://example.org/news/',scope:'path'};
+ const store=fakeStore({item:{id:'item-1',item_key:'discover:SA',attempts:1,checkpoint:{channel}}});
+ store.sourceLibrary=async()=>[{id:channel.id,status:'active',access:{status:'failed',managed_by:'automatic',scope_verified:true,consecutive_failures:1,auto_scope_key:'example.org/news'},config:{url:channel.url,scope:channel.scope}}];
+ const result=await runDailyJobItem({...dependencies,store,owner:'owner',jobId:'job',discover:async()=>{throw Error('failed entry must not reach a paid provider');}});
+ assert.equal(result.status,'manual_paused');assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),false);
+});
