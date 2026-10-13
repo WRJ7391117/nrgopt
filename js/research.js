@@ -11,9 +11,32 @@
   function date(value) { return new Date(value).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }); }
   function renderSummary(summary) {
     var container = byId('active-summary'); container.replaceChildren();
+    var list = node('ol', undefined, 'research-objectives'); list.setAttribute('role', 'list'); container.append(list);
+    var reasons = false;
     (summary || '尚未填写调研目标，可通过编辑项目补充。').split(/\n\s*\n/).forEach(function (text) {
-      container.append(node(text.trim() === '为什么先从乌兹别克斯坦开始？' ? 'h3' : 'p', text));
+      if (text.trim() === '为什么先从乌兹别克斯坦开始？') {
+        reasons = true;
+        var section = node('section', undefined, 'research-market-choice');
+        section.append(node('p', '市场选择', 'intel-eyebrow'), node('h3', text));
+        list = node('ol', undefined, 'research-reasons'); list.setAttribute('role', 'list'); section.append(list); container.append(section); return;
+      }
+      var item = text.match(/^(\d+)\.\s*(.+?)[：:]\s*([\s\S]*)$/);
+      if (!item) { container.append(node('p', text, 'research-summary-note')); return; }
+      var primary = reasons && item[2].includes('首要依据');
+      var card = node('li', undefined, reasons ? 'research-reason' + (primary ? ' research-reason-primary' : '') : 'research-objective');
+      var heading = node('div', undefined, 'research-item-heading');
+      heading.append(node('span', item[1].padStart(2, '0'), 'research-item-number'), node('h4', item[2].replace('（首要依据）', '').trim()));
+      if (primary) heading.append(node('span', '首要依据', 'research-priority-label'));
+      card.append(heading);
+      var split = reasons ? item[3].indexOf('。') : -1;
+      if (split >= 0 && split < item[3].length - 1) {
+        card.append(node('p', item[3].slice(0, split + 1)));
+        var details = node('details', undefined, 'research-reason-detail');
+        details.append(node('summary', '展开完整依据'), node('p', item[3].slice(split + 1))); card.append(details);
+      } else card.append(node('p', item[3]));
+      list.append(card);
     });
+    if (!container.querySelector('.research-objectives li')) container.querySelector('.research-objectives').remove();
   }
   async function api(action, body, id) {
     var response = await fetch('/api/research?action=' + action + (id ? '&id=' + encodeURIComponent(id) : ''), {

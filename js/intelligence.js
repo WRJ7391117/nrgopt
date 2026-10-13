@@ -1728,6 +1728,14 @@
   var discoveryForm = byId('discovery-form');
   var overviewList = byId('candidate-list');
   if (overviewList) {
+    var openSupplement = function () {
+      var id = location.hash.slice(1);
+      if (id !== 'library-materials' && id !== 'library-saved') return;
+      var section = byId(id);
+      if (section) { section.open = true; section.scrollIntoView({block:'start'}); }
+    };
+    openSupplement();
+    window.addEventListener('hashchange', openSupplement);
     var candidateFilters = byId('candidate-filters');
     function readCandidateFilters() {
       var filterParams = new URLSearchParams(location.search);
@@ -2314,7 +2322,7 @@
       if (byId('workbench-new')) { await loadWorkbench(); return; }
       if (byId('followups-list')) { await loadFollowups(); return; }
       if (byId('workflow-tasks')) { await loadWorkflow(); return; }
-      if (overviewList) { await loadOverview(); return; }
+      if (overviewList) { await loadOverview(); openSupplement(); return; }
       var match = location.pathname.match(detailPath);
       if (match) await loadDetail(match[1]);
       else if (importForm) {

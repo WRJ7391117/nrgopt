@@ -1,0 +1,46 @@
+begin;
+do $$
+declare a uuid:=gen_random_uuid(); c jsonb:='{"name":"automatic listing","url":"https://example.org/authors/alice/","scope":"path","mode":"search","scope_key":"example.org/authors/alice"}';
+ auto_id text:='reference:auto:'||repeat('a',64); proof jsonb:='{"status":"readable","managed_by":"automatic","auto_scope_key":"example.org/authors/alice","scope_verified":true,"scope_confirmation_needed":false}';
+ r jsonb; version integer; checks integer;
+begin
+ insert into auth.users(id) values(a);
+ r:=public.save_intelligence_source_library(a,auto_id,0,c,'candidate',proof);
+ if (r->>'revision')::int<>1 then raise exception 'automatic registration failed';end if;
+ if public.save_intelligence_source_library(a,auto_id,0,c,'candidate',proof)->>'error' is distinct from 'library_conflict' then raise exception 'duplicate registration not rejected';end if;
+ perform public.set_intelligence_source_control(a,'example.org',true);
+ if public.save_intelligence_source_library(a,auto_id,1,c,'active',proof)->>'error' is distinct from 'library_paused' then raise exception 'automatic activation bypassed host pause';end if;
+ if not (select paused from public.intelligence_source_controls where owner_id=a and hostname='example.org') then raise exception 'automatic save resumed host';end if;
+ perform public.set_intelligence_source_control(a,'example.org',false);
+ r:=public.save_intelligence_source_library(a,auto_id,1,c,'active',proof);
+ r:=public.save_intelligence_source_library(a,auto_id,2,c,'paused');
+ if public.save_intelligence_source_library(a,auto_id,3,c,'active',proof)->>'error' is distinct from 'library_paused' then raise exception 'automatic overwrite of explicit pause';end if;
+ r:=public.save_intelligence_source_library(a,auto_id,3,c,'removed');
+ if public.save_intelligence_source_library(a,auto_id,4,c,'candidate',proof)->>'error' is distinct from 'library_paused' then raise exception 'automatic overwrite of explicit remove';end if;
+ r:=public.save_intelligence_source_library(a,auto_id,4,c,'candidate',proof||'{"managed_by":"user"}');
+ if public.save_intelligence_source_library(a,auto_id,5,c,'active',proof)->>'error' is distinct from 'library_user_managed' then raise exception 'automatic takeover of manual control';end if;
+ perform public.save_intelligence_source_library(a,'reference:manual-site',0,'{"name":"site","url":"https://example.org/","scope":"site","mode":"search","scope_key":"example.org"}','active','{"status":"readable","managed_by":"user"}');
+ perform public.set_intelligence_source_control(a,'example.org',true);
+ r:=public.save_intelligence_source_library(a,'reference:manual-site',1,'{"name":"site","url":"https://example.org/","scope":"site","mode":"search","scope_key":"example.org"}','active','{"status":"readable","managed_by":"user","check_only":true}');
+ if not (select paused from public.intelligence_source_controls where owner_id=a and hostname='example.org') then raise exception 'manual check resumed host';end if;
+ r:=public.save_intelligence_source_library(a,'reference:manual-site',2,'{"name":"site","url":"https://example.org/","scope":"site","mode":"search","scope_key":"example.org"}','active','{"status":"readable","managed_by":"user","check_only":false}');
+ if (select paused from public.intelligence_source_controls where owner_id=a and hostname='example.org') then raise exception 'explicit user resume no longer works';end if;
+ perform public.save_intelligence_source_library(a,'blocked-bob',0,'{"name":"bob","url":"https://example.org/authors/bob/","scope":"path","mode":"search","scope_key":"example.org/authors/bob"}','removed');
+ if public.save_intelligence_source_library(a,'reference:auto:'||repeat('b',64),0,'{"name":"bob article","url":"https://example.org/authors/bob/post","scope":"path","mode":"search","scope_key":"example.org/authors/bob/post"}','candidate',proof||'{"auto_scope_key":"example.org/authors/bob/post"}')->>'error' is distinct from 'library_paused' then raise exception 'removed path recreated';end if;
+ r:=public.save_intelligence_source_library(a,'reference:auto:'||repeat('c',64),0,'{"name":"carol","url":"https://example.org/authors/carol/","scope":"path","mode":"search","scope_key":"example.org/authors/carol"}','candidate',proof||'{"auto_scope_key":"example.org/authors/carol"}');
+ if r ? 'error' then raise exception 'removed bob scope blocked unrelated carol';end if;
+ r:=public.save_intelligence_source_library(a,'reference:auto:'||repeat('c',64),1,'{"name":"carol","url":"https://example.org/authors/carol/","scope":"path","mode":"search","scope_key":"example.org/authors/carol"}','active',proof||'{"auto_scope_key":"example.org/authors/carol"}');
+ r:=public.save_intelligence_source_library(a,'reference:auto:'||repeat('c',64),2,'{"name":"carol","url":"https://example.org/authors/carol/","scope":"path","mode":"search","scope_key":"example.org/authors/carol"}','active',proof||'{"auto_scope_key":"example.org/authors/carol","status":"failed","consecutive_failures":1}');
+ if r ? 'error' or r->>'status'<>'active' or r->'access'->>'consecutive_failures'<>'1' then raise exception 'first automatic failure did not persist';end if;
+ r:=public.save_intelligence_source_library(a,'reference:auto:'||repeat('c',64),3,'{"name":"carol","url":"https://example.org/authors/carol/","scope":"path","mode":"search","scope_key":"example.org/authors/carol"}','candidate',proof||'{"auto_scope_key":"example.org/authors/carol","status":"failed","consecutive_failures":2}');
+ if r ? 'error' or r->>'status'<>'candidate' or r->'access'->>'consecutive_failures'<>'2' then raise exception 'second automatic failure did not downgrade';end if;
+ if public.save_intelligence_source_library(a,'reference:auto:'||repeat('d',64),0,'{"name":"unknown scope","url":"https://new.example.org/article","scope":"path","mode":"search","scope_key":"new.example.org/article"}','active',proof||'{"auto_scope_key":"new.example.org/article","scope_verified":false}')->>'error' is distinct from 'invalid_request' then raise exception 'unproven scope activated';end if;
+ if public.save_intelligence_source_library(a,'reference:auto:'||repeat('f',64),0,'{"name":"new failed channel","url":"https://new.example.org/failed","scope":"path","mode":"search","scope_key":"new.example.org/failed"}','active',proof||'{"auto_scope_key":"new.example.org/failed","status":"failed","consecutive_failures":1}')->>'error' is distinct from 'library_unchecked' then raise exception 'new failed channel activated via first-failure exception';end if;
+ for version in 1..18 loop
+   if public.reserve_intelligence_library_check(a,'reference:auto:'||md5(version::text)||md5(version::text),(now() at time zone 'Asia/Shanghai')::date)<>'reserved' then raise exception 'check quota prematurely exhausted';end if;
+ end loop;
+ if public.reserve_intelligence_library_check(a,'reference:auto:'||repeat('e',64),(now() at time zone 'Asia/Shanghai')::date)<>'limit' then raise exception 'daily eighteen limit exceeded';end if;
+ if public.reserve_intelligence_library_check(a,'reference:auto:'||md5('1')||md5('1'),(now() at time zone 'Asia/Shanghai')::date)<>'duplicate' then raise exception 'duplicate check not retained';end if;
+ if has_function_privilege('authenticated','public.save_intelligence_source_library(uuid,text,integer,jsonb,text,jsonb)','EXECUTE') then raise exception 'public mutation grant';end if;
+end $$;
+rollback;

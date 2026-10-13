@@ -56,7 +56,7 @@ function setup({ overrides = {}, environment = env, sourceFetcher, modelFactory,
     save: async () => ({ source, reused: false }), annotate: async (_id, _owner, note) => ({ ...source, annotation_zh: note, annotation_updated_at: '2026-09-22T00:00:00.000Z' }),
     beginExtraction: async () => {}, saveExtraction: async (_id, _owner, result) => ({ ...source, extraction_status: 'extracted', extraction_zh: result.extraction }),
     saveCandidate: async () => ({}),
-    sourceLibrary: async () => [], directionList: async () => [], collectionDirections: async () => ({directions:[],versions:[],tasks:[],effective:[]}), snapshotDirections: async () => null,
+    sourceLibrary: async () => [], libraryOverview: async (_owner, directionsRead) => ({entries:await store.sourceLibrary(_owner),suggestions:[],directions:await directionsRead}), directionList: async () => [], collectionDirections: async () => ({directions:[],versions:[],tasks:[],effective:[]}), snapshotDirections: async () => null,
     snapshotSearchPlan: async () => ({directions:null,topics:null,legacy:true}), jobTopics: async () => null, directionQueryCounts: async () => [], bindDirectionSource: async () => {}, sourceDirections: async () => [],
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], enqueueJob: async () => '33333333-3333-4333-8333-333333333333', enqueueJobItems: async () => 0,
     claimJobItem: async () => null, finishJobItem: async () => true,
@@ -1040,7 +1040,7 @@ test('daily reference maintenance is authorized, bounded, evidence-gated and nev
  const {defaults}=require('../lib/intelligence/source-library.cjs');
  const refs=defaults().filter(e=>e.id.startsWith('reference:')).sort((a,b)=>a.id.localeCompare(b.id)).slice(0,4);
  let reserved=0;const saved=[];
- const sample={id,final_url:refs[0].config.url+'article',publication_date:new Date().toISOString().slice(0,10),publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
+ const sample={id,final_url:refs[0].config.url+'article',status:'pending_extraction',fetched_at:new Date().toISOString(),publication_date:new Date().toISOString().slice(0,10),publication_method:'metadata',extraction_status:'extracted',content_sha256:'a'.repeat(64),extraction_source_sha256:'a'.repeat(64)};
  const app=setup({environment:{...env,CRON_SECRET:'cron-test-secret',NRGOPT_SCHEDULER_ENABLED:'1'},overrides:{
    sourceLibrary:async()=>refs,recentLibrarySources:async()=>[sample],reserveLibraryCheck:async()=>reserved++<3?'reserved':'limit',
    saveLibraryEntry:async(_owner,value,access)=>{saved.push({value,access});return {...value,access};}
@@ -1066,6 +1066,33 @@ test('recently reviewed references wait seven days while unchecked and older ent
  const result=await app.request('library-maintenance',{loggedIn:false,headers:{authorization:'Bearer cron-test-secret'}});
  assert.equal(result.code,200);assert.equal(result.body.checked,2);
  assert.deepEqual(new Set(result.body.outcomes.map(x=>x.id)),new Set([refs[2].id,refs[3].id]));
+});
+test('channel GET projects suggestions and coverage without triggering automatic registration or paid capabilities', async () => {
+  const app = setup({ overrides: { saveLibraryEntry: async () => { throw Error('GET must not mutate'); }, reserveLibraryCheck: async () => { throw Error('GET must not reserve'); } },
+    modelFactory: () => { throw Error('GET must not create model'); }, sourceFetcher: async () => { throw Error('GET must not fetch a publisher'); } });
+  assert.equal((await app.request('source-library')).code, 200);
+  assert.ok(!app.calls.some(call => ['saveLibraryEntry', 'reserveLibraryCheck', 'recentLibrarySources'].includes(call.name)));
+});
+test('manual channel check preserves automatic metadata and carries check-only intent without restoring a paused host', async () => {
+  const entry = { id: 'fixed:test', revision: 1, status: 'active', host_paused: true, config: { url: 'https://public.example/', scope: 'site', mode: 'fixed' }, access: { status: 'readable', managed_by: 'automatic', scope_verified: true } };
+  let saved;
+  const app = setup({ overrides: { sourceLibrary: async () => [entry], saveLibraryEntry: async (_owner, value, access) => { saved = { value, access }; return { ...value, access }; } },
+    sourceFetcher: async url => ({ finalUrl: url, excerpt: 'Public readable site', bytes: Buffer.from('Public') }) });
+  assert.equal((await app.request('check-library-entry', { method: 'POST', body: { id: entry.id, revision: 1 } })).code, 200);
+  assert.equal(saved.access.check_only, true); assert.equal(saved.access.managed_by, 'automatic');
+  assert.equal(saved.value.host_paused, true); assert.ok(!app.calls.some(call => call.name === 'setSourceControl'));
+});
+test('an explicit user save takes over automatic source ownership and changed scope requires a fresh entry check', async () => {
+  const { automaticProposal } = require('../lib/intelligence/library-maintenance.cjs');
+  const d = { id, config: { enabled: true, countries: ['SA'] } };
+  const e = automaticProposal({ name: 'public.example', samples: [{ id: 'sample', final_url: 'https://public.example/author/article', countries: ['SA'], content_sha256: 'a'.repeat(64) }] }, [d]);
+  e.revision = 1; e.access.status = 'readable'; let saved;
+  const app = setup({ overrides: { directionList: async () => [d], sourceLibrary: async () => [e], saveLibraryEntry: async (_owner, value, access) => { saved = { value, access }; return { ...value, access }; } } });
+  assert.equal((await app.request('save-library-entry', { method: 'POST', body: e })).code, 200);
+  assert.equal(saved.access.managed_by, 'user'); assert.equal(saved.access.scope_confirmation_needed, false);
+  assert.equal(saved.access.status, 'readable');
+  assert.equal((await app.request('save-library-entry', { method: 'POST', body: { ...e, config: { ...e.config, url: 'https://public.example/other/' } } })).code, 200);
+  assert.equal(saved.access.status, 'unchecked'); assert.equal(saved.access.managed_by, 'user');
 });
 
 

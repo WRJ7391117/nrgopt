@@ -238,24 +238,30 @@ test('source library reads saved entries and host controls before either read fi
   assert.equal(result.find(entry => entry.id === 'custom').host_paused, true);
 });
 
-test('channel overview starts entries, recent sources and daily execution independently', async () => {
+test('channel overview starts entries, recent sources, natural tasks and shared directions independently', async () => {
   const gate = latch(), started = [];
   const store = createStore(CONFIG, async input => {
     const url = new URL(input);
-    assert.equal(url.pathname, '/rest/v1/intelligence_sources');
+    assert.ok(['/rest/v1/intelligence_sources', '/rest/v1/intelligence_job_items'].includes(url.pathname));
     assert.equal(url.searchParams.get('owner_id'), `eq.${OWNER}`);
-    started.push('sources');
+    started.push(url.pathname.endsWith('intelligence_sources') ? 'sources' : 'tasks');
     await gate.promise;
     return Response.json([]);
   });
   store.sourceLibrary = async owner => { assert.equal(owner, OWNER); started.push('entries'); await gate.promise; return []; };
-  store.dailyEntryStatus = async owner => { assert.equal(owner, OWNER); started.push('daily'); await gate.promise; return { day: '2026-10-08', items: [] }; };
-  const pending = store.libraryOverview(OWNER);
+  const directions = (async () => { started.push('directions'); await gate.promise; return []; })();
+  const pending = store.libraryOverview(OWNER, directions);
   try {
     await nextTurn();
-    assert.deepEqual(started.sort(), ['daily', 'entries', 'sources']);
+    assert.deepEqual(started.sort(), ['directions', 'entries', 'sources', 'tasks']);
   } finally { gate.release(); }
-  assert.deepEqual(await pending, { entries: [], suggestions: [], sample_limit: 500, day: '2026-10-08' });
+  const result = await pending;
+  assert.deepEqual(result.entries, []);
+  assert.deepEqual(result.suggestions, []);
+  assert.deepEqual(result.coverage, []);
+  assert.equal(result.sample_limit, 500);
+  assert.equal(result.window.sources_read, 0);
+  assert.equal(result.window.tasks_read, 0);
 });
 
 test('direction list reads only the owner direction table without histories, tasks or effective RPC', async () => {
