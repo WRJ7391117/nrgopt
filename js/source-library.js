@@ -34,7 +34,7 @@
     if(busy||!data.writable)return;busy=true;feedback[e.id]={text:kind==='check'?'正在检查入口…':'正在保存…',error:false};render();message('library-status',kind==='check'?'正在检查入口，不调用模型…':'正在保存渠道状态…');
     try {var result=await api(kind==='check'?'check-library-entry':'save-library-entry',kind==='check'?{id:e.id,revision:e.revision}:payload(e,target));update(result.entry);
       if(kind!=='check'&&target==='active'&&e.config.scope==='site')data.entries.forEach(function(row){if(new URL(row.config.url).hostname.replace(/^www\./,'')===new URL(e.config.url).hostname.replace(/^www\./,''))row.host_paused=false;});
-      var text=kind==='check'?(result.entry.access.status==='readable'?'入口本次可读取；仍需查看实际产出。':'入口读取失败：'+accessReason(result.entry.access.error_code)+'。'):'已保存「'+e.config.name+'」：'+states[result.entry.status]+'。';
+      var text=kind==='check'?(result.entry.access.status==='readable'?'网址现在可以读取；此次检查未重新执行搜集或 AI 分析。':'网址检查失败：'+accessReason(result.entry.access.error_code)+'。'):'已保存「'+e.config.name+'」：'+states[result.entry.status]+'。';
       feedback[e.id]={text:text,error:false};message('library-status',text);await refreshAfterSave();
     }catch(err){feedback[e.id]={text:err.message,error:true};message('library-status',err.message,true);}finally{busy=false;render();}
   }
@@ -66,10 +66,21 @@
     if(systemManaged(e)&&e.config.type==='unknown')return '来源类别尚未核实；系统可继续检查与试采，你可在编辑中补充。';
     if(e.config.type==='unknown')return '补充来源类别，再结合入口检查与原文样本决定使用。';
     if(e.status==='candidate')return e.access.status==='readable'?'入口可读；结合原文样本决定是否启用。':'先检查入口，再决定是否启用。';
-    if(latest(e)?.status==='failed')return '查看最近失败原因；保留失败记录，不重复人工付费重试。';
     if(e.usage?.reason==='outside_scope')return '与当前搜集范围未匹配，先核对报道地区和适用方向。';
     if(e.config.mode!=='fixed'&&e.access.status!=='readable')return '先检查入口，确认轮转条件。';
     return '继续观察产出；新线索进入情报库。';
+  }
+  function failureGuidance(e){
+    if(['paused','removed'].includes(e.status)||e.host_paused||['scope_paused','outside_scope'].includes(e.usage?.reason)||e.integration)return null;
+    var task=latest(e),entryFailed=e.access.status==='failed',taskFailed=['failed','retry'].includes(task?.status);
+    if(!entryFailed&&!taskFailed)return null;
+    var code=entryFailed?e.access.error_code:task.error_code,reason=Object.assign({},accessErrors,{registry_no_links:'页面未找到可识别的文章链接',registry_failed:'本次栏目读取未完成，具体原因尚未明确',discovery_no_primary_sources:'本次搜索未取得符合要求的来源'})[code]||'本次搜集未完成，具体原因尚未明确',next,manual=false;
+    if(task?.status==='retry'&&!entryFailed&&(e.config.mode==='fixed'&&e.status==='active'||e.usage?.eligible))next='已进入自动重试队列，等待系统执行。';
+    else if(e.config.mode==='fixed'&&e.status==='active')next='后续按日计划继续监测；持续失败时需技术维护排查。';
+    else if(systemManaged(e)&&(e.status==='candidate'||e.id.startsWith('reference:auto:'))&&entryFailed)next='暂不从此渠道搜集；系统按巡检规则复查，不保证立即恢复。';
+    else if(!entryFailed&&e.usage?.eligible)next='本次任务已结束；后续按既有轮转安排搜集。';
+    else {next='暂不从此渠道搜集，当前没有自动复查安排。';manual=true;}
+    return {label:manual?'需你决定':entryFailed?'网址异常':task?.status==='retry'?'等待自动重试':'搜集异常',reason:reason+'。',next:next,manual:manual};
   }
   function taskText(e){
     var reasons={outside_scope:'与当前搜集范围未匹配',scope_confirmation_needed:'样文与栏目依据不足，等待系统继续积累',scope_unverified:'栏目范围待核验，暂不参与轮转',entry_unchecked:'尚未检查入口，暂不参与轮转',entry_failed:'入口异常，暂不参与轮转',host_paused:'网站抓取已暂停',scope_paused:'受其他暂停或移除范围影响',paused:'渠道已暂停',removed:'渠道已移除',candidate:'待决定是否启用',reference_trial:'等待既有限量试探'},reason=reasons[e.usage?.reason],task=latest(e);
@@ -81,24 +92,26 @@
   }
   function statistic(title,text){var box=node('div');box.append(node('dt',title),node('dd',text));return box;}
   function card(e){
-    var c=e.config,p=e.performance,root=node('article',undefined,'intel-panel intel-library-card'),heading=node('div',undefined,'intel-section-heading');
-    heading.append(node('h3',c.name),node('span',view==='pending'?(growthGroup(e)==='system'?'系统推进':growthGroup(e)==='exception'?'异常待修复':'需你决定'):needsAttention(e)?'需查看':states[e.status],'intel-badge'));root.append(heading);
+    var c=e.config,p=e.performance,failure=failureGuidance(e),root=node('article',undefined,'intel-panel intel-library-card'),heading=node('div',undefined,'intel-section-heading');
+    heading.append(node('h3',c.name),node('span',failure?failure.label:view==='pending'?(growthGroup(e)==='system'?'系统推进':growthGroup(e)==='exception'?'异常待修复':'需你决定'):needsAttention(e)?'需查看':states[e.status],'intel-badge'));root.append(heading);
     root.append(node('p',(data.types[c.type]||'待分类')+' · '+c.countries.map(function(v){return names[v]||v;}).join('、')+' · '+(c.mode==='fixed'?'固定监测':'轮转搜集'),'intel-muted'));
-    var stage=automaticStage(e);if(stage)root.append(node('p','自动进展：'+stage,'intel-library-stage'));else if(e.access.managed_by==='user')root.append(node('p','由你管理','intel-library-stage'));
+    var stage=automaticStage(e);if(stage&&!failure)root.append(node('p','自动进展：'+stage,'intel-library-stage'));else if(e.access.managed_by==='user')root.append(node('p','由你管理','intel-library-stage'));
     var matched=e.scope?.direction_ids||[],selectedDirection=$('library-direction').value,directionText=matched.length?(selectedDirection&&matched.includes(selectedDirection)?directionNames([selectedDirection]):c.direction_ids.length?directionNames(matched):'匹配当前 '+matched.length+' 个方向'):'未匹配当前搜集范围';
     root.append(node('p','适用方向：'+(c.direction_ids.length?'':'通用渠道 · ')+directionText,'intel-library-directions'));
     var stats=node('dl',undefined,'intel-library-stats');stats.append(statistic('最近执行 · 北京时间',taskText(e)),statistic('自然发现并核验原文',p?(p.natural_source_count?String(p.natural_source_count)+' 篇':p.sources_limited||p.tasks_limited?'窗口内未见':'近30天未确认'):'尚未读取统计'),statistic('近30天同站有效样文',p?(p.same_site_source_count?String(p.same_site_source_count)+' 篇（含自然原文）':p.sources_limited?'窗口内未见':'未确认近期样文'):'尚未读取统计'));root.append(stats);
     if(p?.sources_limited||p?.tasks_limited)root.append(node('p','统计限于已读取的记录窗口，不能据此断言全量为零。','intel-library-window'));
-    root.append(node('p','下一步：'+nextStep(e),'intel-library-next'));
+    if(failure)[['原因',failure.reason],['后续处理',failure.next],['你的操作',failure.manual?'如需继续使用，请核对网址；恢复可读后再启用。':'暂无需操作。']].forEach(function(row){var line=node('p',undefined,'intel-library-next');line.append(node('strong',row[0]+'：'),document.createTextNode(row[1]));root.append(line);});
+    else root.append(node('p',(e.status==='candidate'&&growthGroup(e)==='decision'?'需要你决定：':'后续：')+nextStep(e),'intel-library-next'));
     var primary=node('div',undefined,'intel-direction-buttons');
+    if(failure?.manual)primary.append(button('核对网址',function(){open(e);},true));
     if(e.status!=='removed'&&e.host_paused&&c.scope==='site'&&(c.mode==='fixed'||e.access.status==='readable'))primary.append(button('恢复网站抓取',function(){action(e,'state','active');},true));
-    else if(e.status==='candidate'&&!e.host_paused&&!e.integration&&growthGroup(e)!=='system'){
+    else if(!failure&&e.status==='candidate'&&!e.host_paused&&!e.integration&&growthGroup(e)!=='system'){
       if(e.access.status==='failed')primary.append(button('编辑入口',function(){open(e);},true),button('重新检查',function(){action(e,'check');},true));
       else if(e.access.status==='readable')primary.append(button('启用轮转',function(){action(e,'state','active');},true));
       else primary.append(button('检查入口',function(){action(e,'check');},true));
     }else if(e.status==='paused'&&(c.mode==='fixed'||e.access.status==='readable'))primary.append(button('恢复启用',function(){action(e,'state','active');},true));
     else if(e.status==='removed')primary.append(button('恢复到待处理',function(){action(e,'state','candidate');},true));
-    else if(needsAttention(e)&&!e.host_paused)primary.append(button('检查入口',function(){action(e,'check');},true));
+    else if(!failure&&needsAttention(e)&&!e.host_paused&&c.mode!=='fixed'&&e.access.status!=='readable'&&!systemManaged(e))primary.append(button('检查入口',function(){action(e,'check');},true));
     if(primary.childElementCount)root.append(primary);
     var more=node('details');more.append(node('summary','原文、运行与管理'),link(c.url,c.url),node('p','监测范围：'+(c.scope==='site'?'整个网站':'此栏目或作者路径')+'；来源语言：'+(c.languages.join('、')||'未标注'),'intel-muted'));
     if(e.access.status==='readable'||e.access.status==='failed')more.append(node('p',(e.access.status==='readable'?'入口可读，尚不等于有效采集':'入口读取失败：'+accessReason(e.access.error_code))+' · '+time(e.access.checked_at)+' 北京时间','intel-library-access'));
@@ -112,10 +125,12 @@
     if(e.status!=='removed')actions.append(button('编辑',function(){open(e);},true));
     if(e.status==='candidate'&&growthGroup(e)==='system'&&e.access.status==='readable'&&!e.integration)actions.append(button('手动启用并接管',function(){action(e,'state','active');},true));
     if(e.status==='candidate'&&growthGroup(e)==='system'&&!e.integration)actions.append(button('检查入口',function(){action(e,'check');},true));
+    if(e.status==='candidate'&&failure&&growthGroup(e)!=='system')actions.append(button('检查入口',function(){action(e,'check');},true));
     if(e.status==='active'||e.status==='paused')actions.append(button('检查入口',function(){action(e,'check');},true));
     if(e.status==='active')actions.append(button('暂停',function(){action(e,'state','paused');},true));
     if(e.status!=='removed')actions.append(button('移除',function(){confirmBox.hidden=false;},true));
-    confirmBox.append(node('p','移除「'+c.name+'」将停止此'+(c.scope==='site'?'网站':'路径')+'后续自动抓取；原文、情报和历史保留。'),button('确认移除',function(){action(e,'state','removed');},true),button('取消',function(){confirmBox.hidden=true;}));more.append(actions,confirmBox);root.append(more);
+    confirmBox.append(node('p','移除「'+c.name+'」将停止此'+(c.scope==='site'?'网站':'路径')+'后续自动抓取；原文、情报和历史保留。'),button('确认移除',function(){action(e,'state','removed');},true),button('取消',function(){confirmBox.hidden=true;}));more.append(actions,confirmBox);
+    if(failure)more.append(node('p','“检查入口”仅检测网址能否读取，不重新搜集或运行 AI 分析；网址可读不代表此前任务已恢复。'+(c.mode!=='fixed'?'检查失败的轮转渠道会转为待处理。':''),'intel-muted'));root.append(more);
     if(feedback[e.id]){var result=node('p',feedback[e.id].text,'intel-status');result.setAttribute('role','status');result.dataset.tone=feedback[e.id].error?'error':'success';root.append(result);}return root;
   }
   function pagination(id,total,current,change){var pages=Math.max(1,Math.ceil(total/8)),previous=button('上一页',function(){change(current-1);}),next=button('下一页',function(){change(current+1);});previous.disabled=current===0;next.disabled=current>=pages-1;$(id).replaceChildren(previous,node('span','共 '+total+' 项 · '+(current+1)+' / '+pages),next);}

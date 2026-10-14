@@ -185,7 +185,7 @@ test('automatic stages distinguish unconfirmed scopes from verified trials and a
 
 test('automatically managed entry failures are repair states and manual channels never receive automatic labels', async () => {
   const data = fixture(); data.entries[0].access.managed_by = 'automatic'; data.entries[0].access.origin = 'reference'; data.entries[0].access.status = 'failed';
-  const ui = await app(data); assert.match(ui.ids.get('library-list').textContent, /入口失败，待修复/);
+  const ui = await app(data); assert.match(ui.ids.get('library-list').textContent, /需你决定.*当前没有自动复查安排/s);
   assert.doesNotMatch(ui.ids.get('library-list').textContent, /已自动启用/);
   await ui.tab('gaps'); assert.match(ui.ids.get('library-panel-gaps').textContent, /自动更新机制/);
   assert.match(ui.ids.get('library-panel-gaps').textContent, /暂停或移除不会被自动加回/);
@@ -260,4 +260,61 @@ test('growth reports recorded channel counts and does not fabricate historical a
   assert.match(status.textContent, /近30天检查3 个渠道/);
   assert.match(status.textContent, /历史时间未完整记录暂无时间记录/);
   assert.doesNotMatch(status.children[2].textContent, /0 个渠道|2026/);
+});
+
+test('failed fixed monitoring explains the problem and responsibility without presenting a technical check as a task', async () => {
+  const data = fixture(), entry = data.entries[0]; entry.config.mode = 'fixed';
+  entry.performance.latest_task = { status: 'failed', error_code: 'source_timeout', day: data.day };
+  const ui = await app(data), card = ui.ids.get('library-list').children.find(e => e.tagName === 'article' && e.textContent.includes('active'));
+  assert.match(card.textContent, /搜集异常.*原因：网站响应超时。.*后续处理：后续按日计划继续监测.*你的操作：暂无需操作/s);
+  assert.doesNotMatch(card.textContent, /需查看|人工付费重试|下一步：/);
+  assert.equal(card.children.filter(e => e.tagName === 'div').some(e => ui.button(e, '检查入口')), false);
+  const details = card.children.find(e => e.tagName === 'details');
+  assert.ok(ui.button(details, '检查入口')); assert.match(details.textContent, /不重新搜集或运行 AI 分析/);
+  assert.equal(ui.requests.length, 1);
+  entry.performance.latest_task.error_code = 'registry_no_links';
+  const readable = await app(data);
+  assert.match(readable.ids.get('library-list').textContent, /页面未找到可识别的文章链接/);
+  assert.match(readable.ids.get('library-list').textContent, /网址可读不代表此前任务已恢复/);
+  assert.doesNotMatch(readable.ids.get('library-list').textContent, /已修复/);
+});
+
+test('failure guidance distinguishes automatic review from user management and honors pause and scope controls', async () => {
+  const data = fixture(), entry = data.entries[1];
+  entry.id = 'reference:example'; entry.access = { status: 'failed', error_code: 'source_tls_error' }; entry.usage = { eligible:false, reason:'entry_failed' };
+  const automatic = await app(data); await automatic.tab('pending');
+  assert.match(automatic.ids.get('library-list').textContent, /网站证书校验失败.*系统按巡检规则复查/s);
+  entry.access.managed_by = 'user';
+  const manual = await app(data); await manual.tab('pending');
+  assert.match(manual.ids.get('library-list').textContent, /当前没有自动复查安排.*如需继续使用，请核对网址/s);
+  assert.ok(manual.button(manual.ids.get('library-list'), '核对网址'));
+  assert.doesNotMatch(manual.ids.get('library-list').textContent, /系统按巡检规则复查/);
+  entry.status = 'paused';
+  const paused = await app(data);
+  assert.doesNotMatch(paused.ids.get('library-archived-list').textContent, /暂无需操作|系统按巡检规则复查/);
+  entry.status = 'active'; entry.host_paused = true;
+  const blocked = await app(data);
+  assert.match(blocked.ids.get('library-list').textContent, /恢复网站抓取/);
+  assert.doesNotMatch(blocked.ids.get('library-list').textContent, /暂无需操作|系统按巡检规则复查/);
+});
+
+test('queued retry and unexplained failure do not claim a repair or a known technical cause', async () => {
+  const data = fixture(), entry = data.entries[0];
+  entry.performance.latest_task = { status:'retry', error_code:'source_connection_reset', day:data.day };
+  const retry = await app(data);
+  assert.match(retry.ids.get('library-list').textContent, /等待自动重试.*连接被中断.*已进入自动重试队列/s);
+  entry.performance.latest_task = { status:'failed', error_code:'unexpected_provider_code', day:data.day };
+  const unknown = await app(data);
+  assert.match(unknown.ids.get('library-list').textContent, /具体原因尚未明确/);
+  assert.doesNotMatch(unknown.ids.get('library-list').textContent, /已进入自动重试队列|已修复/);
+});
+
+test('taking over a trial candidate suppresses stale automatic retry guidance', async () => {
+  const data = fixture(), entry = data.entries[1];
+  entry.id='reference:example'; entry.access={status:'readable',managed_by:'user'};
+  entry.usage={eligible:false,reason:'candidate'};
+  entry.performance.latest_task={status:'retry',error_code:'discovery_failed',day:data.day};
+  const ui=await app(data); await ui.tab('pending');
+  assert.match(ui.ids.get('library-list').textContent,/需你决定/);
+  assert.doesNotMatch(ui.ids.get('library-list').textContent,/等待自动重试|已进入自动重试队列|暂无需操作/);
 });
