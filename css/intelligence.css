@@ -645,19 +645,44 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
 .intel-library-history { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 18px; }
 .intel-library-history p { color: var(--text-dim); font-size: .85rem; line-height: 1.7; }
 .intel-library-history > .intel-direction-list { margin-top: 18px; }
-.intel-library-gap-list { display: grid; gap: 12px; }
-.intel-library-gap-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--form-bg); }
-.intel-library-gap-row > div:first-child { min-width: 0; }
-.intel-library-gap-row h3 { margin: 0 0 8px; font-size: 1.02rem; }
-.intel-library-gap-row p { margin: 6px 0 0; line-height: 1.6; }
-.intel-library-gap-row strong { display: block; margin-top: 12px; font-size: .9rem; }
-.intel-library-gap-row > .intel-direction-buttons { flex-shrink: 0; }
+.intel-library-growth { margin: 20px 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.intel-library-growth h2 { margin: 0; font-size: 1.05rem; }
+.intel-library-growth-flow { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 14px 0; padding: 0; list-style: none; font-size: .88rem; }
+.intel-library-growth-flow li + li::before { content: '→'; margin-right: 16px; color: var(--text-dim); }
+.intel-library-growth-status { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.intel-library-growth-status dt { color: var(--text-dim); font-size: .78rem; }
+.intel-library-growth-status dd { margin: 6px 0 0; font-size: .82rem; line-height: 1.6; }
+.intel-library-growth-status dd strong, .intel-library-growth-status dd small { display: block; }
+.intel-library-growth-status dd strong { font-size: .9rem; font-weight: 600; }
+.intel-library-growth-status dd small { margin-top: 4px; color: var(--text-dim); font-size: .75rem; }
+.intel-library-growth-groups { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.intel-library-growth-groups button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.intel-library-group-heading { margin: 12px 0 0; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 1rem; }
+.intel-library-matrix { overflow: auto; max-height: 72vh; border: 1px solid var(--border); border-radius: 8px; }
+.intel-library-matrix table { width: 100%; min-width: 880px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .82rem; }
+.intel-library-matrix table.intel-library-matrix-focused { min-width: 0; max-width: 600px; table-layout: auto; }
+.intel-library-matrix th, .intel-library-matrix td { padding: 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.intel-library-matrix thead th { position: sticky; top: 0; z-index: 2; background: var(--form-bg); text-align: center; white-space: nowrap; }
+.intel-library-matrix th:first-child { position: sticky; left: 0; z-index: 1; width: 108px; background: var(--surface); text-align: left; }
+.intel-library-matrix thead th:first-child { z-index: 3; background: var(--form-bg); }
+.intel-library-matrix th small { display: block; margin-top: 6px; font-weight: 400; font-size: .72rem; color: var(--text-dim); }
+.intel-library-matrix-cell { display: grid; gap: 6px; width: 100%; min-width: 0; padding: 8px 2px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--text); text-align: center; cursor: pointer; }
+.intel-library-matrix-cell:hover, .intel-library-matrix-cell[aria-pressed="true"] { border-color: var(--accent); background: var(--form-bg); }
+.intel-library-matrix-cell strong { font-size: .82rem; }
+.intel-library-matrix-cell span { font-size: .78rem; }
+.intel-library-matrix-cell small { color: var(--text-dim); font-size: .7rem; }
+.intel-library-matrix-cell[data-gap="no_channel"] strong { color: var(--text-dim); font-weight: 400; }
+.intel-library-matrix-cell[data-gap="none"] strong { color: var(--accent); }
+.intel-library-matrix-hint { display: none; }
+.intel-library-cell-detail { margin-top: 16px; padding: 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--form-bg); }
+.intel-library-cell-detail h3 { margin: 0; font-size: 1.02rem; }
+.intel-library-cell-detail p { font-size: .85rem; line-height: 1.7; }
 .intel-library-discovered { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 .intel-library-discovered h3 { margin: 0; font-size: 1.1rem; }
 @media(max-width:800px) {
  .intel-library-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .intel-library-gap-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
- .intel-library-gap-row { align-items: stretch; flex-direction: column; gap: 12px; }
+ .intel-library-matrix-hint { display: block; }
  .intel-library-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .intel-library-stats > div:first-child { grid-column: 1/-1; }
 }
@@ -667,6 +692,13 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
  .intel-library-tabs strong { width: 100%; font-size: .9rem; }
  .intel-library-tabs small { margin-left: 0; font-size: .75rem; }
  .intel-library-section { padding: 20px 14px; }
+ .intel-library-growth { padding: 16px 14px; }
+ .intel-library-growth > .intel-section-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+ .intel-library-growth-status { grid-template-columns: 1fr; gap: 10px; }
+ .intel-library-growth-status > div { display: grid; grid-template-columns: 90px minmax(0,1fr); align-items: baseline; gap: 8px; }
+ .intel-library-growth-status dd { margin: 0; }
+ .intel-library-growth-flow { gap: 8px; font-size: .8rem; }
+ .intel-library-growth-flow li + li::before { margin-right: 8px; }
  .intel-library-card { padding: 18px 14px; }
  .intel-library-fields, .intel-library-filters, .intel-library-gap-filters { grid-template-columns: 1fr; }
  .intel-library > .intel-section-heading { align-items: flex-start; }

@@ -150,6 +150,17 @@ test('sample and task windows explicitly retain unknown completeness without pro
   assert.equal(result.entries[0].performance.same_site_source_count, 1);
   assert.equal(result.coverage[0].types.find(cell => cell.type === 'research').limited, true);
 });
+test('a complete source read does not mark zero or five hundred originals as truncated, while task caps remain explicit', () => {
+  for (const count of [0, 500]) {
+    const result = summarize({ sourceLimit: null, sources: Array.from({ length: count }, (_, i) => source({ id: 'source-' + i })), tasks: [] });
+    assert.equal(result.window.sources_limited, false); assert.equal(result.entries[0].performance.sources_limited, false);
+    assert.equal(result.sample_limit, null); assert.equal(result.coverage[0].types.find(cell => cell.type === 'research').limited, false);
+  }
+  const tasks = Array.from({ length: 1000 }, (_, i) => task({ id: 'task-' + i }));
+  const capped = summarize({ sourceLimit: null, sources: [], tasks });
+  assert.equal(capped.window.sources_limited, false); assert.equal(capped.window.tasks_limited, true);
+  assert.equal(capped.coverage[0].types.find(cell => cell.type === 'research').limited, true);
+});
 test('no saved enabled directions yields no fabricated scope coverage or usable discovery suggestion', () => {
   const result = summarize({ directions: [] });
   assert.deepEqual(result.coverage, []);
@@ -161,12 +172,36 @@ test('user takeover of a reference candidate does not falsely advertise automati
   assert.equal(result.entries[0].usage.eligible, false);
   assert.equal(result.entries[0].usage.reason, 'candidate');
 });
+test('a safely scoped automatic candidate is system trial work and never counts as active coverage', () => {
+  const candidate = entry({ id: 'reference:auto:' + 'a'.repeat(64), status: 'candidate',
+    access: { status: 'readable', managed_by: 'automatic', trial_scope_verified: true, scope_verified: false, auto_scope_key: 'example.org/authors/alice' } });
+  const result = summarize({ entries: [candidate], tasks: [] });
+  assert.equal(result.entries[0].usage.reason, 'reference_trial'); assert.equal(result.entries[0].usage.eligible, true);
+  const cell = result.coverage[0].types.find(row => row.type === 'research');
+  assert.equal(cell.eligible_channels, 0); assert.equal(cell.candidate_channels, 1); assert.equal(cell.gap, 'no_channel');
+});
+test('growth reports recorded times and distinct channel counts, leaving old activation dates unknown', () => {
+  const recent = entry({ access: { status: 'readable', managed_by: 'automatic', checked_at: '2026-10-13T00:00:00Z',
+    discovered_at: '2026-10-12T00:00:00Z', activated_at: '2026-10-13T01:00:00Z' } });
+  const old = entry({ id: 'old', access: { status: 'readable', managed_by: 'automatic', checked_at: '2026-09-01T00:00:00Z' } });
+  const future = entry({ id: 'future', status: 'candidate', access: { status: 'unchecked', checked_at: '2026-10-13T16:00:00Z', discovered_at: 'invalid' } });
+  const result = summarize({ entries: [recent, old, future] });
+  assert.deepEqual(result.growth, { first_day: '2026-09-14', last_day: day, last_checked_at: recent.access.checked_at, checked_channels: 1,
+    last_registered_at: recent.access.discovered_at, registered_channels: 1, last_activated_at: recent.access.activated_at, activated_channels: 1,
+    activation_dates_complete: false });
+  const unknown = summarize({ entries: [entry()] }).growth;
+  assert.equal(unknown.last_checked_at, null); assert.equal(unknown.last_registered_at, null); assert.equal(unknown.last_activated_at, null);
+  assert.equal(unknown.checked_channels, 0); assert.equal(unknown.activated_channels, 0);
+});
 test('library store reuses caller direction read and a single bounded projected natural task query', async () => {
   const calls = [], store = createStore({ url: 'https://db.test', serviceKey: 'test' }, async (input, init) => {
     const url = new URL(input); calls.push(url);
+    if (url.pathname.endsWith('intelligence_library_recent_sources')) {
+      assert.equal(init.method, 'POST'); assert.equal(JSON.parse(init.body).p_owner_id, 'owner');
+      return Response.json([]);
+    }
     assert.ok(!init.method || init.method === 'GET');
     assert.equal(url.searchParams.get('owner_id'), 'eq.owner');
-    if (url.pathname.endsWith('intelligence_sources')) return Response.json([]);
     if (url.pathname.endsWith('intelligence_job_items')) return Response.json([]);
     throw Error('unexpected read');
   });
@@ -178,8 +213,10 @@ test('library store reuses caller direction read and a single bounded projected 
   assert.equal(taskRead.searchParams.get('run.job_type'), 'eq.daily_scan');
   assert.equal(taskRead.searchParams.get('limit'), '1000');
   assert.ok(!taskRead.searchParams.get('select').split(',').includes('checkpoint'));
-  const sourceRead = calls.find(url => url.pathname.endsWith('intelligence_sources'));
-  assert.equal(sourceRead.searchParams.get('limit'), '500');
-  assert.ok(!sourceRead.searchParams.get('select').split(',').includes('extraction_zh'));
+  const sourceRead = calls.find(url => url.pathname.endsWith('intelligence_library_recent_sources'));
+  assert.ok(sourceRead.pathname.includes('/rpc/'));
+  assert.equal(sourceRead.searchParams.has('limit'), false);
+  assert.equal(result.window.sources_limited, false);
+  assert.equal(result.sample_limit, null);
   assert.equal(result.entries[0].scope.in_current_scope, true);
 });

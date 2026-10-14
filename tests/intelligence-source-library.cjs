@@ -1,5 +1,5 @@
 const test=require('node:test'), assert=require('node:assert/strict');
-const {defaults,validateEntry,matches,checkEntry,selectChannel}=require('../lib/intelligence/source-library.cjs');
+const {defaults,validateEntry,matches,checkEntry,selectChannel,channelTrialReady,automaticScopeReady}=require('../lib/intelligence/source-library.cjs');
 const {discoveryQuery}=require('../lib/intelligence/discovery.cjs');
 const {createStore}=require('../lib/intelligence/store.cjs');
 const entry=()=>validateEntry({revision:0,status:'candidate',config:{name:'Public author',url:'https://example.org/authors/alice/',scope:'path',type:'research',countries:['SA'],languages:['en'],direction_ids:[],notes:'公开能源专栏',priority:'normal'}});
@@ -39,6 +39,17 @@ test('readable reference candidates get a bounded trial in an existing targeted 
  assert.equal(selectChannel([{...reference,host_paused:true}],'SA',null,'2026-09-21'),null);
  assert.equal(selectChannel([{...reference,id:active.id}],'SA',null,'2026-09-21'),null);
  assert.match(discoveryQuery('SA',1,null,trial),/site:example.org\/authors\/alice\//);
+});
+test('automatic trial proof permits only the current readable nonroot candidate scope, without weakening active proof',()=>{
+ const candidate={...entry(),id:'reference:auto:'+'a'.repeat(64),access:{status:'readable',managed_by:'automatic',scope_verified:false,trial_scope_verified:true,auto_scope_key:'example.org/authors/alice'}};
+ assert.equal(channelTrialReady(candidate),true); assert.equal(automaticScopeReady(candidate),false);
+ assert.equal(selectChannel([candidate],'SA',null,'2026-09-21').trial,true);
+ for(const changes of [{status:'paused'},{status:'removed'},{status:'active'},{host_paused:true},
+   {access:{...candidate.access,status:'failed'}},{access:{...candidate.access,managed_by:'user'}},
+   {access:{...candidate.access,trial_scope_verified:false}},{access:{...candidate.access,auto_scope_key:'example.org/authors/bob'}},
+   {config:{...candidate.config,url:'https://example.org/',scope:'path'},access:{...candidate.access,auto_scope_key:'example.org'}}])
+   assert.equal(channelTrialReady({...candidate,...changes}),false);
+ assert.equal(selectChannel([{...candidate,status:'active'}],'SA',null,'2026-09-23'),null);
 });
 test('store combines fixed references without promoting unknown identity and persists owner-scoped revisions',async()=>{
  const e=entry(),requests=[];const store=createStore({url:'https://db.test',serviceKey:'x'},async(url,init)=>{requests.push({url,init});if(url.includes('/rpc/'))return new Response(JSON.stringify({error:'library_conflict'}));if(url.includes('intelligence_source_library?'))return new Response(JSON.stringify([{...e,status:'removed',revision:2,access:{status:'unchecked'}}]));return new Response('[]');});
