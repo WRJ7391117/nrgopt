@@ -80,7 +80,7 @@ test('use and pending modules show actual conditions without claiming a rotation
   assert.equal(ui.ids.get('library-growth-panel').hidden, true);
   assert.match(ui.ids.get('library-list').textContent, /与当前搜集范围未匹配/);
   assert.match(ui.ids.get('library-list').textContent, /近30天未确认/);
-  ui.ids.get('library-view').value = 'normal'; await ui.ids.get('library-view').fire('input');
+  ui.ids.get('library-view').value = 'normal'; await ui.ids.get('library-view').fire('change');
   assert.match(ui.ids.get('library-list').textContent, /active/); assert.doesNotMatch(ui.ids.get('library-list').textContent, /outside/);
   await ui.tab('pending'); assert.equal(ui.ids.get('library-growth-panel').hidden, false); assert.match(ui.ids.get('library-list').textContent, /candidate/); assert.match(ui.ids.get('library-list').textContent, /outside/);
 });
@@ -98,6 +98,42 @@ test('coverage follows saved regions and single-direction filtering cannot borro
   await ui.button(ui.ids.get('library-coverage-detail'), '查看匹配渠道').fire('click');
   assert.equal(ui.ids.get('library-country').value, 'SA'); assert.equal(ui.ids.get('library-direction').value, 'direction-b');
   assert.equal(ui.ids.get('library-panel-gaps').hidden, true); assert.match(ui.ids.get('library-list').textContent, /candidate/);
+});
+
+test('list filters honor change events, effective direction scope and combined country selection', async () => {
+  const data = fixture(), common = structuredClone(data.entries[0]);
+  common.id = 'common'; common.config = { ...common.config, name: 'Common channel', url: 'https://common.example/news', countries: ['SA', 'AE'], direction_ids: [] };
+  data.directions[1].config.countries = ['AE'];
+  const ui = await app({ ...data, ...summarizeLibrary({ entries: [...data.entries, common], directions: data.directions, sources: [], tasks: [], day: data.day }) });
+  ui.ids.get('library-direction').value = 'direction-a'; await ui.ids.get('library-direction').fire('change');
+  assert.match(ui.ids.get('library-list').textContent, /Common channel/);
+  assert.doesNotMatch(ui.ids.get('library-list').textContent, /outside/);
+  assert.match(ui.ids.get('library-filter-result').textContent, /2 \/ 3 个渠道/);
+  assert.match(ui.ids.get('library-list').textContent, /通用渠道.*设备与项目/);
+  ui.ids.get('library-country').value = 'AE'; await ui.ids.get('library-country').fire('change');
+  assert.match(ui.ids.get('library-filter-result').textContent, /0 \/ 3 个渠道/);
+  assert.match(ui.ids.get('library-list').textContent, /没有启用渠道/);
+  await ui.ids.get('library-filter-clear').fire('click');
+  assert.equal(ui.ids.get('library-direction').value, ''); assert.equal(ui.ids.get('library-country').value, '');
+  assert.match(ui.ids.get('library-filter-result').textContent, /3 \/ 3 个渠道/);
+  assert.equal(ui.requests.length, 1); assert.equal(ui.requests[0].method, 'GET');
+});
+
+test('state category and live text filters combine, and clear restores the unfiltered list', async () => {
+  const data = fixture(); data.entries[0].access.status = 'failed';
+  const ui = await app(data);
+  ui.ids.get('library-view').value = 'failed'; await ui.ids.get('library-view').fire('change');
+  ui.ids.get('library-country').value = 'SA'; await ui.ids.get('library-country').fire('change');
+  ui.ids.get('library-type').value = 'government'; await ui.ids.get('library-type').fire('change');
+  ui.ids.get('library-search').value = 'ACTIVE.EXAMPLE'; await ui.ids.get('library-search').fire('input');
+  assert.match(ui.ids.get('library-filter-result').textContent, /1 \/ 2 个渠道/);
+  assert.match(ui.ids.get('library-list').textContent, /active/); assert.doesNotMatch(ui.ids.get('library-list').textContent, /outside/);
+  ui.ids.get('library-search').value = 'no match'; await ui.ids.get('library-search').fire('input');
+  assert.match(ui.ids.get('library-filter-result').textContent, /0 \/ 2 个渠道/);
+  await ui.ids.get('library-filter-clear').fire('click');
+  assert.equal(ui.ids.get('library-view').value, 'all'); assert.equal(ui.ids.get('library-type').value, ''); assert.equal(ui.ids.get('library-search').value, '');
+  assert.match(ui.ids.get('library-filter-result').textContent, /2 \/ 2 个渠道/);
+  assert.equal(ui.ids.get('library-filter-clear').hidden, true); assert.equal(ui.requests.length, 1);
 });
 
 test('new-source and gap actions only prepare a draft, preserving sample path and dirty edits', async () => {
@@ -200,7 +236,7 @@ test('unreviewed references stay in the system group without demanding manual ac
   const card = ui.ids.get('library-list').children.find(e => e.tagName === 'article' && e.textContent.includes('candidate'));
   assert.match(card.textContent, /系统推进/); assert.doesNotMatch(card.textContent, /补充来源类别，再|系统继续核对来源类别/);
   assert.ok(ui.button(card, '检查入口')); assert.equal(ui.button(card, '启用轮转'), undefined);
-  ui.ids.get('library-view').value = 'decision'; await ui.ids.get('library-view').fire('input');
+  ui.ids.get('library-view').value = 'decision'; await ui.ids.get('library-view').fire('change');
   assert.doesNotMatch(ui.ids.get('library-list').textContent, /candidate/);
   assert.equal(ui.requests.filter(r => r.method === 'POST').length, 0);
   entry.status = 'active'; entry.access = { status: 'readable', managed_by: 'automatic', origin: 'reference' };
