@@ -240,11 +240,12 @@ test('source library reads saved entries and host controls before either read fi
 
 test('channel overview starts entries, recent sources, natural tasks and shared directions independently', async () => {
   const gate = latch(), started = [];
-  const store = createStore(CONFIG, async input => {
+  const store = createStore(CONFIG, async (input, init) => {
     const url = new URL(input);
-    assert.ok(['/rest/v1/intelligence_sources', '/rest/v1/intelligence_job_items'].includes(url.pathname));
-    assert.equal(url.searchParams.get('owner_id'), `eq.${OWNER}`);
-    started.push(url.pathname.endsWith('intelligence_sources') ? 'sources' : 'tasks');
+    assert.ok(['/rest/v1/rpc/intelligence_library_recent_sources', '/rest/v1/intelligence_job_items'].includes(url.pathname));
+    if (url.pathname.includes('/rpc/')) assert.equal(JSON.parse(init.body).p_owner_id, OWNER);
+    else assert.equal(url.searchParams.get('owner_id'), `eq.${OWNER}`);
+    started.push(url.pathname.includes('/rpc/') ? 'sources' : 'tasks');
     await gate.promise;
     return Response.json([]);
   });
@@ -259,7 +260,7 @@ test('channel overview starts entries, recent sources, natural tasks and shared 
   assert.deepEqual(result.entries, []);
   assert.deepEqual(result.suggestions, []);
   assert.deepEqual(result.coverage, []);
-  assert.equal(result.sample_limit, 500);
+  assert.equal(result.sample_limit, null);
   assert.equal(result.window.sources_read, 0);
   assert.equal(result.window.tasks_read, 0);
 });

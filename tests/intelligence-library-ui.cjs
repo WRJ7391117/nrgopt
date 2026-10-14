@@ -63,7 +63,7 @@ async function app(data = fixture(), handler) {
     } };
   vm.runInNewContext(fs.readFileSync(require.resolve('../js/source-library.js'), 'utf8'), context);
   await new Promise(resolve => setImmediate(resolve));
-  return { ids, form, requests, all: selector => root.querySelectorAll(selector), discard: value => { allowDiscard = value; }, tab: async name => { await root.querySelectorAll('[data-library-view]').find(b => b.dataset.libraryView === name).fire('click'); }, button: (element, name) => element.querySelectorAll('*').find(e => e.tagName === 'button' && e.textContent === name) };
+  return { ids, form, requests, all: selector => root.querySelectorAll(selector), discard: value => { allowDiscard = value; }, tab: async name => { await root.querySelectorAll('[data-library-view]').find(b => b.dataset.libraryView === name).fire('click'); }, cell: type => ids.get('library-coverage').querySelectorAll('*').find(e => e.tagName === 'button' && e.attrs['aria-label']?.includes(type)), button: (element, name) => element.querySelectorAll('*').find(e => e.tagName === 'button' && e.textContent === name) };
 }
 
 test('channel library has its own three modules and never loads article forms or lists', () => {
@@ -77,23 +77,25 @@ test('channel library has its own three modules and never loads article forms or
 test('use and pending modules show actual conditions without claiming a rotation for an ineligible source', async () => {
   const ui = await app();
   assert.equal(ui.ids.get('library-panel-gaps').hidden, true);
+  assert.equal(ui.ids.get('library-growth-panel').hidden, true);
   assert.match(ui.ids.get('library-list').textContent, /与当前搜集范围未匹配/);
   assert.match(ui.ids.get('library-list').textContent, /近30天未确认/);
   ui.ids.get('library-view').value = 'normal'; await ui.ids.get('library-view').fire('input');
   assert.match(ui.ids.get('library-list').textContent, /active/); assert.doesNotMatch(ui.ids.get('library-list').textContent, /outside/);
-  await ui.tab('pending'); assert.match(ui.ids.get('library-list').textContent, /candidate/); assert.match(ui.ids.get('library-list').textContent, /outside/);
+  await ui.tab('pending'); assert.equal(ui.ids.get('library-growth-panel').hidden, false); assert.match(ui.ids.get('library-list').textContent, /candidate/); assert.match(ui.ids.get('library-list').textContent, /outside/);
 });
 
 test('coverage follows saved regions and single-direction filtering cannot borrow another direction coverage', async () => {
   const ui = await app(); await ui.tab('gaps');
   assert.equal(ui.ids.get('library-management').hidden, true);
+  assert.equal(ui.ids.get('library-growth-panel').hidden, true);
   assert.doesNotMatch(ui.ids.get('library-coverage').textContent, /阿联酋/);
   ui.ids.get('library-gap-direction').value = 'direction-b'; await ui.ids.get('library-gap-direction').fire('input');
-  const government = ui.ids.get('library-coverage').children.find(e => e.textContent.includes('政府与监管'));
-  assert.match(government.textContent, /缺少可用渠道/);
-  assert.equal(ui.button(government, '暂无匹配渠道').disabled, true);
-  const media = ui.ids.get('library-coverage').children.find(e => e.textContent.includes('新闻与行业媒体'));
-  await ui.button(media, '查看匹配渠道').fire('click');
+  const government = ui.cell('政府与监管');
+  assert.match(government.textContent, /无渠道/); await government.fire('click');
+  assert.equal(ui.button(ui.ids.get('library-coverage-detail'), '暂无匹配渠道').disabled, true);
+  await ui.cell('新闻与行业媒体').fire('click');
+  await ui.button(ui.ids.get('library-coverage-detail'), '查看匹配渠道').fire('click');
   assert.equal(ui.ids.get('library-country').value, 'SA'); assert.equal(ui.ids.get('library-direction').value, 'direction-b');
   assert.equal(ui.ids.get('library-panel-gaps').hidden, true); assert.match(ui.ids.get('library-list').textContent, /candidate/);
 });
@@ -122,7 +124,7 @@ test('read-only users can filter, inspect coverage and read history while all wr
   const history = ui.button(ui.ids.get('library-list'), '查看修改历史'); assert.equal(history.disabled, false); await history.fire('click');
   assert.ok(ui.requests.some(r => r.action === 'library-history'));
   await ui.tab('pending'); assert.equal(ui.button(ui.ids.get('library-list'), '启用轮转').disabled, true);
-  await ui.tab('gaps'); assert.equal(ui.button(ui.ids.get('library-suggestions'), '登记渠道').disabled, true); assert.equal(ui.button(ui.ids.get('library-coverage'), '补充渠道').disabled, true);
+  await ui.tab('gaps'); assert.equal(ui.button(ui.ids.get('library-suggestions'), '登记渠道').disabled, true); await ui.cell('政府与监管').fire('click'); assert.equal(ui.button(ui.ids.get('library-coverage-detail'), '补充渠道').disabled, true);
   assert.equal(ui.requests.filter(r => r.method === 'POST').length, 0);
 });
 
@@ -137,8 +139,8 @@ test('automatic stages distinguish unconfirmed scopes from verified trials and a
   const projected = summarizeLibrary({ entries: [confirm, trial, enabled], directions: data.directions, sources: [], tasks: [], day: data.day });
   const ui = await app({ ...data, ...projected });
   assert.match(ui.ids.get('library-list').textContent, /已自动启用/);
-  await ui.tab('pending'); assert.match(ui.ids.get('library-list').textContent, /需确认栏目范围/); assert.match(ui.ids.get('library-list').textContent, /等待预算内试采/);
-  assert.match(ui.ids.get('library-list').textContent, /栏目范围待确认，暂不参与轮转/);
+  await ui.tab('pending'); assert.match(ui.ids.get('library-list').textContent, /系统继续积累样文/); assert.match(ui.ids.get('library-list').textContent, /等待预算内试采/);
+  assert.match(ui.ids.get('library-list').textContent, /样文与栏目依据不足，等待系统继续积累/);
   const confirmationCard = ui.ids.get('library-list').children.find(e => e.textContent.includes('auto-a'));
   await ui.button(confirmationCard, '编辑').fire('click');
   assert.match(ui.ids.get('library-save-status').textContent, /保存后由你管理/);
@@ -158,7 +160,7 @@ test('verified parent integration keeps single-article history without asking fo
   entry.access.managed_by = 'automatic'; entry.access.origin = 'discovered_sources'; entry.access.scope_confirmation_needed = true;
   entry.integration = { entry_id: 'verified-parent', name: '已核验能源栏目' }; entry.usage.reason = 'scope_confirmation_needed';
   const ui = await app(data); await ui.tab('pending');
-  const card = ui.ids.get('library-list').children.find(e => e.textContent.includes('candidate'));
+  const card = ui.ids.get('library-integrated-list').children.find(e => e.textContent.includes('candidate'));
   assert.match(card.textContent, /已纳入已核验栏目，历史保留/); assert.match(card.textContent, /无需重复处理/);
   assert.doesNotMatch(card.textContent, /需确认栏目范围|栏目范围待确认/); assert.equal(ui.button(card, '启用轮转'), undefined);
   assert.ok(ui.button(card, '查看修改历史'));
@@ -168,4 +170,58 @@ test('verified parent integration keeps single-article history without asking fo
   assert.match(blocked.textContent, /受其他已暂停或移除范围影响/);
   assert.doesNotMatch(blocked.textContent, /已纳入已核验栏目|无需重复处理/);
   assert.equal(paused.requests.filter(r => r.method === 'POST').length, 0);
+});
+
+test('coverage restores all eight category columns and separates configured channels from verified natural output', async () => {
+  const data = fixture(), base = data.entries.find(e => e.id === 'active');
+  const source = { id: 'natural', title: 'Government project', requested_url: 'https://active.example/news/project', final_url: 'https://active.example/news/project', fetched_at: '2026-10-13T02:00:00Z', publication_date: '2026-10-12', publication_method: 'metadata', status: 'pending_extraction', extraction_status: 'extracted', content_sha256: 'a'.repeat(64), extraction_source_sha256: 'a'.repeat(64), countries: [{ code: 'SA', relation: 'occurrence' }] };
+  const task = { id: 'task', item_key: 'discover:SA', status: 'succeeded', updated_at: '2026-10-13T02:00:00Z', channel: { id: base.id, url: base.config.url, scope: base.config.scope }, result_urls: [source.final_url], run: { job_type: 'daily_scan', schedule_key: '2026-10-13' } };
+  const ui = await app({ ...data, ...summarizeLibrary({ entries: data.entries, directions: data.directions, sources: [source], tasks: [task], day: data.day }) });
+  await ui.tab('gaps');
+  const table = ui.ids.get('library-coverage').children[0];
+  assert.equal(table.children[0].children[0].children.length, 9);
+  assert.equal(table.children[1].children.length, 1);
+  assert.match(ui.cell('政府与监管').textContent, /已有产出1 个渠道1 篇原文/);
+  assert.match(ui.cell('公用事业与系统运营').textContent, /无渠道0 个渠道0 篇原文/);
+  assert.equal(ui.ids.get('library-gaps-count').textContent, '1 地区');
+  assert.doesNotMatch(ui.ids.get('library-gaps-count').textContent, /项/);
+  const clicked = ui.cell('政府与监管'); await clicked.fire('click');
+  assert.equal(ui.ids.get('library-coverage').children[0], table); assert.equal(ui.cell('政府与监管'), clicked);
+  assert.match(ui.ids.get('library-coverage-detail').textContent, /1 个可用渠道.*1 篇近30天自然发现并核验原文/);
+  ui.ids.get('library-gap-direction').value = 'direction-b'; await ui.ids.get('library-gap-direction').fire('input');
+  assert.match(ui.cell('政府与监管').textContent, /无渠道0 个渠道0 篇原文/);
+});
+
+test('unreviewed references stay in the system group without demanding manual activation or classification', async () => {
+  const data = fixture(), entry = data.entries.find(e => e.id === 'candidate');
+  entry.id = 'reference:unreviewed.example'; entry.config.type = 'unknown'; entry.access = { status: 'unchecked' }; entry.usage.reason = 'entry_unchecked';
+  const ui = await app(data); await ui.tab('pending');
+  assert.match(ui.ids.get('library-section-title').textContent, /自动拓展/);
+  const card = ui.ids.get('library-list').children.find(e => e.tagName === 'article' && e.textContent.includes('candidate'));
+  assert.match(card.textContent, /系统推进/); assert.doesNotMatch(card.textContent, /补充来源类别，再|系统继续核对来源类别/);
+  assert.ok(ui.button(card, '检查入口')); assert.equal(ui.button(card, '启用轮转'), undefined);
+  ui.ids.get('library-view').value = 'decision'; await ui.ids.get('library-view').fire('input');
+  assert.doesNotMatch(ui.ids.get('library-list').textContent, /candidate/);
+  assert.equal(ui.requests.filter(r => r.method === 'POST').length, 0);
+  entry.status = 'active'; entry.access = { status: 'readable', managed_by: 'automatic', origin: 'reference' };
+  const unclassified = await app(data);
+  assert.match(unclassified.ids.get('library-list').textContent, /来源类别尚未核实；系统可继续检查与试采，你可在编辑中补充/);
+  assert.doesNotMatch(unclassified.ids.get('library-list').textContent, /系统继续核对来源类别/);
+});
+
+test('limited scoped trials remain automatic progress and do not claim verified activation', async () => {
+  const data = fixture(), entry = structuredClone(data.entries.find(e => e.id === 'candidate'));
+  entry.id = 'reference:auto:' + 'd'.repeat(64); entry.config.url = 'https://trial.example/news/';
+  entry.access = { status: 'readable', managed_by: 'automatic', origin: 'discovered_sources', scope_verified: false, trial_scope_verified: true, auto_scope_key: 'trial.example/news', reason: 'trial_ready', trial_ready_at: '2026-10-13T01:00:00Z' };
+  const ui = await app({ ...data, ...summarizeLibrary({ entries: [entry], directions: data.directions, sources: [], tasks: [], day: data.day }) });
+  await ui.tab('pending'); assert.match(ui.ids.get('library-list').textContent, /等待预算内试采/);
+  assert.doesNotMatch(ui.ids.get('library-list').textContent, /已自动启用|下一步：.*需你决定/);
+});
+
+test('growth reports recorded channel counts and does not fabricate historical activation times', async () => {
+  const data = fixture(); data.growth = { last_checked_at: '2026-10-13T02:00:00Z', checked_channels: 3, last_registered_at: null, registered_channels: 0, last_activated_at: null, activated_channels: 0, activation_dates_complete: false };
+  const ui = await app(data), status = ui.ids.get('library-growth-status');
+  assert.match(status.textContent, /近30天检查3 个渠道/);
+  assert.match(status.textContent, /历史时间未完整记录暂无时间记录/);
+  assert.doesNotMatch(status.children[2].textContent, /0 个渠道|2026/);
 });

@@ -18,6 +18,7 @@ function fakeStore({ reservationId = 'reservation-1', item = { id: 'item-1', ite
     directionQueryCounts: async () => [], jobTopics: async () => null,
     topicCatalog: async () => require('../lib/intelligence/topics.cjs').defaults,
     sourcePaused: async () => false, sourceLibrary: async () => [],
+    libraryOverview: async (_owner, directions, entries) => require('../lib/intelligence/library-summary.cjs').summarizeLibrary({ entries, sources: [], tasks: [], directions, day: '2026-10-14' }),
     reviewTracking: async () => ({}), watchedSources: async () => [], watchSearchTargets: async () => [], jobRun: async () => ({ items: [] }), enqueueJob: async () => 'job-1', enqueueJobItems: async (_owner, _job, items) => items.length,
     claimJobItem: async () => item, finishJobItem: async () => true,
     startProviderCall: async () => true, finishProviderCall: async () => true,
@@ -761,4 +762,70 @@ test('an active automatic channel with a failed entry review stops its frozen pl
  store.sourceLibrary=async()=>[{id:channel.id,status:'active',access:{status:'failed',managed_by:'automatic',scope_verified:true,consecutive_failures:1,auto_scope_key:'example.org/news'},config:{url:channel.url,scope:channel.scope}}];
  const result=await runDailyJobItem({...dependencies,store,owner:'owner',jobId:'job',discover:async()=>{throw Error('failed entry must not reach a paid provider');}});
  assert.equal(result.status,'manual_paused');assert.equal(store.calls.some(c=>c[0]==='reserveBudget'),false);
+});
+
+test('coverage gaps rotate source categories inside the original query and preserve topic relevance', () => {
+  const { selectCoverageFocus, discoveryQuery } = require('../lib/intelligence/discovery.cjs');
+  const row = { country: 'SA', types: [
+    { type: 'government', eligible_channels: 1, natural_source_count: 2 },
+    { type: 'media', eligible_channels: 0, natural_source_count: 0, limited: true },
+    { type: 'research', eligible_channels: 0, natural_source_count: 0, limited: true }
+  ] };
+  const first = selectCoverageFocus([row], 'SA', '2026-10-14');
+  const second = selectCoverageFocus([row], 'SA', '2026-10-16');
+  assert.notEqual(first.type, second.type);
+  assert.equal(first.reason, 'missing_channel');
+  assert.equal(selectCoverageFocus([row], 'AE', '2026-10-14'), null);
+  const direction = { config: require('../lib/intelligence/directions.cjs').defaults[0].config, source_focus: first };
+  const plain = discoveryQuery('SA', 1, direction);
+  assert.match(plain, /Saudi/);
+  assert.match(plain, /energy news|energy research/);
+  assert.ok(!plain.includes('site:'));
+  const channel = { url: 'https://example.org/authors/alice/', scope: 'path' };
+  const targeted = discoveryQuery('SA', 1, direction, channel);
+  assert.match(targeted, /site:example.org\/authors\/alice\//);
+  assert.ok(!targeted.includes('industry publication') && !targeted.includes('industry analyst'));
+  assert.equal(selectCoverageFocus([{ country:'SA',types:[{type:'government',eligible_channels:1,natural_source_count:0,limited:true}] }], 'SA', '2026-10-14'), null);
+  const categories=Object.keys(require('../lib/intelligence/source-library.cjs').types).filter(type=>type!=='unknown');
+  const gaps=[{country:'SA',types:categories.map(type=>({type,eligible_channels:0}))}];
+  const covered=new Set(Array.from({length:8},(_,n)=>selectCoverageFocus(gaps,'SA',new Date(Date.parse('2026-10-14')+n*2*86400000).toISOString().slice(0,10)).type));
+  assert.equal(covered.size,8,'alternating open discovery days must rotate every missing source category');
+});
+
+test('gap-directed discovery does not borrow another direction channel or add country slots', async () => {
+  const base = require('../lib/intelligence/directions.cjs').defaults[0].config;
+  const direction = { id: 'one', revision: 1, config: { ...base, countries:['SA'],topic_codes:[] } };
+  const store = fakeStore(); store.snapshotDirections = async () => [direction];
+  store.sourceLibrary = async () => Object.keys(require('../lib/intelligence/source-library.cjs').types).filter(type => type !== 'unknown').map(type => ({
+    id:'fixed:'+type,status:'active',access:{status:'readable'},host_paused:false,
+    config:{name:type,url:'https://'+type+'.example.org/',scope:'site',mode:'fixed',type,countries:['SA'],direction_ids:type==='government'?['other']:['one'],priority:'normal'}
+  }));
+  await enqueueDailyScan({ store, owner:'owner-a',now:new Date('2026-09-22T00:00:00Z') });
+  const searches = store.calls.find(call => call[0] === 'enqueueJobItems')[3].filter(item => item.item_key.startsWith('discover:'));
+  assert.equal(searches.length,1);
+  assert.equal(searches[0].checkpoint.direction.source_focus.type,'government');
+  assert.equal(searches[0].checkpoint.direction.source_focus.reason,'missing_channel');
+  assert.equal(searches[0].checkpoint.channel,null);
+  assert.equal(store.calls.filter(call=>call[0]==='libraryOverview').length,1);
+});
+
+test('an existing daily search keeps its complete gap and channel snapshot without a new coverage read', async () => {
+  const direction = { id:'old',config:{...require('../lib/intelligence/directions.cjs').defaults[0].config,countries:['SA']},source_focus:{type:'media',reason:'missing_channel',based_on:'2026-10-14'} };
+  const checkpoint = { direction_plan_applied:true,direction,channel:null };
+  const store = fakeStore();store.snapshotDirections=async()=>[{...direction,id:'new'}];
+  store.jobRun=async()=>({items:[{item_key:'discover:SA',checkpoint}]});
+  store.libraryOverview=async()=>{throw Error('must not refresh a frozen search plan');};
+  store.sourceLibrary=async()=>{throw Error('must not refresh a frozen channel plan');};
+  await enqueueDailyScan({store,owner:'owner-a',now:new Date('2026-10-14T02:00:00Z')});
+  assert.deepEqual(store.calls.find(call=>call[0]==='enqueueJobItems')[3].find(item=>item.item_key==='discover:SA').checkpoint,checkpoint);
+});
+
+test('a readable automatic candidate with a proven trial listing can use its original bounded search slot', async () => {
+  const channel={id:'reference:auto:'+'a'.repeat(64),url:'https://example.org/news/',scope:'path',trial:true};
+  const store=fakeStore({item:{id:'trial-item',item_key:'discover:SA',attempts:1,checkpoint:{channel}}});
+  store.sourceLibrary=async()=>[{id:channel.id,status:'candidate',access:{status:'readable',managed_by:'automatic',scope_verified:false,trial_scope_verified:true,auto_scope_key:'example.org/news'},config:{url:channel.url,scope:channel.scope,mode:'search'}}];
+  let called=0;
+  const result=await runDailyJobItem({...dependencies,store,owner:'owner',jobId:'job',env:{NRGOPT_DISCOVERY_MONTHLY_LIMIT_MICRO:'10000000',NRGOPT_DISCOVERY_BILLING_MODE:'included'},discover:async()=>{called++;return {sources:[],model:'synthetic-test',search_count:1};}});
+  assert.equal(result.status,'succeeded');assert.equal(called,1);
+  assert.equal(store.calls.filter(call=>call[0]==='reserveBudget').length,1);
 });
