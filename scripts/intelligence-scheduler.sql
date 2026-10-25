@@ -29,7 +29,7 @@ begin
     v_headers := v_headers || jsonb_build_object('x-vercel-protection-bypass', v_vercel_secret);
   end if;
   return net.http_get(url := v_origin || '/api/intelligence?action=scheduled-scan',
-    headers := v_headers, timeout_milliseconds := 250000);
+    headers := v_headers, timeout_milliseconds := 300000);
 end $$;
 
 create or replace function public.configure_intelligence_automation_access(p_secret text)

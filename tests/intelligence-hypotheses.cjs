@@ -137,3 +137,19 @@ test('target selection includes same-URL corrections, excludes unrelated project
   assert.deepEqual(await store.assessmentTargets(candidate, newSource, 'owner'), [{ id: hypothesisId }]);
   assert.equal(calls.length, 3);
 });
+
+
+test('Spark hypothesis assessment disables reasoning and preserves citation validation', async () => {
+  let body;
+  const evaluate = createHypothesisEvaluator({ apiKey: 'test-only', provider: 'spark', fetchImpl: async (_url, init) => {
+    body = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(result) } }] }));
+  } });
+  const state = setup();
+  const assessed = await evaluate({ ...state, source: state.current });
+  assert.deepEqual(body.chat_template_kwargs, { thinking_mode: 'chat' });
+  assert.equal(body.thinking, undefined);
+  assert.equal(assessed.provider, 'spark');
+  assert.equal(assessed.recommendation, 'rejected');
+  assert.deepEqual(assessed.fact_numbers, [1]);
+});

@@ -1414,3 +1414,35 @@ test('topic catalog and save use owner-scoped REST and revision RPC', async()=>{
   assert.equal(saved.revision,3);
   assert.deepEqual(paths[1].body,{p_owner_id:'owner-a',p_code:'suez',p_revision:2,p_name:'苏伊士运河',p_description:'跨境航运',p_active:true});
 });
+
+
+test('manual extraction reads only its latest matching item while preserving parent state and default job reads', async () => {
+  const prefix = 'extract:11111111-1111-4111-8111-111111111111:manual:' + 'a'.repeat(64) + ':';
+  const calls = [];
+  const latest = { id: 'latest', item_key: prefix + '12', status: 'failed', checkpoint: { manual: true } };
+  const store = createStore(CONFIG, async input => {
+    const url = new URL(input); calls.push(url);
+    assert.equal(url.searchParams.get('owner_id'), 'eq.owner-a');
+    if (url.pathname.endsWith('intelligence_job_runs')) {
+      assert.equal(url.searchParams.get('id'), 'eq.run-a');
+      return Response.json([{ id: 'run-a', status: 'manual_paused' }]);
+    }
+    assert.equal(url.pathname, '/rest/v1/intelligence_job_items');
+    assert.equal(url.searchParams.get('job_run_id'), 'eq.run-a');
+    if (url.searchParams.has('item_key')) {
+      assert.equal(url.searchParams.get('item_key'), 'like.' + prefix + '*');
+      assert.equal(url.searchParams.get('order'), 'created_at.desc,id.desc');
+      assert.equal(url.searchParams.get('limit'), '1');
+      return Response.json([latest]);
+    }
+    assert.equal(url.searchParams.get('order'), 'item_key.asc');
+    assert.equal(url.searchParams.get('limit'), null);
+    return Response.json([]);
+  });
+  const scoped = await store.jobRun('owner-a', 'run-a', prefix);
+  assert.equal(scoped.run.status, 'manual_paused');
+  assert.deepEqual(scoped.items, [latest]);
+  const full = await store.jobRun('owner-a', 'run-a');
+  assert.deepEqual(full.items, []);
+  assert.equal(calls.length, 4);
+});
