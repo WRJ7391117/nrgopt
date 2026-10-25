@@ -73,3 +73,19 @@ test('portfolio overlap alone does not create one project identity', () => {
   assert.throws(() => validateCrossCheck({ same_project: false, same_scope: true, matching_facts: [pair] }, 1, 1), { code: 'cross_check_invalid' });
   assert.throws(() => validateCrossCheck({ same_project: true, same_scope: 'yes', matching_facts: [pair] }, 1, 1), { code: 'cross_check_invalid' });
 });
+
+
+test('Spark cross-check disables reasoning and retains evidence validation', async () => {
+  let body;
+  const expected = { same_project: true, same_scope: false,
+    matching_facts: [{ left_fact_number: 1, right_fact_number: 1, reason_zh: '测试事实对应。' }], conflicting_facts: [] };
+  const check = createDeepSeekCrossChecker({ apiKey: 'test-only', provider: 'spark', fetchImpl: async (_url, init) => {
+    body = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(expected) } }] }));
+  } });
+  const result = await check({ left, right });
+  assert.deepEqual(body.chat_template_kwargs, { thinking_mode: 'chat' });
+  assert.equal(body.thinking, undefined);
+  assert.equal(result.provider, 'spark');
+  assert.deepEqual(result.matching_facts, expected.matching_facts);
+});

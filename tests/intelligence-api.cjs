@@ -1152,3 +1152,82 @@ test('worker uses managed bot settings even when legacy environment delivery is 
   const result = await app.request('notification-worker', { loggedIn: false, headers: { authorization: 'Bearer test-cron-secret' } });
   assert.equal(result.body.status, 'accepted'); assert.ok(!JSON.stringify(result.body).includes('managed-secret'));
 });
+
+
+const sparkEnvironment = { ...env, NRGOPT_ANALYSIS_PROVIDER: 'spark', NRGOPT_ANALYSIS_API_KEY: 'spark-test',
+  NRGOPT_ANALYSIS_ENDPOINT: 'https://spark.example/v1/chat/completions', NRGOPT_ANALYSIS_MODEL: 'spark-test',
+  NRGOPT_ANALYSIS_CURRENCY: 'CNY', NRGOPT_ANALYSIS_BILLING_MODE: 'included' };
+
+test('Spark manual analysis queues one owned source, deduplicates clicks and preserves failed attempts', async () => {
+  const items = [];
+  const saved = { ...source, content_sha256: 'a'.repeat(64), extracted_at: '2026-10-25T01:00:00.000Z' };
+  const app = setup({ environment: sparkEnvironment, overrides: {
+    get: async () => saved,
+    jobRun: async (_owner, _jobId, prefix) => ({ run: { status: 'running' }, items: items.filter(item => item.item_key.startsWith(prefix)).slice(-1) }),
+    enqueueJobItems: async (_owner, _job, incoming) => {
+      for (const item of incoming) if (!items.some(old => old.item_key === item.item_key)) items.push({ ...item, status: 'queued' });
+      return incoming.length;
+    }
+  }, modelFactory: () => { throw new Error('manual request must not call a model'); } });
+  const first = await app.request('extract', { method: 'POST', body: {} });
+  const again = await app.request('extract', { method: 'POST', body: {} });
+  assert.equal(first.code, 202);
+  assert.equal(first.body.queued, true);
+  assert.match(first.body.message, /后台分析队列/);
+  assert.equal(again.body.item_key, first.body.item_key);
+  assert.equal(items.length, 1);
+  assert.deepEqual(app.calls.find(c => c.name === 'jobRun').args, [admin, first.body.job_id, first.body.item_key.slice(0, -1)]);
+  assert.deepEqual(items[0].checkpoint, { source_id: id, manual: true, content_sha256: saved.content_sha256, extracted_at: saved.extracted_at });
+  assert.deepEqual(app.calls.find(c => c.name === 'get').args, [id, admin]);
+  assert.equal(app.calls.find(c => c.name === 'enqueueJob').args[2], require('../lib/intelligence/jobs.cjs').scheduleDate());
+  assert.ok(!app.calls.some(c => ['reserveBudget', 'claimJobItem', 'snapshotSearchPlan', 'enqueueNotification', 'beginExtraction'].includes(c.name)));
+  items[0].status = 'failed';
+  const retry = await app.request('extract', { method: 'POST', body: {} });
+  assert.equal(retry.code, 202);
+  assert.notEqual(retry.body.item_key, first.body.item_key);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].status, 'failed');
+  assert.equal((await app.request('extract', { method: 'POST', body: {} })).body.item_key, retry.body.item_key);
+  saved.extracted_at = '2026-10-25T02:00:00.000Z';
+  const revision = await app.request('extract', { method: 'POST', body: {} });
+  assert.notEqual(revision.body.item_key, retry.body.item_key);
+});
+
+test('Spark manual analysis denies inaccessible or unsaved sources and respects parent pause', async () => {
+  for (const inaccessible of [true, false]) {
+    const app = setup({ environment: sparkEnvironment, overrides: {
+      get: async () => { if (inaccessible) throw failure('not_found', 404); return source; }
+    } });
+    assert.equal((await app.request('extract', { method: 'POST', body: {} })).code, inaccessible ? 404 : 409);
+    assert.ok(!app.calls.some(c => c.name === 'enqueueJob'));
+  }
+  const app = setup({ environment: sparkEnvironment, overrides: { get: async () => ({ ...source, content_sha256: 'b'.repeat(64) }),
+    jobRun: async () => ({ run: { status: 'manual_paused' }, items: [] }) } });
+  const response = await app.request('extract', { method: 'POST', body: {} });
+  assert.equal(response.code, 202);
+  assert.match(response.body.message, /当前任务暂停/);
+  assert.ok(!app.calls.some(c => ['claimJobItem', 'finishJobItem', 'startProviderCall'].includes(c.name)));
+  const denied = setup({ environment: sparkEnvironment });
+  assert.equal((await denied.request('extract', { method: 'POST', body: {}, loggedIn: false })).code, 401);
+  assert.deepEqual(denied.calls, []);
+});
+
+test('detail page accepts queued analysis without rendering a missing synchronous source', async () => {
+  const script = require('node:fs').readFileSync(require('node:path').join(__dirname, '../js/intelligence.js'), 'utf8');
+  const start = script.indexOf("  var extractButton = byId('extract-button');");
+  const end = script.indexOf('  var directionData,', start);
+  let onClick;
+  const button = { disabled: false, addEventListener: (_event, callback) => { onClick = callback; } };
+  const messages = [];
+  const queued = { queued: true, message: '已加入后台分析队列，无需停留本页。' };
+  require('node:vm').runInNewContext(script.slice(start, end), {
+    byId: name => { assert.equal(name, 'extract-button'); return button; },
+    location: { pathname: '/intelligence/sources/' + id }, detailPath: /\/intelligence\/sources\/([a-f0-9-]+)/,
+    api: async (action, body, sourceId) => { assert.equal(action, 'extract'); assert.equal(sourceId, id); return queued; },
+    status: (...args) => messages.push(args),
+    sourceStatus: () => { throw new Error('queued response has no completed source'); }
+  });
+  await onClick();
+  assert.deepEqual(messages.at(-1), ['extraction-status', queued.message, 'success']);
+  assert.equal(button.disabled, false);
+});

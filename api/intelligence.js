@@ -90,6 +90,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
   crossCheckFactory = createDeepSeekCrossChecker, discoveryFactory = createMiniMaxDiscoverer,
   balanceReaderFactory = createProviderBalanceReader, notificationFactory = createFeishuSender, feishuChecker = feishuConfig.checkCredentials } = {}) {
   return async function handler(req, res) {
+    const requestStartedAt = Date.now();
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -158,10 +159,10 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
         if (!config.writes) throw failure('writes_disabled', 403);
         const store = storeFactory(config);
         const scheduled = await enqueueDailyScan({ store, owner: config.adminId });
-        const batch = await runDailyJobBatch({ store, owner: config.adminId, env,
+        const batch = await runDailyJobBatch({ store, owner: config.adminId, env, deadline: requestStartedAt + 280_000,
           discover: (country, profile, attempt, direction, channel) => discoverCountry(country, profile, discoveryFactory, attempt, direction, channel),
           watchDiscover: (plan, profile) => discoverWatch(plan, profile, discoveryFactory), sourceFetcher, modelFactory, crossCheckFactory,
-          balanceReaderFactory });
+          balanceReaderFactory }, { startedAt: requestStartedAt });
         const jobIds = [...new Set(batch.results.map(result => result.jobId || scheduled.jobId))];
         if (!jobIds.length) jobIds.push(scheduled.jobId);
         for (const jobId of jobIds) {
@@ -489,16 +490,39 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       if (action === 'extract') {
         if (!config.writes) throw failure('writes_disabled', 403);
+        const providers = await providerSettingsForOwner(env, store, user.id);
+        if (providers.analysis.provider === 'spark') {
+          const source = await store.get(req.query.id, user.id);
+          if (source.status !== 'pending_extraction' || !source.content_sha256) throw failure('evidence_not_ready', 409);
+          const jobId = await store.enqueueJob(user.id, 'daily_scan', scheduleDate(), []);
+          const version = createHash('sha256').update(JSON.stringify([source.content_sha256, source.extracted_at || null,
+            providers.analysis.configVersionId, providers.analysis.endpoint, providers.analysis.model])).digest('hex');
+          const prefix = `extract:${source.id}:manual:${version}:`;
+          const job = await store.jobRun(user.id, jobId, prefix);
+          const previous = job.items[0];
+          let itemKey = previous?.item_key;
+          if (!previous || previous.status === 'failed') {
+            itemKey = prefix + (previous ? Number(previous.item_key.slice(prefix.length)) + 1 : 1);
+            if (await store.enqueueJobItems(user.id, jobId, [{ item_key: itemKey, checkpoint: {
+              source_id: source.id, manual: true, content_sha256: source.content_sha256, extracted_at: source.extracted_at || null
+            } }]) == null) throw failure('storage_failed');
+          }
+          const paused = ['manual_paused', 'budget_paused'].includes(job.run.status) || ['manual_paused', 'budget_paused'].includes(previous?.status);
+          return res.status(202).json({ queued: true, job_id: jobId, item_key: itemKey,
+            message: previous?.status === 'succeeded' ? '此分析请求已完成，请刷新本页查看结果。'
+              : paused ? '分析已加入后台队列，当前任务暂停。可在当天任务查看状态，恢复后继续。'
+                : '已加入后台分析队列，无需停留本页。可在当天任务查看进度，完成后刷新本页。' });
+        }
         try {
           let result;
           try {
-            result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory });
+            result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory, balanceReaderFactory, providers });
           } catch (error) {
             const invalid = error?.code === 'extraction_invalid'
               || /^extraction_invalid_[a-z_]{1,40}$/.test(error?.code || '');
             if (!invalid) throw error;
             result = await extractSavedSource({ store, owner: user.id, sourceId: req.query.id, env, modelFactory, crossCheckFactory,
-              balanceReaderFactory, formatRepairCode: error.code });
+              balanceReaderFactory, formatRepairCode: error.code, providers });
           }
           return res.status(200).json({ source: result.source, candidate: await store.candidateBySource(req.query.id, user.id),
             history: await store.sourceHistory(req.query.id, user.id), revisions: await store.analysisRevisions(req.query.id, user.id), project_history: await store.projectTimeline(req.query.id, user.id), business_history: await store.businessHistory(req.query.id, user.id) });

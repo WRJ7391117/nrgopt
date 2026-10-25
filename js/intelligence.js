@@ -1927,6 +1927,10 @@
       status('extraction-status', '情报分析服务正在阅读原文并核对证据，请稍候…');
       try {
         var result = await api('extract', {}, match[1]);
+        if (result.queued) {
+          status('extraction-status', result.message, 'success');
+          return;
+        }
         sourceStatus(byId('source-status'), result.source);
         renderExtraction(result.source, result.candidate);
         renderDecision(result.source, result.candidate);

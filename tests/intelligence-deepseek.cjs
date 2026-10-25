@@ -327,6 +327,7 @@ test('analysis provider accepts configured identity, model and endpoint', async 
   assert.equal(request.input, 'https://analysis.example/v1/chat/completions');
   assert.equal(request.body.model, 'analysis-v2');
   assert.equal(request.body.thinking, undefined);
+  assert.equal(request.body.chat_template_kwargs, undefined);
   assert.equal(result.provider, 'custom-analysis');
   assert.equal(result.model, 'analysis-v2');
 });
@@ -458,4 +459,57 @@ test('open discovery preserves media, companies and authors as unverified leads 
   assert.ok(result.sources.every(s=>s.source_level==='unverified'));
   assert.equal(discoverySources(Array.from({length:30},(_,i)=>({url:`https://author.example/${i}`}))).length,12);
   assert.deepEqual((await discoverCountry('QA',{},()=>async()=>({results:[]}))).sources,[]);
+});
+
+
+test('Spark extraction disables its default reasoning through the supported chat template', async () => {
+  let body;
+  const extract = createDeepSeekExtractor({ apiKey: 'test-only', provider: 'spark', model: 'spark-test',
+    endpoint: 'https://spark.example/v1/chat/completions', fetchImpl: async (_url, init) => {
+      body = JSON.parse(init.body);
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(valid) } }] }));
+    } });
+  const result = await extract({ title: 'Energy', url: 'https://source.example', sourceText });
+  assert.deepEqual(body.chat_template_kwargs, { thinking_mode: 'chat' });
+  assert.equal(body.thinking, undefined);
+  assert.deepEqual(body.response_format, { type: 'json_object' });
+  assert.equal(result.provider, 'spark');
+});
+
+
+test('Spark extraction has a bounded longer timeout while other providers keep 60 seconds', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const [provider, timeout] of [['deepseek', 60_000], ['custom-analysis', 60_000], ['spark', 240_000]]) {
+    let signal;
+    const extract = createDeepSeekExtractor({ apiKey: 'test-only', provider, fetchImpl: async (_url, init) => {
+      signal = init.signal;
+      return new Promise((resolve, reject) => signal.addEventListener('abort', () =>
+        reject(Object.assign(new Error('controlled timeout'), { name: 'AbortError' })), { once: true }));
+    } });
+    const pending = extract({ title: '', url: 'https://source.example', sourceText });
+    const rejected = assert.rejects(pending, { code: 'model_timeout', status: 504 });
+    t.mock.timers.tick(timeout - 1);
+    assert.equal(signal.aborted, false);
+    t.mock.timers.tick(1);
+    await rejected;
+  }
+});
+
+
+test('Spark remaining request allowance also aborts a stalled response body', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let signal;
+  const extract = createDeepSeekExtractor({ apiKey: 'test-only', provider: 'spark', timeoutMs: 10_000,
+    fetchImpl: async (_url, init) => {
+      signal = init.signal;
+      return { ok: true, json: () => new Promise((resolve, reject) => signal.addEventListener('abort', () =>
+        reject(Object.assign(new Error('controlled body stall'), { name: 'AbortError' })), { once: true })) };
+    } });
+  const pending = extract({ title: '', url: 'https://source.example', sourceText });
+  const rejected = assert.rejects(pending, { code: 'model_timeout', status: 504 });
+  await Promise.resolve();
+  t.mock.timers.tick(9_999);
+  assert.equal(signal.aborted, false);
+  t.mock.timers.tick(1);
+  await rejected;
 });

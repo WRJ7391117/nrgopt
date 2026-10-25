@@ -829,3 +829,83 @@ test('a readable automatic candidate with a proven trial listing can use its ori
   assert.equal(result.status,'succeeded');assert.equal(called,1);
   assert.equal(store.calls.filter(call=>call[0]==='reserveBudget').length,1);
 });
+
+
+const sparkEnv = { NRGOPT_ANALYSIS_PROVIDER: 'spark', NRGOPT_ANALYSIS_API_KEY: 'spark-test',
+  NRGOPT_ANALYSIS_ENDPOINT: 'https://spark.example/v1/chat/completions', NRGOPT_ANALYSIS_MODEL: 'spark-test',
+  NRGOPT_ANALYSIS_CURRENCY: 'CNY', NRGOPT_ANALYSIS_BILLING_MODE: 'included', NRGOPT_ANALYSIS_MONTHLY_LIMIT_MICRO: '2000000' };
+
+test('Spark retains short item throughput and never starts after the request launch window', async () => {
+  const store = fakeStore({ item: { id: 'one', item_key: 'invalid-test', attempts: 1, checkpoint: {} } });
+  const one = await runDailyJobBatch({ store, owner: 'owner-a', env: sparkEnv, ...dependencies });
+  assert.equal(one.processed_count, 4);
+  assert.equal(store.calls.filter(c => c[0] === 'claimJobItem').length, 4);
+  const late = fakeStore();
+  const none = await runDailyJobBatch({ store: late, owner: 'owner-a', env: sparkEnv, ...dependencies }, { clock: () => 25_001, startedAt: 0 });
+  assert.equal(none.processed_count, 0);
+  assert.equal(none.result.status, 'idle');
+  assert.ok(!late.calls.some(c => c[0] === 'claimJobItem'));
+});
+
+test('explicit manual extraction regenerates once, then reuses a saved result after retry', async () => {
+  const oldAt = '2026-10-24T00:00:00.000Z';
+  const item = { id: 'manual-item', job_run_id: 'job-1', item_key: `extract:${sourceId}:manual:${'1'.repeat(64)}:1`,
+    attempts: 1, checkpoint: { source_id: sourceId, manual: true, content_sha256: 'a'.repeat(64), extracted_at: oldAt } };
+  const store = fakeStore({ item });
+  const saved = { id: sourceId, content_type: 'text/plain', content_sha256: 'a'.repeat(64),
+    extraction_status: 'extracted', extraction_source_sha256: 'a'.repeat(64), extracted_at: oldAt, extraction_zh: groundedExtraction };
+  store.evidence = async () => ({ source: saved, bytes: Buffer.from('Official source evidence.') });
+  store.saveExtraction = async () => { saved.extracted_at = '2026-10-25T00:00:00.000Z'; return saved; };
+  let modelCalls = 0;
+  const options = { store, owner: 'owner-a', env: sparkEnv, ...dependencies,
+    modelFactory: () => async () => { modelCalls++; return { extraction: groundedExtraction, provider: 'spark', model: 'spark-test', usage: {} }; } };
+  assert.equal((await runDailyJobItem(options)).status, 'succeeded');
+  assert.equal(modelCalls, 1);
+  item.attempts = 2;
+  assert.equal((await runDailyJobItem(options)).status, 'succeeded');
+  assert.equal(modelCalls, 1);
+  assert.ok(!store.calls.some(c => c[0] === 'previousExtractedSource'));
+});
+
+test('Spark extraction reserves response cleanup time and releases a call that has no model time left', async () => {
+  const item = { id: 'timed-item', item_key: `extract:${sourceId}`, attempts: 1, checkpoint: { source_id: sourceId } };
+  const store = fakeStore({ item });
+  let receivedTimeout;
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: sparkEnv, deadline: Date.now() + 120_000, ...dependencies,
+    modelFactory: profile => { receivedTimeout = profile.timeoutMs; return async () => ({ extraction: groundedExtraction, provider: 'spark', model: 'spark-test', usage: {} }); } });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(receivedTimeout > 89_000 && receivedTimeout <= 90_000);
+  const expired = fakeStore({ item });
+  const failed = await runDailyJobItem({ store: expired, owner: 'owner-a', env: sparkEnv, deadline: Date.now() + 29_000, ...dependencies,
+    modelFactory: () => { throw new Error('expired request must not call a model'); } });
+  assert.equal(failed.status, 'retry');
+  assert.ok(expired.calls.some(c => c[0] === 'releaseBudget'));
+  assert.ok(expired.calls.some(c => c[0] === 'failExtraction' && c[3] === 'model_timeout'));
+  assert.equal(expired.calls.find(c => c[0] === 'finishJobItem')[5], 'model_timeout');
+});
+
+
+test('a stale manual snapshot never analyzes a changed source without a current verified result', async () => {
+  const item = { id: 'stale-manual', job_run_id: 'job-1', item_key: `extract:${sourceId}:manual:${'2'.repeat(64)}:1`,
+    attempts: 1, checkpoint: { source_id: sourceId, manual: true, content_sha256: 'b'.repeat(64), extracted_at: null } };
+  const store = fakeStore({ item });
+  const result = await runDailyJobItem({ store, owner: 'owner-a', env: sparkEnv, ...dependencies,
+    modelFactory: () => { throw new Error('must not analyze a changed source'); } });
+  assert.equal(result.status, 'succeeded');
+  assert.equal(store.calls.find(c => c[0] === 'finishJobItem')[4].outcome, 'source_changed');
+  assert.ok(!store.calls.some(c => ['reserveBudget', 'beginExtraction', 'saveExtraction'].includes(c[0])));
+});
+
+test('a manual-only run does not suppress the later natural daily search plan', async () => {
+  const manual = { item_key: `extract:${sourceId}:manual:${'3'.repeat(64)}:1`, status: 'queued', checkpoint: { source_id: sourceId, manual: true } };
+  const store = fakeStore();
+  store.jobRun = async () => ({ run: { status: 'running' }, items: [manual] });
+  const day = '2026-10-25';
+  const result = await enqueueDailyScan({ store, owner: 'owner-a', now: new Date(day + 'T04:00:00Z') });
+  assert.equal(result.scheduleKey, day);
+  const queued = store.calls.filter(c => c[0] === 'enqueueJobItems').flatMap(c => c[3]);
+  assert.deepEqual(queued.filter(i => i.item_key.startsWith('discover:')).map(i => i.item_key), dailySearchCountries(day).map(code => `discover:${code}`));
+  assert.equal(queued.filter(i => i.item_key.startsWith('registry:')).length, registry.length);
+  assert.ok(!queued.some(i => i.item_key === manual.item_key));
+  assert.equal(manual.status, 'queued');
+});
