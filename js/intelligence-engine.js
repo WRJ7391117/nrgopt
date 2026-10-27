@@ -60,7 +60,23 @@
       wire(from, to, 'M' + startX + ' ' + a.bottom + ' V' + lane + ' H' + endX + ' V' + b.top, dashed);
     }
 
-    if (figure.dataset.engineDiagram === 'flow') {
+    if (figure.dataset.engineDiagram === 'spark') {
+      var cloud = box('spark-cloud'), funnel = box('spark-funnel'), tls = box('spark-tls'), dns = box('spark-dns');
+      if (mobile) {
+        var sparkRail = frame.width - 8;
+        wire('spark-cloud', 'spark-dns', 'M' + cloud.right + ' ' + cloud.cy + ' H' + sparkRail + ' V' + dns.cy + ' H' + dns.right, true);
+        wire('spark-cloud', 'spark-funnel', 'M' + cloud.left + ' ' + cloud.cy + ' H8 V' + funnel.cy + ' H' + funnel.left, false, true);
+        wire('spark-funnel', 'spark-tls', 'M' + funnel.right + ' ' + funnel.cy + ' H' + sparkRail + ' V' + tls.cy + ' H' + tls.right, false, true);
+      } else {
+        var leftLane = (cloud.right + funnel.left) / 2, rightLane = (funnel.right + tls.left) / 2;
+        wire('spark-cloud', 'spark-dns', 'M' + cloud.right + ' ' + (cloud.cy - 16) + ' H' + leftLane + ' V' + dns.cy + ' H' + dns.left, true);
+        wire('spark-cloud', 'spark-funnel', 'M' + cloud.right + ' ' + (cloud.cy + 16) + ' H' + leftLane + ' V' + funnel.cy + ' H' + funnel.left, false, true);
+        wire('spark-funnel', 'spark-tls', 'M' + funnel.right + ' ' + funnel.cy + ' H' + rightLane + ' V' + tls.cy + ' H' + tls.left, false, true);
+      }
+      down('spark-dns', 'spark-funnel', false, true);
+      down('spark-tls', 'spark-proxy', true);
+      down('spark-proxy', 'spark-model', true);
+    } else if (figure.dataset.engineDiagram === 'flow') {
       for (var i = 1; i < 5; i++) mobile ? down('step' + i, 'step' + (i + 1)) : across('step' + i, 'step' + (i + 1));
       var first = box('step1'), last = box('step5');
       if (mobile) {

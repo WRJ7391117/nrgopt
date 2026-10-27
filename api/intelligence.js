@@ -8,7 +8,7 @@ const { createMiniMaxDiscoverer } = require('../lib/intelligence/minimax.cjs');
 const { runPaidCall, enqueueDailyScan, runDailyJobBatch, scheduleDate } = require('../lib/intelligence/jobs.cjs');
 const { importSourceUrl, extractSavedSource } = require('../lib/intelligence/pipeline.cjs');
 const { createFeishuSender, summarizeRun } = require('../lib/intelligence/feishu.cjs');
-const { enginePage, directionsPage, topicsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
+const { businessNetworkPage, enginePage, directionsPage, topicsPage, loginPage, resetPasswordPage, sourcesPage, overviewPage, settingsPage, workflowPage, followupsPage, workbenchPage } = require('../lib/intelligence/pages.cjs');
 const { providerSettings, providerSettingsForOwner, publicProviderSettings, providerConfigRecord } = require('../lib/intelligence/provider-config.cjs');
 const { createProviderBalanceReader } = require('../lib/intelligence/provider-billing.cjs');
 const feishuConfig = require('../lib/intelligence/feishu-config.cjs');
@@ -25,6 +25,8 @@ const messages = {
   topic_conflict: '专题名单已在其他页面修改，请刷新后重试。', topic_limit: '最多同时启用20个跨境专题，请先停用不再关注的专题。', topic_duplicate: '已有同名专题，请使用或恢复现有专题。',
   auth_required: '请登录后查看。', login_failed: '邮箱或密码错误，或账号尚未确认。', password_reset_failed: '重置链接无效或已过期，请重新发送重置邮件。', forbidden: '此账号没有情报模块的访问权限。', origin_rejected: '请求来源无效，请从本站重试。',
   not_configured: '情报服务尚未配置完成。', writes_disabled: '当前环境尚未开放来源导入。', invalid_request: '请检查输入内容。',
+  business_relation_conflict: '这条关系已在其他页面更新。当前输入已保留，请读取最新记录后再编辑。',
+  business_relation_not_found: '没有找到这条商务关系记录，请刷新名单。',
   followup_conflict: '跟踪已在另一页面更新，请重新读取后再保存，当前输入尚未覆盖。',
   not_found: '没有找到这条来源记录。', upstream_unavailable: '连接服务失败，请稍后重试。', storage_failed: '原件保存失败，请重试导入。',
     evidence_not_ready: '原件尚未保存完成。', evidence_corrupt: '原件校验失败，暂时无法下载。', source_failed: '来源获取失败，请检查网址后重试。',
@@ -98,8 +100,8 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
     const action = req.query?.action || 'sources';
     const html = value => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.status(200).end(value); };
     try {
-      const post = ['save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-direction-matrix', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
-      const get = ['engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-activity', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
+      const post = ['save-business-relation', 'save-feishu-config', 'check-feishu-config', 'save-library-entry', 'check-library-entry', 'save-direction', 'save-direction-matrix', 'save-topic', 'save-local-archive-directory', 'login', 'logout', 'request-password-reset', 'reset-password', 'import', 'annotate', 'extract', 'discover', 'save-provider-settings', 'save-notification-settings', 'save-source-control', 'save-followup', 'archive-claim', 'archive-ack', 'archive-fail', 'archive-config', 'archive-report'].includes(action);
+      const get = ['network-page', 'business-network', 'engine-page', 'feishu-page', 'feishu-config', 'library-page', 'source-library', 'library-history', 'library-maintenance', 'directions-page', 'directions', 'direction-activity', 'direction-results', 'topics-page', 'topics', 'login-page', 'reset-password-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page', 'followup', 'followups', 'session', 'sources', 'source', 'overview', 'workbench', 'workflow', 'coverage', 'operations', 'local-archive-settings', 'provider-settings', 'provider-history', 'notification-settings', 'source-controls', 'evidence', 'scheduled-scan', 'health-check', 'notification-worker', 'archive-object'].includes(action);
       if ((!post && !get) || (post && req.method !== 'POST') || (get && req.method !== 'GET')) {
         res.setHeader('Allow', post ? 'POST' : 'GET');
         return res.status(405).json({ error: 'method_not_allowed', message: '不支持此请求方式。' });
@@ -259,7 +261,7 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       }
       let body = req.body;
       if (post) {
-        const bodyLimit = action === 'save-direction-matrix' ? 65536 : action === 'save-provider-settings' ? 12000 : 8192;
+        const bodyLimit = action === 'save-direction-matrix' ? 65536 : action === 'save-provider-settings' ? 12000 : action === 'save-business-relation' ? 16384 : 8192;
         if (!req.headers['content-type']?.startsWith('application/json') || !body || typeof body !== 'object' || Array.isArray(body) || JSON.stringify(body).length > bodyLimit) throw failure('invalid_request', 400);
       }
       if (action === 'login') {
@@ -380,6 +382,20 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       if (action === 'coverage') return res.status(200).json({ ...(await store.dailyEntryStatus(user.id, scheduleDate())), search_countries: Object.keys(countries), fixed_sources: registry.map(({ id, country }) => ({ id, country })) });
       if (action === 'workflow-page') return html(workflowPage(user.email));
       if (action === 'workflow') return res.status(200).json({ user: { email: user.email }, ...(await store.dailyTasks(user.id, scheduleDate())) });
+      if (action === 'network-page') return html(businessNetworkPage(user.email));
+      if (action === 'business-network') {
+        const state = req.query.state || 'all';
+        const offset = Number(req.query.offset || 0);
+        const q = req.query.q || '';
+        if (!['all', 'identified', 'contacted', 'communicating', 'paused', 'archived'].includes(state) ||
+            !Number.isSafeInteger(offset) || offset < 0 || offset > 100000 || typeof q !== 'string' || q.length > 120 || /[\x00-\x1f\x7f]/.test(q)) throw failure('invalid_request', 400);
+        return res.status(200).json({ ...(await store.businessNetwork(user.id, { status: state, offset, q: q.trim() })), writable: config.writes });
+      }
+      if (action === 'save-business-relation') {
+        if (!config.writes) throw failure('writes_disabled', 403);
+        const value = require('../lib/intelligence/business-network.cjs').validateBusinessRelation(body);
+        return res.status(200).json({ record: await store.saveBusinessRelation(user.id, value) });
+      }
       if (action === 'followups-page') return html(followupsPage(user.email));
       if (action === 'followup') return res.status(200).json({ ...(await store.followup(req.query.id, user.id)), writable: config.writes });
       if (action === 'followups') {
@@ -545,9 +561,9 @@ function createHandler({ env = process.env, storeFactory = createStore, sourceFe
       const result = await importSourceUrl({ store, owner: user.id, url: body.url, sourceFetcher });
       return res.status(result.reused ? 200 : 201).json(result);
     } catch (error) {
-      if (error.code === 'auth_required' && ['engine-page', 'feishu-page', 'library-page', 'directions-page', 'topics-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
+      if (error.code === 'auth_required' && ['network-page', 'engine-page', 'feishu-page', 'library-page', 'directions-page', 'topics-page', 'page', 'overview-page', 'discover-page', 'workflow-page', 'followups-page', 'settings-page', 'detail-page'].includes(action)) {
         let target = action === 'detail-page' && UUID.test(req.query.id || '') ? `/intelligence/sources/${req.query.id}`
-          : action === 'engine-page' ? '/intelligence/engine' : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'topics-page' ? '/intelligence/topics' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
+          : action === 'network-page' ? '/intelligence/network' : action === 'engine-page' ? '/intelligence/engine' : action === 'feishu-page' ? '/intelligence/feishu' : action === 'library-page' ? '/intelligence/library' : action === 'directions-page' ? '/intelligence/directions' : action === 'topics-page' ? '/intelligence/topics' : action === 'discover-page' ? '/intelligence/discover' : action === 'followups-page' ? '/intelligence/followups' : action === 'workflow-page' ? '/intelligence/workflow' : action === 'overview-page' ? '/intelligence/overview' : action === 'settings-page' ? '/intelligence/settings' : '/intelligence/sources';
         if (['overview-page', 'discover-page'].includes(action)) {
           const params = new URLSearchParams();
           if (regions.countries.some(item => item.code === req.query.country)) params.set('country', req.query.country);

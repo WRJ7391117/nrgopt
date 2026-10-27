@@ -16,6 +16,7 @@ http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
     req.query = Object.fromEntries(url.searchParams);
     if (url.pathname === '/intelligence/login') req.query.action = 'login-page';
+    else if (url.pathname === '/intelligence/network') req.query.action = 'network-page';
     else if (url.pathname === '/intelligence/engine') req.query.action = 'engine-page';
     else if (url.pathname === '/intelligence/feishu') req.query.action = 'feishu-page';
     else if (url.pathname === '/intelligence/library') req.query.action = 'library-page';
@@ -37,7 +38,7 @@ http.createServer(async (req, res) => {
       const chunks = []; let size = 0;
       for await (const chunk of req) {
         size += chunk.length;
-        if (size > (research ? 3300000 : req.query.action === 'save-direction-matrix' ? 196608 : 8192)) { res.status(413).json({ message: '请求内容过长。' }); return; }
+        if (size > (research ? 3300000 : req.query.action === 'save-direction-matrix' ? 196608 : req.query.action === 'save-business-relation' ? 24576 : 8192)) { res.status(413).json({ message: '请求内容过长。' }); return; }
         chunks.push(chunk);
       }
       if (size) {

@@ -452,7 +452,7 @@ test('private read passes owner filter and server HTML never embeds source data'
   assert.match(overviewPage.body, />工作台</);
   const moduleNav = overviewPage.body.match(/<nav class="intel-nav"[^>]*>(.*?)<\/nav>/s)[1];
   assert.deepEqual([...moduleNav.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map(match => match[1]),
-    ['搜集方向', '渠道库', '情报库', '工作台', '我的跟踪', '运行机制', '系统设置', '市场调研']);
+    ['搜集方向', '渠道库', '情报库', '工作台', '我的跟踪', '商务关系', '运行机制', '系统设置', '市场调研']);
   assert.match(overviewPage.body, />早期信号</);
   assert.match(overviewPage.body, /查阅已保存的情报/);
   assert.match(overviewPage.body, /id="radar-demand-count"/);
@@ -1230,4 +1230,35 @@ test('detail page accepts queued analysis without rendering a missing synchronou
   await onClick();
   assert.deepEqual(messages.at(-1), ['extraction-status', queued.message, 'success']);
   assert.equal(button.disabled, false);
+});
+
+test('business network is private and owner scoped; writes require the existing origin and write gates', async () => {
+  const value = { id, revision: 0, organization: '测试机构', contact_name: '', role: '', region: '', contact_details: '', business_context: '', source_note: '', communication_note: '', next_action: '', status: 'identified', followup_on: null, archived: false };
+  const testApp = setup({ overrides: { businessNetwork: async () => ({ items: [], has_more: false }), saveBusinessRelation: async (_owner, data) => ({ ...data, revision: 1 }) } });
+  assert.equal((await testApp.request('network-page', { loggedIn: false })).headers.location, '/intelligence/login?returnTo=%2Fintelligence%2Fnetwork');
+  for (const action of ['business-network', 'save-business-relation']) {
+    assert.equal((await testApp.request(action, { loggedIn: false, ...(action.startsWith('save') ? { method: 'POST', body: value } : {}) })).code, 401);
+  }
+  assert.equal(testApp.calls.length, 0);
+  const page = await testApp.request('network-page'); assert.equal(page.code, 200); assert.match(page.body, /商务关系网络库/);
+  const list = await testApp.request('business-network', { query: { state: 'archived', q: ' 100%_ ', offset: '25' } });
+  assert.deepEqual(list.body, { items: [], has_more: false, writable: true });
+  assert.deepEqual(testApp.calls.find(c => c.name === 'businessNetwork').args, [admin, { status: 'archived', q: '100%_', offset: 25 }]);
+  assert.equal((await testApp.request('save-business-relation', { method: 'POST', body: { ...value, owner_id: 'untrusted' } })).code, 200);
+  const limits = { organization: 160, contact_name: 120, role: 160, region: 120, contact_details: 800, business_context: 1000, source_note: 800, communication_note: 1600, next_action: 600 };
+  const quoted = { ...value, ...Object.fromEntries(Object.entries(limits).map(([key, length]) => [key, '"'.repeat(length)])) };
+  assert.equal((await testApp.request('save-business-relation', { method: 'POST', body: quoted })).code, 200, 'valid maximum-length escaped fields fit request budget');
+  assert.equal(testApp.calls.find(c => c.name === 'saveBusinessRelation').args[0], admin);
+  assert.equal(Object.hasOwn(testApp.calls.find(c => c.name === 'saveBusinessRelation').args[1], 'owner_id'), false);
+  assert.equal((await testApp.request('save-business-relation', { method: 'POST', body: value, headers: { origin: 'https://untrusted.test' } })).code, 403);
+  for (const query of [{ state: 'made-up' }, { offset: '-1' }, { offset: '1.5' }, { q: 'x'.repeat(121) }]) assert.equal((await testApp.request('business-network', { query })).code, 400);
+  assert.equal((await testApp.request('save-business-relation', { method: 'POST', body: { ...value, followup_on: '2026-02-30' } })).code, 400);
+  const other = setup({ overrides: { user: async () => ({ id }) } });
+  assert.equal((await other.request('business-network')).code, 403);
+  const disabled = setup({ environment: { ...env, NRGOPT_INTELLIGENCE_WRITE_ENABLED: '0' } });
+  assert.equal((await disabled.request('save-business-relation', { method: 'POST', body: value })).code, 403);
+  const conflict = setup({ overrides: { saveBusinessRelation: async () => { throw failure('business_relation_conflict', 409); } } });
+  const result = await conflict.request('save-business-relation', { method: 'POST', body: value });
+  assert.equal(result.code, 409); assert.match(result.body.message, /当前输入已保留/);
+  assert.ok(testApp.calls.every(c => ['user','businessNetwork','saveBusinessRelation'].includes(c.name)), 'no model, source, queue or notification calls');
 });

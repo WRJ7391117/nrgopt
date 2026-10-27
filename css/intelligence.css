@@ -753,3 +753,10 @@ section.intel-settings-module { margin: 24px 0; padding: 24px; border: 1px solid
   .intel-overview .intel-overview-section { padding: 18px 16px; margin-bottom: 16px; }
   .intel-overview .intel-overview-section > .intel-section-heading { padding-bottom: 14px; margin-bottom: 14px; gap: 10px; }
 }
+
+/* Spark uses the same grouped nodes and SVG connectors as the engine diagrams. */
+.intel-spark-diagram > .intel-diagram-wires { z-index: 2; }
+.intel-spark-groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.3fr); gap: 48px; align-items: stretch; }
+.intel-spark-diagram .intel-diagram-group > .intel-diagram-node + .intel-diagram-node { margin-top: 44px; }
+.intel-spark-diagram .intel-diagram-node span { overflow-wrap: anywhere; }
+@media (max-width: 1040px) { .intel-spark-groups { grid-template-columns: 1fr; gap: 48px; } }
